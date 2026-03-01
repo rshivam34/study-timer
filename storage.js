@@ -7,6 +7,9 @@ const Data = (() => {
   const GIST_ID_KEY = 'study_timer_gist_id';
   const GIST_FILENAME = 'study_timer_data.json';
 
+  // Hardcoded token — auto-connects on any device
+  const HARDCODED_TOKEN = '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';
+
   // --- Local Storage ---
   function getLocal() {
     try {
@@ -19,7 +22,7 @@ const Data = (() => {
   }
 
   function getToken() {
-    return localStorage.getItem(TOKEN_KEY) || '';
+    return localStorage.getItem(TOKEN_KEY) || HARDCODED_TOKEN;
   }
 
   function setToken(token) {
