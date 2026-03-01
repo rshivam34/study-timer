@@ -9,26 +9,22 @@ const App = (() => {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     });
 
-    // Check if already set up
+    // Always go straight to main app
+    showMainApp();
+
+    // Auto-connect to GitHub Gist
     if (Data.isCloudEnabled()) {
-      showMainApp();
+      // Already has gist ID — just sync
       updateSyncUI('syncing');
       Data.syncWithCloud()
-        .then(() => {
-          UI.renderAll();
-          updateSyncUI('synced');
-        })
-        .catch(() => {
-          UI.renderAll();
-          updateSyncUI('error');
-        });
-    } else if (Data.getLocal() && Object.keys(Data.getLocal()).length > 0) {
-      // Has local data but no cloud — skip setup
-      showMainApp();
-      updateSyncUI('local');
+        .then(() => { UI.renderAll(); updateSyncUI('synced'); })
+        .catch(() => { UI.renderAll(); updateSyncUI('error'); });
+    } else if (Data.getToken()) {
+      // Has token but no gist ID — auto-find or create gist
+      updateSyncUI('syncing');
+      autoConnectGist();
     } else {
-      // First time — show setup
-      showSetupScreen();
+      updateSyncUI('local');
     }
 
     // Warn before tab close if timer running
@@ -47,6 +43,29 @@ const App = (() => {
           .catch(() => updateSyncUI('error'));
       }
     }, 5 * 60 * 1000);
+  }
+
+  // Auto-find existing gist or create a new one
+  async function autoConnectGist() {
+    try {
+      const token = Data.getToken();
+      const existingGistId = await Data.validateToken(token);
+
+      if (existingGistId) {
+        Data.setGistId(existingGistId);
+        await Data.syncWithCloud();
+      } else {
+        const newId = await Data.createGist(token);
+        Data.setGistId(newId);
+      }
+
+      UI.renderAll();
+      updateSyncUI('synced');
+    } catch (e) {
+      console.error('Auto-connect failed:', e);
+      UI.renderAll();
+      updateSyncUI('error');
+    }
   }
 
   function showSetupScreen() {
