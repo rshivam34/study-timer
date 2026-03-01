@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Study Timer</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⏱</text></svg>">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- Setup Screen (shown first time) -->
+  <div class="setup-screen" id="setupScreen">
+    <div class="setup-card">
+      <div class="setup-icon">⏱</div>
+      <h1>Study Timer</h1>
+      <p>To sync your data across all devices, connect a GitHub Gist.</p>
+
+      <div class="setup-steps">
+        <div class="step">
+          <span class="step-num">1</span>
+          <div>
+            <strong>Create a GitHub Token</strong>
+            <p>Go to <a href="https://github.com/settings/tokens/new?scopes=gist&description=Study+Timer+App" target="_blank">GitHub → Settings → Tokens</a><br>Select only the <code>gist</code> scope → Generate</p>
+          </div>
+        </div>
+        <div class="step">
+          <span class="step-num">2</span>
+          <div>
+            <strong>Paste your token below</strong>
+            <p>It will be stored in your browser only.</p>
+          </div>
+        </div>
+      </div>
+
+      <input type="password" id="tokenInput" class="token-input" placeholder="ghp_xxxxxxxxxxxx">
+      <div class="setup-hint" id="setupHint"></div>
+      <button class="btn btn-primary btn-full" onclick="App.connectGist()">Connect & Start</button>
+      <button class="btn btn-ghost btn-full" onclick="App.skipSetup()">Skip — use local storage only</button>
+    </div>
+  </div>
+
+  <!-- Main App -->
+  <div class="app hidden" id="mainApp">
+    <!-- Sync indicator -->
+    <div class="sync-bar" id="syncBar">
+      <span class="sync-dot" id="syncDot"></span>
+      <span id="syncText">Local only</span>
+      <button class="sync-btn" id="syncBtn" onclick="App.manualSync()" title="Sync now">⟳</button>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+      <h1>Study Timer</h1>
+      <div class="today-date" id="todayDate"></div>
+    </header>
+
+    <!-- Timer Card -->
+    <section class="timer-card" id="timerCard">
+      <div class="pulse-ring" id="pulseRing"></div>
+      <div class="timer-display" id="timerDisplay">00:00:00</div>
+      <div class="timer-label" id="timerLabel">Ready to focus</div>
+      <div class="controls">
+        <button class="btn btn-start" id="startBtn" onclick="Timer.start()">Start Session</button>
+        <button class="btn btn-stop hidden" id="stopBtn" onclick="Timer.stop()">Stop & Save</button>
+        <button class="btn btn-discard hidden" id="discardBtn" onclick="Timer.discard()">Discard</button>
+      </div>
+    </section>
+
+    <!-- Today Stats -->
+    <div class="section-label">Today</div>
+    <section class="stats-row">
+      <div class="stat-box accent">
+        <div class="stat-val" id="totalTime">0h 0m</div>
+        <div class="stat-key">Total Time</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="sessionCount">0</div>
+        <div class="stat-key">Sessions</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="avgSession">—</div>
+        <div class="stat-key">Avg Session</div>
+      </div>
+    </section>
+
+    <!-- Today Sessions -->
+    <div class="section-label">Sessions</div>
+    <section id="sessionsList" class="sessions-list">
+      <div class="empty-state">
+        <div class="empty-icon">📚</div>
+        <p>No sessions yet today</p>
+      </div>
+    </section>
+
+    <!-- History -->
+    <button class="toggle-btn" id="historyToggle" onclick="UI.toggleHistory()">
+      Past Days <span class="chevron">▾</span>
+    </button>
+    <section class="history-section hidden" id="historySection">
+      <div id="historyList"></div>
+    </section>
+
+    <!-- Settings -->
+    <button class="toggle-btn" id="settingsToggle" onclick="UI.toggleSettings()">
+      Settings <span class="chevron">▾</span>
+    </button>
+    <section class="settings-section hidden" id="settingsSection">
+      <div class="setting-row">
+        <div>
+          <strong>GitHub Gist Sync</strong>
+          <p class="setting-desc" id="gistStatus">Not connected</p>
+        </div>
+        <button class="btn btn-sm" id="gistActionBtn" onclick="App.showSetup()">Connect</button>
+      </div>
+      <div class="setting-row">
+        <div>
+          <strong>Export Data</strong>
+          <p class="setting-desc">Download JSON backup</p>
+        </div>
+        <button class="btn btn-sm" onclick="Data.exportJSON()">Export</button>
+      </div>
+      <div class="setting-row">
+        <div>
+          <strong>Import Data</strong>
+          <p class="setting-desc">Load from JSON file</p>
+        </div>
+        <button class="btn btn-sm" onclick="Data.triggerImport()">Import</button>
+      </div>
+      <div class="setting-row danger">
+        <div>
+          <strong>Clear All Data</strong>
+          <p class="setting-desc">Permanently delete everything</p>
+        </div>
+        <button class="btn btn-sm btn-danger" onclick="Data.clearAll()">Clear</button>
+      </div>
+    </section>
+
+    <input type="file" id="fileInput" accept=".json" style="display:none" onchange="Data.handleImport(event)">
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script src="js/storage.js"></script>
+  <script src="js/timer.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
