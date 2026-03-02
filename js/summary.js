@@ -653,6 +653,9 @@ var SUM=(function(){
     /* [#31] Estimation Accuracy — estimated vs actual */
     h+=_estimationAccuracy();
 
+    /* [#32] Subject Balance Radar — planned vs actual per subject */
+    h+=_subjectBalanceRadar();
+
     document.getElementById('sumAnalytics').innerHTML=h;
   }
 
@@ -827,9 +830,250 @@ var SUM=(function(){
     return h;
   }
 
-  /* [#53] Export as PDF — uses browser print dialog with @media print CSS */
+  /* ---- [#32] Subject Balance Radar — planned vs actual hours per subject ---- */
+  function _subjectBalanceRadar(){
+    var cfg=D.getCfg();
+    var subjects=cfg.studySubjects||[];
+    if(subjects.length<3)return''; /* Need at least 3 axes for a meaningful radar */
+
+    /* Collect 30 days of plan estimates and actual study per subject */
+    var planned={},actual={};
+    subjects.forEach(function(s){planned[s]=0;actual[s]=0});
+
+    for(var i=29;i>=0;i--){
+      var dd=new Date();dd.setDate(dd.getDate()-i);
+      var dk=D.todayKey(dd);
+      /* Planned hours from plan items */
+      var plans=PLAN.getForDate(dk);
+      plans.forEach(function(p){
+        if(p.subject&&planned.hasOwnProperty(p.subject)){
+          planned[p.subject]+=(p.estHours||0);
+        }
+      });
+      /* Actual hours from study sessions */
+      var sess=D.getSess('study',dk);
+      sess.forEach(function(s){
+        if(s.cat&&actual.hasOwnProperty(s.cat)){
+          actual[s.cat]+=s.dur/3600;
+        }
+      });
+    }
+
+    /* Filter to subjects with any data (planned or actual) */
+    var activeSubjects=subjects.filter(function(s){return planned[s]>0||actual[s]>0});
+    if(activeSubjects.length<3)return''; /* Need at least 3 for radar */
+
+    /* SVG radar chart geometry */
+    var cx=110,cy=110,maxR=85; /* center and max radius */
+    var n=activeSubjects.length;
+    var angleStep=(2*Math.PI)/n;
+    var startAngle=-Math.PI/2; /* Start from top */
+
+    /* Find max value for scaling */
+    var maxVal=0;
+    activeSubjects.forEach(function(s){
+      if(planned[s]>maxVal)maxVal=planned[s];
+      if(actual[s]>maxVal)maxVal=actual[s];
+    });
+    if(maxVal===0)return'';
+
+    /* Build grid rings (3 concentric circles) */
+    var svg='<svg viewBox="0 0 220 220" width="200" height="200" style="display:block;margin:0 auto">';
+    /* Background rings */
+    [0.33,0.66,1].forEach(function(frac){
+      var r=maxR*frac;
+      svg+='<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="var(--brd)" stroke-width="0.5" opacity="0.5"/>';
+    });
+
+    /* Axis lines and labels */
+    activeSubjects.forEach(function(s,i){
+      var angle=startAngle+i*angleStep;
+      var x2=cx+maxR*Math.cos(angle);
+      var y2=cy+maxR*Math.sin(angle);
+      svg+='<line x1="'+cx+'" y1="'+cy+'" x2="'+x2+'" y2="'+y2+'" stroke="var(--brd)" stroke-width="0.5" opacity="0.5"/>';
+      /* Label position — push further out */
+      var lx=cx+(maxR+14)*Math.cos(angle);
+      var ly=cy+(maxR+14)*Math.sin(angle);
+      var anchor='middle';
+      if(Math.cos(angle)>0.3)anchor='start';
+      else if(Math.cos(angle)<-0.3)anchor='end';
+      var shortName=s.length>8?s.slice(0,7)+'…':s;
+      svg+='<text x="'+lx+'" y="'+ly+'" text-anchor="'+anchor+'" dominant-baseline="middle" fill="var(--tf)" font-size="7" font-weight="600">'+esc(shortName)+'</text>';
+    });
+
+    /* Build polygon points for planned */
+    var plannedPts=[];
+    activeSubjects.forEach(function(s,i){
+      var angle=startAngle+i*angleStep;
+      var r=maxR*(planned[s]/maxVal);
+      plannedPts.push((cx+r*Math.cos(angle)).toFixed(1)+','+(cy+r*Math.sin(angle)).toFixed(1));
+    });
+    svg+='<polygon points="'+plannedPts.join(' ')+'" fill="rgba(139,92,246,0.15)" stroke="var(--pur)" stroke-width="1.5" stroke-linejoin="round"/>';
+
+    /* Build polygon points for actual */
+    var actualPts=[];
+    activeSubjects.forEach(function(s,i){
+      var angle=startAngle+i*angleStep;
+      var r=maxR*(actual[s]/maxVal);
+      actualPts.push((cx+r*Math.cos(angle)).toFixed(1)+','+(cy+r*Math.sin(angle)).toFixed(1));
+    });
+    svg+='<polygon points="'+actualPts.join(' ')+'" fill="rgba(52,211,153,0.15)" stroke="var(--grn)" stroke-width="1.5" stroke-linejoin="round"/>';
+
+    /* Data point dots */
+    activeSubjects.forEach(function(s,i){
+      var angle=startAngle+i*angleStep;
+      var rP=maxR*(planned[s]/maxVal);
+      var rA=maxR*(actual[s]/maxVal);
+      svg+='<circle cx="'+(cx+rP*Math.cos(angle)).toFixed(1)+'" cy="'+(cy+rP*Math.sin(angle)).toFixed(1)+'" r="2.5" fill="var(--pur)"/>';
+      svg+='<circle cx="'+(cx+rA*Math.cos(angle)).toFixed(1)+'" cy="'+(cy+rA*Math.sin(angle)).toFixed(1)+'" r="2.5" fill="var(--grn)"/>';
+    });
+
+    svg+='</svg>';
+
+    /* Legend */
+    var legend='<div style="display:flex;justify-content:center;gap:14px;margin-top:6px;font-size:.55rem;font-weight:600">';
+    legend+='<span><span style="display:inline-block;width:10px;height:3px;background:var(--pur);border-radius:2px;vertical-align:middle;margin-right:3px"></span>Planned</span>';
+    legend+='<span><span style="display:inline-block;width:10px;height:3px;background:var(--grn);border-radius:2px;vertical-align:middle;margin-right:3px"></span>Actual</span>';
+    legend+='</div>';
+
+    /* Subject detail rows */
+    var detail='<div style="margin-top:8px;font-size:.6rem">';
+    activeSubjects.forEach(function(s){
+      var pVal=planned[s].toFixed(1);
+      var aVal=actual[s].toFixed(1);
+      var diff=actual[s]-planned[s];
+      var diffTxt=diff>0?'+'+diff.toFixed(1)+'h':diff<0?diff.toFixed(1)+'h':'on track';
+      var diffCol=diff>=0?'var(--grn)':'var(--red)';
+      detail+='<div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid var(--brd)">';
+      detail+='<span style="color:var(--heading);font-weight:600">'+esc(s)+'</span>';
+      detail+='<span>Plan: '+pVal+'h · Actual: '+aVal+'h · <span style="color:'+diffCol+';font-weight:700">'+diffTxt+'</span></span>';
+      detail+='</div>';
+    });
+    detail+='</div>';
+
+    var h='<div class="summary-card"><h4>🎯 Subject Balance</h4>';
+    h+='<div style="font-size:.55rem;color:var(--tf);margin-bottom:6px">Last 30 days — Planned vs Actual study hours</div>';
+    h+=svg+legend+detail;
+    h+='</div>';
+    return h;
+  }
+
+  /* [#53] Export Summary as PNG — canvas-based screenshot */
   function exportSummary(){
-    window.print();
+    var target=document.getElementById('p-summary');
+    if(!target){window.print();return}
+
+    /* Calculate dimensions from the summary panel */
+    var cards=target.querySelectorAll('.summary-card,.sl');
+    if(!cards.length){window.print();return}
+
+    /* Create offscreen canvas */
+    var canvas=document.createElement('canvas');
+    var ctx=canvas.getContext('2d');
+    var w=400,padding=16,y=padding;
+    var lineH=16,cardPad=12;
+
+    /* Pre-measure: collect text content from summary cards */
+    var sections=[];
+    target.querySelectorAll('.summary-card').forEach(function(card){
+      var title=card.querySelector('h4');
+      var rows=card.querySelectorAll('.sum-row');
+      var sec={title:title?title.textContent:'',rows:[]};
+      rows.forEach(function(r){
+        var label=r.querySelector('.sum-label');
+        var value=r.querySelector('.sum-value');
+        sec.rows.push({
+          label:label?label.textContent:'',
+          value:value?value.textContent:''
+        });
+      });
+      sections.push(sec);
+    });
+
+    if(!sections.length){window.print();return}
+
+    /* Calculate canvas height */
+    var totalH=padding;
+    totalH+=lineH*1.5; /* Title */
+    sections.forEach(function(sec){
+      totalH+=lineH*1.8; /* Card title */
+      totalH+=sec.rows.length*(lineH*1.2); /* Rows */
+      totalH+=cardPad*2+8; /* Card padding + gap */
+    });
+    totalH+=padding;
+
+    canvas.width=w*2; /* 2x for retina */
+    canvas.height=totalH*2;
+    ctx.scale(2,2);
+
+    /* Dark background */
+    ctx.fillStyle='#0a0a12';
+    ctx.fillRect(0,0,w,totalH);
+
+    /* Main title */
+    ctx.fillStyle='#e2e2ea';
+    ctx.font='bold 14px system-ui, sans-serif';
+    ctx.fillText('Study Timer — Summary Export',padding,y+14);
+    y+=lineH*1.5;
+
+    /* Date */
+    var dateEl=document.getElementById('sumDate');
+    ctx.fillStyle='#8888aa';
+    ctx.font='11px system-ui, sans-serif';
+    ctx.fillText(dateEl?dateEl.value:D.todayKey(),padding,y+10);
+    y+=lineH;
+
+    /* Render sections */
+    sections.forEach(function(sec){
+      y+=6;
+      /* Card background */
+      var cardH=lineH*1.5+sec.rows.length*(lineH*1.2)+cardPad;
+      ctx.fillStyle='#14141f';
+      ctx.beginPath();
+      ctx.roundRect(padding-4,y-2,w-padding*2+8,cardH,6);
+      ctx.fill();
+
+      /* Card title */
+      ctx.fillStyle='#e2e2ea';
+      ctx.font='bold 11px system-ui, sans-serif';
+      ctx.fillText(sec.title,padding+cardPad-4,y+12);
+      y+=lineH*1.5;
+
+      /* Rows */
+      sec.rows.forEach(function(r){
+        ctx.fillStyle='#8888aa';
+        ctx.font='10px system-ui, sans-serif';
+        ctx.fillText(r.label,padding+cardPad,y+10);
+        ctx.fillStyle='#e2e2ea';
+        ctx.font='bold 10px system-ui, sans-serif';
+        var valW=ctx.measureText(r.value).width;
+        ctx.fillText(r.value,w-padding-cardPad-valW,y+10);
+        y+=lineH*1.2;
+      });
+      y+=cardPad;
+    });
+
+    /* Watermark */
+    ctx.fillStyle='#444466';
+    ctx.font='9px system-ui, sans-serif';
+    ctx.fillText('Generated by Study Timer',padding,y+6);
+
+    /* Download as PNG */
+    try{
+      canvas.toBlob(function(blob){
+        if(!blob){window.print();return}
+        var url=URL.createObjectURL(blob);
+        var a=document.createElement('a');
+        a.href=url;
+        a.download='study-summary-'+D.todayKey()+'.png';
+        a.click();
+        setTimeout(function(){URL.revokeObjectURL(url)},1000);
+        UI.toast('Summary exported as PNG!');
+      },'image/png');
+    }catch(e){
+      /* Fallback to print if canvas fails */
+      window.print();
+    }
   }
 
   return{init:init,today:today,render:render,setRating:setRating,setMood:setMood,saveJournal:saveJournal,toggleTag:toggleTag,exportSummary:exportSummary};

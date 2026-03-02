@@ -384,6 +384,87 @@ var TODO=(function(){
     return h;
   }
 
+  /* Swipe Gestures (#19) — swipe right = done, swipe left = delete */
+  function _initSwipe(){
+    var todoList=document.getElementById('todoFullList');
+    if(!todoList)return;
+    var startX=0,startY=0,swiping=false,swipeEl=null,threshold=80;
+
+    todoList.addEventListener('touchstart',function(e){
+      var item=e.target.closest('.todo-item');
+      if(!item)return;
+      /* Don't swipe if touching a button, checkbox, drag handle, or input */
+      var tag=e.target.tagName;
+      if(tag==='BUTTON'||tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA')return;
+      if(e.target.closest('.todo-drag-handle')||e.target.closest('.todo-actions-bar'))return;
+      var touch=e.touches[0];
+      startX=touch.clientX;
+      startY=touch.clientY;
+      swiping=false;
+      swipeEl=item;
+    },{passive:true});
+
+    todoList.addEventListener('touchmove',function(e){
+      if(!swipeEl)return;
+      var touch=e.touches[0];
+      var dx=touch.clientX-startX;
+      var dy=touch.clientY-startY;
+      /* Only start swiping if horizontal movement dominates */
+      if(!swiping&&Math.abs(dx)>10&&Math.abs(dx)>Math.abs(dy)*1.5){
+        swiping=true;
+      }
+      if(!swiping)return;
+      e.preventDefault();
+      /* Clamp translation */
+      var tx=Math.max(-120,Math.min(120,dx));
+      swipeEl.style.transform='translateX('+tx+'px)';
+      swipeEl.style.transition='none';
+      /* Visual feedback */
+      if(dx>threshold){
+        swipeEl.style.background='rgba(52,211,153,0.15)';
+      }else if(dx<-threshold){
+        swipeEl.style.background='rgba(248,113,113,0.15)';
+      }else{
+        swipeEl.style.background='';
+      }
+    },{passive:false});
+
+    todoList.addEventListener('touchend',function(e){
+      if(!swipeEl){return}
+      var touch=e.changedTouches[0];
+      var dx=touch.clientX-startX;
+      var id=swipeEl.getAttribute('data-todo-id');
+      var group=document.getElementById('todoTypeFilter').value;
+
+      /* Reset visual */
+      swipeEl.style.transition='transform 0.2s ease, background 0.2s ease';
+      swipeEl.style.transform='';
+      swipeEl.style.background='';
+
+      if(swiping&&id){
+        if(dx>threshold){
+          /* Swipe right = mark done */
+          toggleDone(id,group);
+        }else if(dx<-threshold){
+          /* Swipe left = delete */
+          deleteItem(id,group);
+        }
+      }
+      swipeEl=null;
+      swiping=false;
+    },{passive:true});
+
+    todoList.addEventListener('touchcancel',function(){
+      if(swipeEl){
+        swipeEl.style.transition='transform 0.2s ease, background 0.2s ease';
+        swipeEl.style.transform='';
+        swipeEl.style.background='';
+      }
+      swipeEl=null;
+      swiping=false;
+    },{passive:true});
+  }
+
   /* Progress Bar (#48) */
   function _countAll(items){
     var c=0;
@@ -454,6 +535,7 @@ var TODO=(function(){
     items.forEach(function(item){h+=renderItem(item,group,0)});
     el.innerHTML=h;
     _initDrag();
+    _initSwipe();
     _renderProgress(todos[group]||[]);
   }
 
