@@ -14,8 +14,11 @@ function renderQuotes(){var all=getAllQuotes(),cfg=D.getCfg(),custom=cfg.customQ
 function addQuote(){var inp=document.getElementById('addQuote'),val=inp.value.trim();if(!val)return;var cfg=D.getCfg();if(!cfg.customQuotes)cfg.customQuotes=[];cfg.customQuotes.push(val);D.setCfg(cfg);inp.value='';renderQuotes();D.push();UI.toast('Added ✓')}
 function rmQuote(idx){var cfg=D.getCfg();if(!cfg.customQuotes)return;cfg.customQuotes.splice(idx,1);D.setCfg(cfg);renderQuotes();D.push()}
 function init(){var _dn=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];document.getElementById('todayD').textContent=_dn[new Date().getDay()]+', '+UI.fdate(D.todayKey());document.getElementById('goalDate').value=D.todayKey();var cfg=D.getCfg();document.documentElement.setAttribute('data-theme',cfg.theme||'dark');rotateQuote();quoteIv=setInterval(rotateQuote,30000);
-var cats=cfg.studySubjects,wCats=cfg.workCategories;document.getElementById('studyCat').innerHTML=cats.map(function(s){return'<option>'+s+'</option>'}).join('');document.getElementById('workCat').innerHTML=wCats.map(function(s){return'<option>'+s+'</option>'}).join('');
-document.getElementById('sylSubj').innerHTML='<option value="">Select...</option>'+cats.map(function(s){return'<option>'+s+'</option>'}).join('');
+var wCats=cfg.workCategories;
+/* Study dropdown uses exam-grouped subjects */
+document.getElementById('studyCat').innerHTML=UI.examSubjectOptions(null,false).replace('<option value="">Select...</option>','');
+document.getElementById('workCat').innerHTML=wCats.map(function(s){return'<option>'+s+'</option>'}).join('');
+document.getElementById('sylSubj').innerHTML=UI.examSubjectOptions(null,false);
 if(D.isCloud()){show('main');syncUI('busy');D.sync().then(function(){UI.renderAll();RP.renderHeatmap();DL.startTick();syncUI('on');gInfo();TM.recoverState()}).catch(function(){UI.renderAll();RP.renderHeatmap();DL.startTick();syncUI('err');gInfo();TM.recoverState()})}else if(D.getToken()){show('main');syncUI('busy');D.autoConn().then(function(){UI.renderAll();RP.renderHeatmap();DL.startTick();syncUI('on');gInfo();TM.recoverState()}).catch(function(){UI.renderAll();RP.renderHeatmap();DL.startTick();syncUI('err');gInfo();TM.recoverState()})}else{show('setup')}
 document.addEventListener('keydown',function(e){if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT')return;if(e.key===' '||e.code==='Space'){e.preventDefault();var at=TM.activeType();if(at){var s=TM.getState(at);s.pau?TM.resume(at):TM.pause(at)}else{var ct=document.querySelector('.tp.on').id.replace('p-','');if(ct==='study')TM.start('study');else if(ct==='work')TM.start('work')}}if(e.key==='s'){var a=TM.activeType();if(a)TM.stop(a)}if(e.key==='D'&&e.shiftKey){var a2=TM.activeType();if(a2)TM.discard(a2)}if(e.key==='f')enterFocus();if(e.key==='t')toggleTheme();if(e.key==='Escape')exitFocus();if(e.key==='p')App.navTo('plan');if(e.key==='c')App.navTo('calendar');if(e.key==='d'&&!e.shiftKey)App.navTo('todo');if(e.key==='u')App.navTo('summary');if(e.key==='k')App.navTo('knowledge');if(e.key>='1'&&e.key<='8'){var tabs=['study','work','report','syl','rev','remind','recur','sett'];tab(tabs[parseInt(e.key)-1])}});
 document.querySelectorAll('input[type="date"],input[type="datetime-local"]').forEach(function(inp){inp.addEventListener('mouseenter',function(){try{this.showPicker()}catch(e){}})});
@@ -35,8 +38,22 @@ function syncUI(state){var dot=document.getElementById('sDot'),txt=document.getE
 function gInfo(){var el=document.getElementById('gInfo'),btn=document.getElementById('gBtn');if(D.isCloud()){el.textContent='Connected — '+D.getGistId().slice(0,8)+'...';btn.textContent='Disconnect';btn.onclick=function(){if(confirm('Disconnect?')){D.disc();gInfo();syncUI('off');UI.toast('Disconnected')}}}else{el.textContent='Not connected';btn.textContent='Connect';btn.onclick=reconn}}
 function manSync(){if(!D.getToken()){UI.toast('Connect first');return}syncUI('busy');(D.isCloud()?D.sync():D.autoConn()).then(function(){UI.renderAll();RP.renderHeatmap();syncUI('on');gInfo();UI.toast('Synced ✓')}).catch(function(){D.autoConn().then(function(){UI.renderAll();RP.renderHeatmap();syncUI('on');gInfo();UI.toast('Synced ✓')}).catch(function(){syncUI('err');UI.toast('Failed')})})}
 function reconn(){show('setup')}
-function addCat(type){var inp=document.getElementById(type==='study'?'addStudy':type==='work'?'addWork':'addKnowledge');var val=inp.value.trim();if(!val)return;var cfg=D.getCfg();var list=type==='study'?cfg.studySubjects:type==='work'?cfg.workCategories:(cfg.knowledgeCategories||(cfg.knowledgeCategories=[]));if(list.indexOf(val)===-1)list.push(val);D.setCfg(cfg);inp.value='';UI.renderAll();D.push();UI.toast('Added')}
-function rmCat(type,name){if(!confirm('Remove "'+name+'"?'))return;var cfg=D.getCfg();if(type==='study')cfg.studySubjects=cfg.studySubjects.filter(function(s){return s!==name});else if(type==='work')cfg.workCategories=cfg.workCategories.filter(function(s){return s!==name});else if(type==='knowledge')cfg.knowledgeCategories=(cfg.knowledgeCategories||[]).filter(function(s){return s!==name});D.setCfg(cfg);UI.renderAll();D.push()}
+function addCat(type){var inp=document.getElementById(type==='study'?'addStudy':type==='work'?'addWork':'addKnowledge');var val=inp.value.trim();if(!val)return;var cfg=D.getCfg();
+if(type==='study'){
+  /* Add to first exam by default */
+  var exams=D.getExams();
+  if(exams.length){D.addSubjectToExam(exams[0].id,val)}
+  else{if(cfg.studySubjects.indexOf(val)===-1)cfg.studySubjects.push(val);D.setCfg(cfg)}
+} else {
+  var list=type==='work'?cfg.workCategories:(cfg.knowledgeCategories||(cfg.knowledgeCategories=[]));
+  if(list.indexOf(val)===-1)list.push(val);D.setCfg(cfg);
+}
+inp.value='';UI.renderAll();D.push();UI.toast('Added')}
+function rmCat(type,name){if(!confirm('Remove "'+name+'"?'))return;var cfg=D.getCfg();if(type==='study'){
+  /* Remove from all exams */
+  var exams=D.getExams();exams.forEach(function(ex){ex.subjects=(ex.subjects||[]).filter(function(s){return s!==name})});
+  D.setExams(exams);cfg.studySubjects=D.getAllSubjects();D.setCfg(cfg);
+} else if(type==='work')cfg.workCategories=cfg.workCategories.filter(function(s){return s!==name});else if(type==='knowledge')cfg.knowledgeCategories=(cfg.knowledgeCategories||[]).filter(function(s){return s!==name});D.setCfg(cfg);UI.renderAll();D.push()}
 function toggleTheme(){var cfg=D.getCfg();cfg.theme=cfg.theme==='dark'?'light':'dark';D.setCfg(cfg);document.documentElement.setAttribute('data-theme',cfg.theme);D.push()}
 function saveCfgExtra(){var cfg=D.getCfg();cfg.wakeTime=parseFloat(document.getElementById('cfgWakeTime').value)||6;cfg.bedtime=parseFloat(document.getElementById('cfgBedtime').value)||22.5;cfg.effectiveMins=parseInt(document.getElementById('cfgEffective').value)||50;var prEl=document.getElementById('cfgPlanRemindHour');if(prEl)cfg.planRemindHour=parseInt(prEl.value)||0;D.setCfg(cfg);D.push();try{App.renderTimeBudget()}catch(e){}UI.toast('Settings saved')}
 function enterFocus(){if(!TM.isOn()){UI.toast('Start timer first');return}document.getElementById('focusMode').classList.remove('hidden');var at=TM.activeType();document.getElementById('focusSub').textContent=at==='study'?'Studying':'Working';document.getElementById('focusCat').textContent=document.getElementById(at==='study'?'studyCat':'workCat').value;updateFocusBtns();moveFocusTimer();focusMoveIv=setInterval(moveFocusTimer,8000)}
@@ -47,6 +64,13 @@ function updateFocusBtns(){var at=TM.activeType();if(!at)return;var s=TM.getStat
 function installPWA(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(function(r){deferredPrompt=null;if(r.outcome==='accepted'){document.getElementById('pwaStatus').textContent='Installed! ✓';document.getElementById('pwaInstallBtn').textContent='✓ Done'}else{document.getElementById('pwaManual').classList.remove('hidden')}})}else{var m=document.getElementById('pwaManual');m.classList.toggle('hidden');if(!m.classList.contains('hidden'))UI.toast('Follow the steps below')}}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 return{connect:connect,skip:skip,tab:tab,syncUI:syncUI,manSync:manSync,reconn:reconn,addCat:addCat,rmCat:rmCat,toggleTheme:toggleTheme,saveCfgExtra:saveCfgExtra,enterFocus:enterFocus,exitFocus:exitFocus,focusAction:focusAction,installPWA:installPWA,toggleQuotes:toggleQuotes,addQuote:addQuote,rmQuote:rmQuote}})();
+
+/* Exam management functions — attached after IIFE */
+App.addExam=function(){var name=prompt('Exam name:');if(!name||!name.trim())return;D.addExam(name.trim());UI.renderManage();UI.fillDD();D.push();UI.toast('Exam added')};
+App.rmExam=function(id){if(!confirm('Delete this exam and all its subjects?'))return;D.removeExam(id);var cfg=D.getCfg();cfg.studySubjects=D.getAllSubjects();D.setCfg(cfg);UI.renderManage();UI.fillDD();D.push();UI.toast('Exam removed')};
+App.editExamName=function(id){var exams=D.getExams();var ex=exams.find(function(e){return e.id===id});if(!ex)return;var name=prompt('Rename exam:',ex.name);if(!name||!name.trim())return;ex.name=name.trim();D.setExams(exams);UI.renderManage();D.push();UI.toast('Renamed')};
+App.addSubjectToExam=function(examId){var inp=document.getElementById('addSubjExam_'+examId);var val=inp?inp.value.trim():'';if(!val)return;D.addSubjectToExam(examId,val);inp.value='';UI.renderManage();UI.fillDD();D.push();UI.toast('Added')};
+App.rmSubjectFromExam=function(examId,subject){if(!confirm('Remove "'+subject+'"?'))return;D.removeSubjectFromExam(examId,subject);UI.renderManage();UI.fillDD();D.push();UI.toast('Removed')};
 
 
 /* ========== ENHANCED APP NAVIGATION + WIRING ========== */

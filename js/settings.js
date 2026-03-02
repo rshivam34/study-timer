@@ -24,8 +24,13 @@ function checkAndNotify(){if(Notification.permission!=='granted')return;var now=
 D.getRC().filter(function(r){return r.active!==false}).forEach(function(rc){if(!RECUR.isDueOn(rc,now))return;var rH=parseInt(rc.time.split(':')[0]),rM=parseInt(rc.time.split(':')[1]||0);if(hr===rH&&min>=rM&&min<rM+5&&!sent['rc_'+rc.id]){fire('🔄 '+rc.title,rc.rcType+' — Time for your task!');sent['rc_'+rc.id]=1}});
 // Revisions at 8 AM
 if(hr===8&&min<5&&!sent.rev){var rd=D.getRevs().filter(function(r){return r.active&&r.nextDate<=today});if(rd.length){fire('🧠 '+rd.length+' topic'+(rd.length>1?'s':'')+' due','Go to Revision tab!');sent.rev=1}}
-// Deadlines
-D.getDL().forEach(function(dl){var target=new Date(dl.date),diff=Math.ceil((target-now)/(864e5));if(diff===7&&hr===8&&min<5&&!sent['dl7_'+dl.id]){fire('⏰ '+dl.title+' in 1 week','Prepare now!');sent['dl7_'+dl.id]=1}if(diff===1&&hr===8&&min<5&&!sent['dl1_'+dl.id]){fire('🚨 '+dl.title+' TOMORROW','Final prep time!');sent['dl1_'+dl.id]=1}});
+// Deadlines — enhanced: 30d, 7d, daily ≤7d, day-of
+D.getDL().filter(function(d){return!d.done}).forEach(function(dl){var diff=Math.ceil((new Date(dl.date+'T00:00:00')-now)/(864e5));
+if(diff===30&&hr===8&&min<5&&!sent['dl30_'+dl.id]){fire('📅 Deadline in 1 month',dl.title+' is due on '+UI.fdate(dl.date));sent['dl30_'+dl.id]=1}
+if(diff===7&&hr===8&&min<5&&!sent['dl7_'+dl.id]){fire('⚠️ Deadline in 1 week',dl.title+' is due on '+UI.fdate(dl.date));sent['dl7_'+dl.id]=1}
+if(diff>0&&diff<7&&hr===8&&min<5&&!sent['dld_'+dl.id+'_'+today]){fire('🔥 '+diff+' day'+(diff>1?'s':'')+' left',dl.title+' is due on '+UI.fdate(dl.date));sent['dld_'+dl.id+'_'+today]=1}
+if(diff===0&&hr>=8&&!sent['dl0_'+dl.id+'_'+today]){fire('🚨 Due TODAY',dl.title+' is due today!');sent['dl0_'+dl.id+'_'+today]=1}
+});
 // [6] End-of-day journal reminder — fires 30 min before bedtime
 var bedtime=D.getCfg().bedtime||23;
 if(hr===(bedtime-1>=0?bedtime-1:23)&&min>=30&&min<35&&!sent.journal){

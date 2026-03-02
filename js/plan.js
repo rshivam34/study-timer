@@ -25,8 +25,12 @@ var PLAN=(function(){
   function _populateSubjects(){
     var cfg=D.getCfg();
     var planFor=(document.getElementById('planFor')||{}).value||'study';
-    var list=planFor==='work'?cfg.workCategories:cfg.studySubjects;
-    document.getElementById('planSubj').innerHTML='<option value="">Select...</option>'+list.map(function(s){return'<option>'+esc(s)+'</option>'}).join('');
+    if(planFor==='work'){
+      var list=cfg.workCategories;
+      document.getElementById('planSubj').innerHTML='<option value="">Select...</option>'+list.map(function(s){return'<option>'+esc(s)+'</option>'}).join('');
+    } else {
+      document.getElementById('planSubj').innerHTML=UI.examSubjectOptions(null,false);
+    }
   }
 
   function onPlanForChange(){
@@ -465,9 +469,13 @@ var PLAN=(function(){
 
   function _populateEditSubjects(planFor,selected){
     var cfg=D.getCfg();
-    var list=planFor==='work'?cfg.workCategories:cfg.studySubjects;
     var subjSel=document.getElementById('peSubj');
-    subjSel.innerHTML=list.map(function(s){return'<option'+(s===selected?' selected':'')+'>'+esc(s)+'</option>'}).join('');
+    if(planFor==='work'){
+      var list=cfg.workCategories;
+      subjSel.innerHTML=list.map(function(s){return'<option'+(s===selected?' selected':'')+'>'+esc(s)+'</option>'}).join('');
+    } else {
+      subjSel.innerHTML=UI.examSubjectOptions(selected,false);
+    }
   }
 
   function _updateEditTypeOptions(planFor){

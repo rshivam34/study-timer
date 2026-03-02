@@ -285,6 +285,7 @@ var TODO=(function(){
 
   function _initDrag(){
     var el=document.getElementById('todoFullList');
+    /* HTML5 Drag API for desktop */
     el.addEventListener('dragstart',function(e){
       var card=e.target.closest('.todo-item');
       if(!card)return;
@@ -315,6 +316,86 @@ var TODO=(function(){
       _dragId=null;
       el.querySelectorAll('.todo-item').forEach(function(c){c.classList.remove('dragging','drag-over')});
     });
+
+    /* Touch-based drag for mobile */
+    var _touchDragId=null,_ghost=null,_startY=0,_placeholder=null,_origItem=null;
+
+    el.addEventListener('touchstart',function(e){
+      var handle=e.target.closest('.todo-drag-handle');
+      if(!handle)return;
+      var card=handle.closest('.todo-item');
+      if(!card)return;
+      e.preventDefault();
+      _touchDragId=card.getAttribute('data-todo-id');
+      _origItem=card;
+      _startY=e.touches[0].clientY;
+
+      /* Create floating ghost */
+      _ghost=card.cloneNode(true);
+      _ghost.classList.add('todo-drag-ghost');
+      _ghost.style.width=card.offsetWidth+'px';
+      document.body.appendChild(_ghost);
+      _ghost.style.top=e.touches[0].clientY-20+'px';
+      _ghost.style.left=card.getBoundingClientRect().left+'px';
+      card.classList.add('dragging');
+      try{navigator.vibrate(30)}catch(err){}
+    },{passive:false});
+
+    el.addEventListener('touchmove',function(e){
+      if(!_touchDragId||!_ghost)return;
+      e.preventDefault();
+      var ty=e.touches[0].clientY;
+      _ghost.style.top=ty-20+'px';
+
+      /* Find item under touch point */
+      _ghost.style.display='none';
+      var elUnder=document.elementFromPoint(e.touches[0].clientX,ty);
+      _ghost.style.display='';
+      var targetCard=elUnder?elUnder.closest('.todo-item'):null;
+
+      /* Remove old placeholder */
+      if(_placeholder){_placeholder.remove();_placeholder=null}
+
+      if(targetCard&&targetCard!==_origItem&&targetCard.getAttribute('data-todo-id')!==_touchDragId){
+        _placeholder=document.createElement('div');
+        _placeholder.className='drag-placeholder';
+        var rect=targetCard.getBoundingClientRect();
+        if(ty<rect.top+rect.height/2){
+          targetCard.parentNode.insertBefore(_placeholder,targetCard);
+        } else {
+          targetCard.parentNode.insertBefore(_placeholder,targetCard.nextSibling);
+        }
+      }
+    },{passive:false});
+
+    el.addEventListener('touchend',function(e){
+      if(!_touchDragId)return;
+      /* Find target from placeholder position */
+      if(_ghost){_ghost.remove();_ghost=null}
+      if(_origItem)_origItem.classList.remove('dragging');
+
+      /* Find nearest item to the placeholder */
+      if(_placeholder){
+        var nextEl=_placeholder.nextElementSibling;
+        var prevEl=_placeholder.previousElementSibling;
+        _placeholder.remove();_placeholder=null;
+        var targetId=null;
+        if(nextEl&&nextEl.classList.contains('todo-item'))targetId=nextEl.getAttribute('data-todo-id');
+        else if(prevEl&&prevEl.classList.contains('todo-item'))targetId=prevEl.getAttribute('data-todo-id');
+        if(targetId&&targetId!==_touchDragId){
+          var group=document.getElementById('todoTypeFilter').value;
+          _reorder(group,_touchDragId,targetId);
+        }
+      }
+      _touchDragId=null;_origItem=null;
+    },{passive:true});
+
+    el.addEventListener('touchcancel',function(){
+      if(_ghost){_ghost.remove();_ghost=null}
+      if(_placeholder){_placeholder.remove();_placeholder=null}
+      if(_origItem)_origItem.classList.remove('dragging');
+      _touchDragId=null;_origItem=null;
+    },{passive:true});
   }
 
   function _reorder(group,fromId,toId){
@@ -422,7 +503,10 @@ var TODO=(function(){
     /* Sub-tasks show on parent's date — use parent due if this is a child (depth>0) */
     var effectiveDue=depth>0?(parentDue||item.due):item.due;
 
-    var h='<div class="todo-item todo-pri-'+priCls+'" draggable="true" data-todo-id="'+item.id+'">';
+    var h='<div class="todo-item todo-pri-'+priCls+'" draggable="true" data-todo-id="'+item.id+'" style="position:relative">';
+    /* Swipe action icons — hidden by default, shown during swipe */
+    h+='<span class="swipe-icon swipe-icon-left">✓</span>';
+    h+='<span class="swipe-icon swipe-icon-right">🗑</span>';
     h+='<div class="todo-header">';
 
     /* Row 1: expand + select checkbox + priority circle + title */
@@ -452,6 +536,7 @@ var TODO=(function(){
       h+='<span class="todo-completed-at">✓ '+UI.fdate(D.todayKey(cAt))+'</span>';
     }
     h+='<div class="todo-actions">';
+    h+='<span class="todo-drag-handle" title="Drag to reorder">⠿</span>';
     h+='<button class="todo-act-btn" onclick="event.stopPropagation();TODO.addChild(\''+item.id+'\',\''+group+'\')" title="Add sub-task">+</button>';
     h+='<button class="todo-act-btn" onclick="event.stopPropagation();TODO.editItem(\''+item.id+'\',\''+group+'\')" title="Edit">✎</button>';
     h+='<button class="todo-act-btn todo-act-del" onclick="event.stopPropagation();TODO.deleteItem(\''+item.id+'\',\''+group+'\')" title="Delete">✕</button>';
@@ -476,6 +561,9 @@ var TODO=(function(){
     return h;
   }
 
+  /* Long-press to enter select mode */
+  var _longPressTimer=null;
+
   /* Swipe Gestures (#19) — swipe right = done, swipe left = delete */
   function _initSwipe(){
     var todoList=document.getElementById('todoFullList');
@@ -494,6 +582,21 @@ var TODO=(function(){
       startY=touch.clientY;
       swiping=false;
       swipeEl=item;
+
+      /* Long-press: 500ms to enter select mode */
+      _longPressTimer=setTimeout(function(){
+        _longPressTimer=null;
+        var id=item.getAttribute('data-todo-id');
+        if(id){
+          /* Enter select mode and check this item */
+          var list=document.getElementById('todoFullList');
+          if(!list.classList.contains('todo-bulk-active'))enterSelectMode();
+          if(!_selected[id]){_selected[id]=true;_updateBulkBar();render()}
+          try{navigator.vibrate(30)}catch(err){}
+        }
+        /* Prevent swipe from firing */
+        swipeEl=null;swiping=false;
+      },500);
     },{passive:true});
 
     todoList.addEventListener('touchmove',function(e){
@@ -501,6 +604,8 @@ var TODO=(function(){
       var touch=e.touches[0];
       var dx=touch.clientX-startX;
       var dy=touch.clientY-startY;
+      /* Cancel long-press if finger moves >10px */
+      if(_longPressTimer&&(Math.abs(dx)>10||Math.abs(dy)>10)){clearTimeout(_longPressTimer);_longPressTimer=null}
       /* Only start swiping if horizontal movement dominates */
       if(!swiping&&Math.abs(dx)>10&&Math.abs(dx)>Math.abs(dy)*1.5){
         swiping=true;
@@ -511,17 +616,26 @@ var TODO=(function(){
       var tx=Math.max(-120,Math.min(120,dx));
       swipeEl.style.transform='translateX('+tx+'px)';
       swipeEl.style.transition='none';
-      /* Visual feedback */
-      if(dx>threshold){
+      /* Visual feedback + swipe icons */
+      var iconL=swipeEl.querySelector('.swipe-icon-left');
+      var iconR=swipeEl.querySelector('.swipe-icon-right');
+      if(dx>30){
         swipeEl.style.background='rgba(52,211,153,0.15)';
-      }else if(dx<-threshold){
+        if(iconL)iconL.style.opacity=Math.min(1,(dx-30)/50);
+        if(iconR)iconR.style.opacity='0';
+      }else if(dx<-30){
         swipeEl.style.background='rgba(248,113,113,0.15)';
+        if(iconR)iconR.style.opacity=Math.min(1,(Math.abs(dx)-30)/50);
+        if(iconL)iconL.style.opacity='0';
       }else{
         swipeEl.style.background='';
+        if(iconL)iconL.style.opacity='0';
+        if(iconR)iconR.style.opacity='0';
       }
     },{passive:false});
 
     todoList.addEventListener('touchend',function(e){
+      if(_longPressTimer){clearTimeout(_longPressTimer);_longPressTimer=null}
       if(!swipeEl){return}
       var touch=e.changedTouches[0];
       var dx=touch.clientX-startX;
@@ -547,6 +661,7 @@ var TODO=(function(){
     },{passive:true});
 
     todoList.addEventListener('touchcancel',function(){
+      if(_longPressTimer){clearTimeout(_longPressTimer);_longPressTimer=null}
       if(swipeEl){
         swipeEl.style.transition='transform 0.2s ease, background 0.2s ease';
         swipeEl.style.transform='';

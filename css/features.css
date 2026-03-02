@@ -154,10 +154,19 @@
 .donut-center{position:absolute;inset:15px;border-radius:50%;background:var(--s1);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:.7rem;font-weight:700;color:var(--heading)}
 .legend-item{display:flex;align-items:center;gap:6px;font-size:.68rem;color:var(--t2);padding:2px 0}
 .legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+/* ========== TODO DRAG (MOBILE TOUCH) ========== */
+.todo-item.dragging{opacity:.4}
+.drag-placeholder{height:3px;background:var(--acc);border-radius:2px;margin:2px 0}
+.todo-drag-ghost{position:fixed;z-index:999;opacity:.85;pointer-events:none;box-shadow:0 8px 24px var(--shadow);border-radius:10px;max-width:calc(100vw - 28px)}
+.todo-drag-handle{cursor:grab;font-size:.7rem;color:var(--td);padding:2px 4px;border-radius:4px;user-select:none;-webkit-user-select:none;touch-action:none}
+.todo-drag-handle:hover{color:var(--heading);background:var(--s3)}
+/* ========== TODO SWIPE ICONS ========== */
+.swipe-icon{position:absolute;top:50%;transform:translateY(-50%);font-size:1.2rem;opacity:0;transition:opacity .15s;pointer-events:none;z-index:2}
+.swipe-icon-left{left:12px;color:var(--grn)}
+.swipe-icon-right{right:12px;color:var(--red)}
 /* ========== TODO SELECTION MODE ========== */
 .todo-select-cb{display:none!important}
 .todo-bulk-active .todo-select-cb{display:block!important}
-.todo-header:hover .todo-select-cb{display:block!important}
 /* ========== TODO COLLAPSE/EXPAND ========== */
 .todo-collapse-bar{display:flex;gap:5px;align-items:center;margin-bottom:6px}
 .todo-collapse-bar .b{font-size:.6rem;padding:3px 8px}
@@ -183,6 +192,9 @@
 .study-plan-card .plan-info .plan-title{font-size:.76rem;font-weight:600;color:var(--heading);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .study-plan-card .plan-info .plan-meta{font-size:.58rem;color:var(--td);margin-top:1px}
 .study-plan-deadline{font-family:'JetBrains Mono',monospace;font-size:.6rem;font-weight:700;white-space:nowrap}
+/* ========== COMPARE DATE RANGE DISPLAY ========== */
+.compare-range{font-size:.68rem;color:var(--td);text-align:center;margin:4px 0 8px;font-family:'JetBrains Mono',monospace;letter-spacing:.02em}
+.compare-range span{color:var(--acc);font-weight:600}
 /* ========== MANDATORY FIELD MARKER ========== */
 .req{color:var(--red);font-weight:700}
 /* ========== PRESET BUTTON ACTIVE STATE ========== */

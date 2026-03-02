@@ -303,8 +303,10 @@ var SUM=(function(){
     }
     var prevWkLabel=UI.fdate(D.todayKey(prevWeekStart));
     var prevWkEnd=new Date(prevWeekStart);prevWkEnd.setDate(prevWeekStart.getDate()+compareDays-1);
+    /* Date range labels for comparison */
+    var currWkStart=new Date(weekStart);var currWkEndComp=new Date(weekStart);currWkEndComp.setDate(weekStart.getDate()+compareDays-1);
     h+='<div style="margin-top:10px;font-size:.65rem;color:var(--td);font-weight:600;margin-bottom:2px">vs Previous Week</div>';
-    h+='<div style="font-size:.52rem;color:var(--tf);margin-bottom:6px">Comparing '+compareDays+' day'+(compareDays>1?'s':'')+': '+prevWkLabel+' — '+UI.fdate(D.todayKey(prevWkEnd))+'</div>';
+    h+='<div class="compare-range">This week: <span>'+UI.fdate(D.todayKey(currWkStart))+'</span> — <span>'+UI.fdate(D.todayKey(currWkEndComp))+'</span> &nbsp;vs&nbsp; Last week: <span>'+prevWkLabel+'</span> — <span>'+UI.fdate(D.todayKey(prevWkEnd))+'</span></div>';
     h+='<div class="delta-grid">';
     h+=_deltaCard('Study',currStudyFair,pStudy,UI.fd);
     h+=_deltaCard('Work',currWorkFair,pWork,UI.fd);
@@ -438,8 +440,12 @@ var SUM=(function(){
     }
     var prevMonthName=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][prevMonth];
     var currMonthShort=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][month];
+    var currMonthStart=year+'-'+String(month+1).padStart(2,'0')+'-01';
+    var currMonthEnd=year+'-'+String(month+1).padStart(2,'0')+'-'+String(fairDays).padStart(2,'0');
+    var prevMonthStart=prevYear+'-'+String(prevMonth+1).padStart(2,'0')+'-01';
+    var prevMonthEnd=prevYear+'-'+String(prevMonth+1).padStart(2,'0')+'-'+String(fairDays).padStart(2,'0');
     h+='<div style="margin-top:10px;font-size:.65rem;color:var(--td);font-weight:600;margin-bottom:2px">vs '+prevMonthName+' '+prevYear+'</div>';
-    h+='<div style="font-size:.52rem;color:var(--tf);margin-bottom:6px">Fair comparison: 1st — '+fairDays+(fairDays===1?'st':fairDays===2?'nd':fairDays===3?'rd':'th')+' of each month ('+currMonthShort+' vs '+prevMonthName+')</div>';
+    h+='<div class="compare-range">This month: <span>'+UI.fdate(currMonthStart)+'</span> — <span>'+UI.fdate(currMonthEnd)+'</span> &nbsp;vs&nbsp; Last month: <span>'+UI.fdate(prevMonthStart)+'</span> — <span>'+UI.fdate(prevMonthEnd)+'</span></div>';
     h+='<div class="delta-grid">';
     h+=_deltaCard('Study',currMStudy,pmStudy,UI.fd);
     h+=_deltaCard('Work',currMWork,pmWork,UI.fd);

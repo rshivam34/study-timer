@@ -221,6 +221,7 @@ var CAL=(function(){
     h+='<div style="display:flex;gap:6px">';
     h+='<button class="b b-xs" onclick="CAL.addPlanForDay(\''+dk+'\')">+ Plan</button>';
     h+='<button class="b b-xs" onclick="CAL.addSessionForDay(\''+dk+'\')">+ Session</button>';
+    h+='<button class="b b-xs b-grn" onclick="CAL.addKnowledgeForDay(\''+dk+'\')">+ Knowledge</button>';
     h+='</div>';
     h+='</div>';
 
@@ -259,7 +260,7 @@ var CAL=(function(){
         if(p.source)h+='<span>'+esc(p.source)+'</span>';
         h+='</div></div>';
         h+='<div class="usp-actions" onclick="event.stopPropagation()">';
-        if(p.status!=='in-progress'&&p.status!=='completed')h+='<button class="b b-xs" onclick="CAL.setPlanStatus(\''+dk+'\',\''+p.id+'\',\'in-progress\')" title="Start">&#9654;</button>';
+        if(p.status!=='in-progress'&&p.status!=='completed')h+='<button class="b b-xs" onclick="CAL.startPlanFromCal(\''+dk+'\',\''+p.id+'\')" title="Start Timer">&#9654;</button>';
         if(p.status!=='completed')h+='<button class="b b-xs" onclick="CAL.setPlanStatus(\''+dk+'\',\''+p.id+'\',\'completed\')" title="Complete">\u2713</button>';
         h+='</div>';
         h+='</div>';
@@ -523,13 +524,12 @@ var CAL=(function(){
     _quickAddHour=hour;
     var el=document.getElementById('hvQuickAdd');
     if(!el)return;
-    var cfg=D.getCfg();var cats=cfg.studySubjects;
     var startT=String(hour).padStart(2,'0')+':00';
     var endT=String(hour+1).padStart(2,'0')+':00';
     var h='<div class="hv-quick-add">';
     h+='<div style="font-size:.72rem;font-weight:700;color:var(--heading);margin-bottom:6px">Plan for '+startT+' \u2014 '+endT+'</div>';
     h+='<div class="df"><span class="df-lbl" style="font-size:.65rem">Subject</span><select class="cat-sel" id="hvSubj" style="flex:1;font-size:.72rem">';
-    cats.forEach(function(s){h+='<option>'+esc(s)+'</option>'});
+    h+=UI.examSubjectOptions(null,false);
     h+='</select></div>';
     h+='<div class="df" style="margin-top:4px"><span class="df-lbl" style="font-size:.65rem">Topic</span>';
     h+='<div class="ac-wrap" style="flex:1;position:relative"><input type="text" class="inp" id="hvTopic" placeholder="What to study..." style="font-size:.72rem;padding:6px 10px" autocomplete="off"></div></div>';
@@ -584,6 +584,23 @@ var CAL=(function(){
   function addSessionForDay(dk){
     PAST.open('study');
     document.getElementById('pastDate').value=dk;
+  }
+
+  /* Navigate to Knowledge tab with date pre-filled */
+  function addKnowledgeForDay(dk){
+    App.navTo('knowledge');
+    var el=document.getElementById('knAddDate');
+    if(el)el.value=dk;
+  }
+
+  /* Start timer from a calendar plan card — starts timer + navigates to study tab */
+  function startPlanFromCal(dk,planId){
+    var plans=PLAN.getForDate(dk);
+    var p=plans.find(function(x){return x.id===planId});
+    if(!p){UI.toast('Plan not found');return}
+    var type=p.planFor||'study';
+    App.startFromPlan(type,p.subject,dk,planId);
+    App.navTo(type);
   }
 
   function _updateViewToggle(){
@@ -733,6 +750,7 @@ var CAL=(function(){
   return{
     init:init,prev:prev,next:next,render:render,selectDay:selectDay,
     addPlanForDay:addPlanForDay,addSessionForDay:addSessionForDay,
+    addKnowledgeForDay:addKnowledgeForDay,startPlanFromCal:startPlanFromCal,
     toggleView:toggleView,exportICS:exportICS,
     onHourClick:onHourClick,quickAddPlan:quickAddPlan,
     showItemDetail:showItemDetail,openPlanDetail:openPlanDetail,

@@ -5,10 +5,62 @@ var QUOTES=["Work the hardest, be the smartest.","Keep working hard — results 
 
 var D=(function(){var SK='st3_d',GK='st3_g',TK='st3_t',GF='study_timer_v3.json';var DEF={config:{studySubjects:['Polity','History','Geography','Economics','Science','Math','English','Current Affairs','GK','Reasoning','Other'],workCategories:['Room Cleaning','Cooking','Exercise','Office Work','Errands','Personal Project','Reading','Grocery','Laundry','Other'],knowledgeCategories:['Health & Fitness','Current Affairs','Technology','Finance','Life Skills','Other'],theme:'dark',dailyGoals:{'default':6},bedtime:22.5,effectiveMins:50,wakeTime:6,recurringTypes:['Birthdays','Anniversaries','Habits','Bills','Custom'],goalPresets:[{id:'gp_office',name:'Office Day',hours:3,dayRules:[{day:1,pattern:'all'},{day:2,pattern:'all'},{day:3,pattern:'all'},{day:4,pattern:'all'},{day:5,pattern:'all'}],active:true},{id:'gp_wfh',name:'WFH',hours:5.5,dayRules:[],active:false},{id:'gp_evensat',name:'Even Saturday',hours:7,dayRules:[{day:6,pattern:'even'}],active:true},{id:'gp_fullday',name:'Full Day',hours:13,dayRules:[{day:0,pattern:'all'},{day:6,pattern:'odd'}],active:true}]},deadlines:[],study:{},work:{},syllabus:{},revisions:[],recurring:[],recurringDone:{},knowledge:[]};function gl(){try{var d=JSON.parse(localStorage.getItem(SK));if(!d||!d.config)return cp(DEF);if(!d.revisions)d.revisions=[];return d}catch(e){return cp(DEF)}}function sl(d){localStorage.setItem(SK,JSON.stringify(d))}function cp(o){return JSON.parse(JSON.stringify(o))}function gid(){return localStorage.getItem(GK)||''}function sgid(v){localStorage.setItem(GK,v)}function tok(){return localStorage.getItem(TK)||''}function stok(v){localStorage.setItem(TK,v)}function cloud(){return !!(tok()&&gid())}function tk(d){d=d||new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}function getSess(t,dk){var d=gl();return(d[t]&&d[t][dk])||[]}function todayS(t){return getSess(t,tk())}function addS(type,dk,s){var d=gl();if(!d[type])d[type]={};if(!d[type][dk])d[type][dk]=[];d[type][dk].push(s);sl(d)}function delS(type,i){var d=gl(),k=tk();if(d[type]&&d[type][k]){d[type][k].splice(i,1);if(!d[type][k].length)delete d[type][k];sl(d)}}function getCfg(){return gl().config||cp(DEF.config)}function setCfg(c){var d=gl();d.config=c;sl(d)}function getDL(){return gl().deadlines||[]}function setDL(a){var d=gl();d.deadlines=a;sl(d)}function getSyl(){return gl().syllabus||{}}function setSyl(s){var d=gl();d.syllabus=s;sl(d)}function getRevs(){return gl().revisions||[]}function setRevs(r){var d=gl();d.revisions=r;sl(d)}function addRev(r){var d=gl();if(!d.revisions)d.revisions=[];d.revisions.push(r);sl(d)}
 function getRC(){return gl().recurring||[]}function setRC(r){var d=gl();d.recurring=r;sl(d)}function addRC(r){var d=gl();if(!d.recurring)d.recurring=[];d.recurring.push(r);sl(d)}
+/* ========== EXAM SYSTEM ========== */
+/* Exams group subjects together (e.g. "CAPG Exam" with its subjects) */
+function _migrateExams(){
+  var d=gl();var cfg=d.config;
+  if(!cfg.exams){
+    cfg.exams=[{id:'exam_'+Date.now(),name:'CAPG Exam',subjects:cfg.studySubjects||[]}];
+    d.config=cfg;sl(d);
+  }
+}
+function getExams(){_migrateExams();return gl().config.exams||[]}
+function setExams(exams){var cfg=getCfg();cfg.exams=exams;setCfg(cfg)}
+/* Flat list of all subjects across all exams — backward-compatible replacement for studySubjects */
+function getAllSubjects(){
+  var exams=getExams();var subs=[];
+  exams.forEach(function(ex){(ex.subjects||[]).forEach(function(s){if(subs.indexOf(s)===-1)subs.push(s)})});
+  return subs;
+}
+function getExamForSubject(subj){
+  var exams=getExams();
+  for(var i=0;i<exams.length;i++){if((exams[i].subjects||[]).indexOf(subj)!==-1)return exams[i]}
+  return null;
+}
+function addExam(name){
+  var exams=getExams();
+  exams.push({id:'exam_'+Date.now(),name:name,subjects:[]});
+  setExams(exams);
+}
+function removeExam(id){
+  var exams=getExams().filter(function(e){return e.id!==id});
+  setExams(exams);
+}
+function addSubjectToExam(examId,subject){
+  var exams=getExams();
+  var ex=exams.find(function(e){return e.id===examId});
+  if(ex&&ex.subjects.indexOf(subject)===-1)ex.subjects.push(subject);
+  setExams(exams);
+  /* Keep studySubjects in sync for backward compat */
+  _syncStudySubjects();
+}
+function removeSubjectFromExam(examId,subject){
+  var exams=getExams();
+  var ex=exams.find(function(e){return e.id===examId});
+  if(ex)ex.subjects=ex.subjects.filter(function(s){return s!==subject});
+  setExams(exams);
+  _syncStudySubjects();
+}
+/* Keep cfg.studySubjects in sync with exams (backward compat for merge, etc.) */
+function _syncStudySubjects(){
+  var cfg=getCfg();cfg.studySubjects=getAllSubjects();setCfg(cfg);
+}
 function getRCDone(){return gl().recurringDone||{}}function setRCDone(x){var d=gl();d.recurringDone=x;sl(d)}function markRCDone(id){var d=gl(),today=tk();if(!d.recurringDone)d.recurringDone={};if(!d.recurringDone[today])d.recurringDone[today]=[];if(d.recurringDone[today].indexOf(id)===-1)d.recurringDone[today].push(id);sl(d)}
 /* Recursive todo list merge — deduplicates by id, merges children recursively */
 function _mergeTodoList(local,remote){var byId={};var order=[];local.forEach(function(it){byId[it.id]=cp(it);order.push(it.id)});remote.forEach(function(it){if(!byId[it.id]){byId[it.id]=cp(it);order.push(it.id)}else{var ex=byId[it.id];if(it.status==='done'&&ex.status!=='done'){ex.status='done';ex.completedAt=it.completedAt}if(it.children&&it.children.length){if(!ex.children)ex.children=[];ex.children=_mergeTodoList(ex.children,it.children)}}});return order.map(function(id){return byId[id]})}
-function merge(a,b){var m=cp(a);if(b.config){if(b.config.studySubjects)m.config.studySubjects=Array.from(new Set((m.config.studySubjects||[]).concat(b.config.studySubjects)));if(b.config.workCategories)m.config.workCategories=Array.from(new Set((m.config.workCategories||[]).concat(b.config.workCategories)));if(b.config.dailyGoals)Object.assign(m.config.dailyGoals||(m.config.dailyGoals={}),b.config.dailyGoals)}if(b.deadlines){var ids=new Set((m.deadlines||[]).map(function(x){return x.id}));(b.deadlines||[]).forEach(function(x){if(!ids.has(x.id))m.deadlines.push(x)})}if(b.revisions){var rids=new Set((m.revisions||[]).map(function(x){return x.id}));(b.revisions||[]).forEach(function(x){if(!rids.has(x.id))m.revisions.push(x)})}if(b.syllabus){if(!m.syllabus)m.syllabus={};Object.keys(b.syllabus).forEach(function(k){if(!m.syllabus[k])m.syllabus[k]=b.syllabus[k]})}if(b.recurring){if(!m.recurring)m.recurring=[];var rcids=new Set(m.recurring.map(function(x){return x.id}));(b.recurring||[]).forEach(function(x){if(!rcids.has(x.id))m.recurring.push(x)})}if(b.config&&b.config.recurringTypes){m.config.recurringTypes=Array.from(new Set((m.config.recurringTypes||[]).concat(b.config.recurringTypes)))}['study','work'].forEach(function(t){if(b[t]){if(!m[t])m[t]={};Object.keys(b[t]).forEach(function(k){if(!m[t][k])m[t][k]=b[t][k];else{var ends={};m[t][k].forEach(function(s){ends[s.end]=1});b[t][k].forEach(function(s){if(!ends[s.end])m[t][k].push(s)})}})}});
+function merge(a,b){var m=cp(a);if(b.config){if(b.config.studySubjects)m.config.studySubjects=Array.from(new Set((m.config.studySubjects||[]).concat(b.config.studySubjects)));
+/* Merge exams — deduplicate by id */
+if(b.config.exams){if(!m.config.exams)m.config.exams=[];var eIds=new Set(m.config.exams.map(function(e){return e.id}));b.config.exams.forEach(function(e){if(!eIds.has(e.id)){m.config.exams.push(e)}else{var existing=m.config.exams.find(function(x){return x.id===e.id});if(existing)existing.subjects=Array.from(new Set((existing.subjects||[]).concat(e.subjects||[])))}})}if(b.config.workCategories)m.config.workCategories=Array.from(new Set((m.config.workCategories||[]).concat(b.config.workCategories)));if(b.config.dailyGoals)Object.assign(m.config.dailyGoals||(m.config.dailyGoals={}),b.config.dailyGoals)}if(b.deadlines){var ids=new Set((m.deadlines||[]).map(function(x){return x.id}));(b.deadlines||[]).forEach(function(x){if(!ids.has(x.id))m.deadlines.push(x)})}if(b.revisions){var rids=new Set((m.revisions||[]).map(function(x){return x.id}));(b.revisions||[]).forEach(function(x){if(!rids.has(x.id))m.revisions.push(x)})}if(b.syllabus){if(!m.syllabus)m.syllabus={};Object.keys(b.syllabus).forEach(function(k){if(!m.syllabus[k])m.syllabus[k]=b.syllabus[k]})}if(b.recurring){if(!m.recurring)m.recurring=[];var rcids=new Set(m.recurring.map(function(x){return x.id}));(b.recurring||[]).forEach(function(x){if(!rcids.has(x.id))m.recurring.push(x)})}if(b.config&&b.config.recurringTypes){m.config.recurringTypes=Array.from(new Set((m.config.recurringTypes||[]).concat(b.config.recurringTypes)))}['study','work'].forEach(function(t){if(b[t]){if(!m[t])m[t]={};Object.keys(b[t]).forEach(function(k){if(!m[t][k])m[t][k]=b[t][k];else{var ends={};m[t][k].forEach(function(s){ends[s.end]=1});b[t][k].forEach(function(s){if(!ends[s.end])m[t][k].push(s)})}})}});
 /* Plans: per-item ID merge within each date key */
 if(b.plans){if(!m.plans)m.plans={};Object.keys(b.plans).forEach(function(k){if(!m.plans[k]){m.plans[k]=b.plans[k]}else{var ids=new Set(m.plans[k].map(function(p){return p.id}));b.plans[k].forEach(function(p){if(!ids.has(p.id))m.plans[k].push(p)})}})}
 /* Todos: recursive per-item ID merge */
@@ -52,4 +104,4 @@ if(match!==null)return match;
 /* 3. Default fallback */
 return(cfg.dailyGoals&&cfg.dailyGoals['default'])||6;
 }
-return{getLocal:gl,saveLocal:sl,todayKey:tk,getSess:getSess,todayS:todayS,addSession:addS,deleteSession:delS,getCfg:getCfg,setCfg:setCfg,getDL:getDL,setDL:setDL,getSyl:getSyl,setSyl:setSyl,getRevs:getRevs,setRevs:setRevs,addRev:addRev,getRC:getRC,setRC:setRC,addRC:addRC,getRCDone:getRCDone,setRCDone:setRCDone,markRCDone:markRCDone,getGistId:gid,setGistId:sgid,setToken:stok,getToken:tok,isCloud:cloud,autoConn:autoConn,sync:sync,push:push,validate:validate,makeG:makeG,exportJSON:exportJSON,trigImp:trigImp,doImp:doImp,clearAll:clearAll,disc:disc,getGoalForDate:getGoalForDate}})();
+return{getLocal:gl,saveLocal:sl,todayKey:tk,getSess:getSess,todayS:todayS,addSession:addS,deleteSession:delS,getCfg:getCfg,setCfg:setCfg,getDL:getDL,setDL:setDL,getSyl:getSyl,setSyl:setSyl,getRevs:getRevs,setRevs:setRevs,addRev:addRev,getRC:getRC,setRC:setRC,addRC:addRC,getRCDone:getRCDone,setRCDone:setRCDone,markRCDone:markRCDone,getGistId:gid,setGistId:sgid,setToken:stok,getToken:tok,isCloud:cloud,autoConn:autoConn,sync:sync,push:push,validate:validate,makeG:makeG,exportJSON:exportJSON,trigImp:trigImp,doImp:doImp,clearAll:clearAll,disc:disc,getGoalForDate:getGoalForDate,getExams:getExams,setExams:setExams,getAllSubjects:getAllSubjects,getExamForSubject:getExamForSubject,addExam:addExam,removeExam:removeExam,addSubjectToExam:addSubjectToExam,removeSubjectFromExam:removeSubjectFromExam}})();
