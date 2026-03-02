@@ -210,8 +210,18 @@ var CAL=(function(){
 
     var awakeH=bedH-wakeH;
     var sleepH=24-awakeH;
-    var usedH=totalSessH+plannedH;
-    var freeH=Math.max(0,awakeH-usedH);
+    var freeH;
+    if(isToday){
+      /* Today: free = remaining hours until bed minus planned commitments */
+      var remainingH=Math.max(0,bedH-nowH);
+      freeH=Math.max(0,remainingH-plannedH);
+    } else if(dk<today){
+      /* Past day: plans are irrelevant, free = awake minus what was actually done */
+      freeH=Math.max(0,awakeH-totalSessH);
+    } else {
+      /* Future day: free = awake minus planned */
+      freeH=Math.max(0,awakeH-plannedH);
+    }
     var goalH=D.getGoalForDate(dk);
 
     var h='<div class="hourly-view">';
