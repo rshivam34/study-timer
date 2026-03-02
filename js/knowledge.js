@@ -246,44 +246,46 @@ var KNOW=(function(){
         h+='</div>';
       });
     } else {
-      /* ── Group by Date (default) — sub-grouped by category ── */
-      var groups={};var dateOrder=[];
+      /* ── Default: Group by Category across all dates, show dates inside ── */
+      var catGroups={};var catOrder=[];
       filtered.forEach(function(e){
-        if(!groups[e.date]){groups[e.date]=[];dateOrder.push(e.date)}
-        groups[e.date].push(e);
+        if(!catGroups[e.category]){catGroups[e.category]=[];catOrder.push(e.category)}
+        catGroups[e.category].push(e);
       });
+      /* Sort categories by entry count (most entries first) */
+      catOrder.sort(function(a,b){return catGroups[b].length-catGroups[a].length});
 
-      dateOrder.forEach(function(dk){
-        h+='<div style="font-size:.62rem;font-weight:700;color:var(--acc);text-transform:uppercase;letter-spacing:.06em;padding:8px 0 4px">'+UI.fdn(dk)+'</div>';
-
-        /* Sub-group by category within this date */
-        var catGroups={};var catOrder=[];
-        groups[dk].forEach(function(e){
-          if(!catGroups[e.category]){catGroups[e.category]=[];catOrder.push(e.category)}
-          catGroups[e.category].push(e);
-        });
-
-        catOrder.forEach(function(cat){
-          var entries=catGroups[cat];
-          if(entries.length===1){
-            /* Single entry — render as flat card */
-            h+=_renderCard(entries[0],false);
-          } else {
-            /* Multiple entries — collapsible group */
-            var catKey=dk+'_'+cat;
-            var isCollapsed=collapsedCats[catKey];
-            var totalDur=0;entries.forEach(function(e){totalDur+=e.duration||0});
-            h+='<div class="kn-cat-group">';
-            h+='<div class="kn-cat-header" onclick="KNOW.toggleDateCatGroup(\''+catKey+'\')">';
-            h+='<span class="kn-cat-arrow'+(isCollapsed?'':' open')+'">▶</span>';
-            h+='<span class="kn-cat-badge" style="background:var(--acc2);color:var(--acc)">'+esc(cat)+'</span>';
-            h+='<span class="kn-cat-count">'+entries.length+' entries · '+Math.floor(totalDur/60)+'h '+((totalDur%60)||0)+'m</span>';
-            h+='</div>';
-            h+='<div class="kn-cat-body'+(isCollapsed?' hidden':'')+'">';
-            entries.forEach(function(e){h+=_renderCard(e,false)});
-            h+='</div></div>';
-          }
-        });
+      catOrder.forEach(function(cat){
+        var items=catGroups[cat];
+        if(items.length===1){
+          /* Single entry — flat card with date shown */
+          h+=_renderCard(items[0],true);
+        } else {
+          /* Multiple entries — collapsible group with date sub-headers inside */
+          var catKey='dc_'+cat;
+          var isCollapsed=collapsedCats[catKey];
+          var totalDur=0;items.forEach(function(e){totalDur+=e.duration||0});
+          var catColor=_catColor(cat);
+          h+='<div class="kn-cat-header" onclick="KNOW.toggleDateCatGroup(\''+catKey+'\')" style="border-left:3px solid '+catColor+'">';
+          h+='<span class="kn-cat-arrow'+(isCollapsed?'':' open')+'">▶</span>';
+          h+='<span class="knowledge-cat-badge" style="background:'+catColor+'">'+esc(cat)+'</span>';
+          h+='<span style="color:var(--td);font-size:.6rem;font-weight:600">'+items.length+' entries · '+Math.floor(totalDur/60)+'h '+((totalDur%60)||0)+'m</span>';
+          h+='</div>';
+          h+='<div class="kn-cat-body'+(isCollapsed?' hidden':'')+'">';
+          /* Sub-group by date within this category */
+          var dateGroups={};var dateOrder=[];
+          items.forEach(function(e){
+            if(!dateGroups[e.date]){dateGroups[e.date]=[];dateOrder.push(e.date)}
+            dateGroups[e.date].push(e);
+          });
+          dateOrder.forEach(function(dk){
+            if(dateOrder.length>1){
+              h+='<div style="font-size:.58rem;font-weight:700;color:var(--acc);text-transform:uppercase;letter-spacing:.05em;padding:6px 0 2px;margin-left:4px">'+UI.fdn(dk)+'</div>';
+            }
+            dateGroups[dk].forEach(function(e){h+=_renderCard(e,dateOrder.length===1)});
+          });
+          h+='</div>';
+        }
       });
     }
 

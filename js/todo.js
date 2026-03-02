@@ -416,6 +416,7 @@ var TODO=(function(){
 
   /* Bulk Actions (#47) */
   var _selected={};
+  var _bulkMode=false;
 
   function _collectIds(items,out){
     items.forEach(function(i){
@@ -458,7 +459,7 @@ var TODO=(function(){
         item.completedAt=new Date().toISOString();
       }
     });
-    setTodos(todos);_selected={};_updateBulkBar();_afterMutation();D.push();
+    setTodos(todos);_selected={};_bulkMode=false;_updateBulkBar();_afterMutation();D.push();
     UI.toast(ids.length+' items marked done');
   }
 
@@ -472,7 +473,7 @@ var TODO=(function(){
       var info=findParentAndIndex(todos[group]||[],id,null);
       if(info)info.arr.splice(info.index,1);
     });
-    setTodos(todos);_selected={};_updateBulkBar();_afterMutation();D.push();
+    setTodos(todos);_selected={};_bulkMode=false;_updateBulkBar();_afterMutation();D.push();
     UI.toast(ids.length+' items deleted');
   }
 
@@ -488,10 +489,13 @@ var TODO=(function(){
     if(countEl){
       countEl.textContent=count+' selected';
     }
-    /* Toggle bulk-active class to show/hide selection checkboxes */
-    if(list){
-      if(count>0){list.classList.add('todo-bulk-active')}
-      else{list.classList.remove('todo-bulk-active')}
+    /* Sync bulk mode with selection state */
+    if(count>0){
+      _bulkMode=true;
+      if(list)list.classList.add('todo-bulk-active');
+    } else {
+      _bulkMode=false;
+      if(list)list.classList.remove('todo-bulk-active');
     }
   }
 
@@ -516,7 +520,7 @@ var TODO=(function(){
     } else {
       h+='<span class="todo-expand-spacer"></span>';
     }
-    h+='<input type="checkbox" class="todo-select-cb" '+(_selected[item.id]?'checked':'')+' onclick="event.stopPropagation();if(!document.getElementById(\'todoFullList\').classList.contains(\'todo-bulk-active\'))return;TODO.toggleSelect(\''+item.id+'\')" title="Select for bulk action">';
+    if(_bulkMode){h+='<input type="checkbox" class="todo-select-cb" '+(_selected[item.id]?'checked':'')+' onclick="event.stopPropagation();TODO.toggleSelect(\''+item.id+'\')" title="Select for bulk action">';}
     if(!isNote){
       h+='<div class="todo-cb'+(isDone?' done':' p-'+priCls)+'" onclick="event.stopPropagation();TODO.toggleDone(\''+item.id+'\',\''+group+'\')">'+(isDone?'✓':'')+'</div>';
     } else {
@@ -590,7 +594,7 @@ var TODO=(function(){
         if(id){
           /* Enter select mode and check this item */
           var list=document.getElementById('todoFullList');
-          if(!list.classList.contains('todo-bulk-active'))enterSelectMode();
+          if(!_bulkMode){_bulkMode=true;list.classList.add('todo-bulk-active');var bar=document.getElementById('todoBulkActions');if(bar)bar.classList.remove('hidden')}
           if(!_selected[id]){_selected[id]=true;_updateBulkBar();render()}
           try{navigator.vibrate(30)}catch(err){}
         }
@@ -837,7 +841,8 @@ var TODO=(function(){
     var list=document.getElementById('todoFullList');
     var bar=document.getElementById('todoBulkActions');
     /* If already in select mode, exit it */
-    if(list&&list.classList.contains('todo-bulk-active')){
+    if(_bulkMode){
+      _bulkMode=false;
       _selected={};
       if(list)list.classList.remove('todo-bulk-active');
       if(bar)bar.classList.add('hidden');
@@ -846,8 +851,10 @@ var TODO=(function(){
       render();
       return;
     }
+    _bulkMode=true;
     if(list)list.classList.add('todo-bulk-active');
     if(bar)bar.classList.remove('hidden');
+    render();
   }
 
   /* Get todos for external modules */
