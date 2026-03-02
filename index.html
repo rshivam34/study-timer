@@ -248,10 +248,15 @@
       <span class="df-lbl" style="margin-bottom:4px;display:block">Lectures</span>
       <div id="planLecChecklist" style="max-height:120px;overflow-y:auto;background:var(--s2);border:1px solid var(--brd);border-radius:8px;padding:6px 10px"></div>
     </div>
-    <div class="df" style="margin-top:6px"><span class="df-lbl">Topic <span class="req">*</span></span><input type="text" class="inp" id="planTopic" placeholder="What to study..." style="flex:1"></div>
+    <div class="df" style="margin-top:6px"><span class="df-lbl">Topic <span class="req">*</span></span><div class="ac-wrap" style="flex:1;position:relative"><input type="text" class="inp" id="planTopic" placeholder="What to study..." autocomplete="off"></div></div>
+    <div id="planMultiTopics" style="display:none"></div>
     <div class="df" style="margin-top:6px"><span class="df-lbl">Notes</span><textarea class="note-inp" id="planNotes" placeholder="Optional notes..." style="flex:1;min-height:36px"></textarea></div>
     <div class="df" style="margin-top:6px">
+      <span class="df-lbl">Start</span><input type="time" class="inp" id="planStartTime" style="width:90px">
+      <span class="df-lbl">End</span><input type="time" class="inp" id="planEndTime" style="width:90px">
       <span class="df-lbl">Est. Hours</span><input type="number" class="inp" id="planHours" min="0.5" max="12" step="0.5" placeholder="2" style="width:60px">
+    </div>
+    <div class="df" style="margin-top:6px">
       <span class="df-lbl">Priority</span>
       <select class="cat-sel" id="planPriority" style="flex:1">
         <option value="critical">🔴 Critical</option>
@@ -445,7 +450,7 @@
   </select>
   
   <div class="sl" style="margin:4px 0 5px;text-align:left">Topic studied <span style="color:var(--red)">*</span></div>
-  <textarea class="note-inp" id="smNote" placeholder="What did you study? (required)"></textarea>
+  <div class="ac-wrap" style="position:relative"><textarea class="note-inp" id="smNote" placeholder="What did you study? (required)" autocomplete="off"></textarea></div>
   
   <div id="smLectureSection" class="hidden">
     <div class="sl" style="margin:4px 0 5px;text-align:left">Lecture completed?</div>
@@ -498,6 +503,10 @@
   </div>
   <div class="sl" style="margin:4px 0 5px;text-align:left">Topic <span class="req">*</span></div>
   <input type="text" class="inp" id="peTopic" placeholder="What to study..." style="margin-bottom:8px">
+  <div class="df" style="margin-bottom:8px">
+    <span class="df-lbl">Start</span><input type="time" class="inp" id="peStartTime" style="width:90px">
+    <span class="df-lbl">End</span><input type="time" class="inp" id="peEndTime" style="width:90px">
+  </div>
   <div class="df" style="margin-bottom:8px">
     <span class="df-lbl">Est. Hours</span><input type="number" class="inp" id="peHours" min="0.5" max="12" step="0.5" style="width:60px">
     <span class="df-lbl">Priority</span>

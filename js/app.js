@@ -13,7 +13,7 @@ function toggleQuotes(){var p=document.getElementById('quotePanel');p.classList.
 function renderQuotes(){var all=getAllQuotes(),cfg=D.getCfg(),custom=cfg.customQuotes||[];var el=document.getElementById('quoteList');el.innerHTML=all.map(function(q,i){var isCustom=i>=QUOTES.length;return'<div class="quote-item"><span>"'+esc(q)+'"</span>'+(isCustom?'<button class="quote-rm" onclick="event.stopPropagation();App.rmQuote('+(i-QUOTES.length)+')">✕</button>':'')+'</div>'}).join('')}
 function addQuote(){var inp=document.getElementById('addQuote'),val=inp.value.trim();if(!val)return;var cfg=D.getCfg();if(!cfg.customQuotes)cfg.customQuotes=[];cfg.customQuotes.push(val);D.setCfg(cfg);inp.value='';renderQuotes();D.push();UI.toast('Added ✓')}
 function rmQuote(idx){var cfg=D.getCfg();if(!cfg.customQuotes)return;cfg.customQuotes.splice(idx,1);D.setCfg(cfg);renderQuotes();D.push()}
-function init(){document.getElementById('todayD').textContent=new Date().toLocaleDateString([],{weekday:'long',year:'numeric',month:'long',day:'numeric'});document.getElementById('goalDate').value=D.todayKey();var cfg=D.getCfg();document.documentElement.setAttribute('data-theme',cfg.theme||'dark');rotateQuote();quoteIv=setInterval(rotateQuote,30000);
+function init(){var _dn=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];document.getElementById('todayD').textContent=_dn[new Date().getDay()]+', '+UI.fdate(D.todayKey());document.getElementById('goalDate').value=D.todayKey();var cfg=D.getCfg();document.documentElement.setAttribute('data-theme',cfg.theme||'dark');rotateQuote();quoteIv=setInterval(rotateQuote,30000);
 var cats=cfg.studySubjects,wCats=cfg.workCategories;document.getElementById('studyCat').innerHTML=cats.map(function(s){return'<option>'+s+'</option>'}).join('');document.getElementById('workCat').innerHTML=wCats.map(function(s){return'<option>'+s+'</option>'}).join('');
 document.getElementById('sylSubj').innerHTML='<option value="">Select...</option>'+cats.map(function(s){return'<option>'+s+'</option>'}).join('');
 if(D.isCloud()){show('main');syncUI('busy');D.sync().then(function(){UI.renderAll();RP.renderHeatmap();DL.startTick();syncUI('on');gInfo();TM.recoverState()}).catch(function(){UI.renderAll();RP.renderHeatmap();DL.startTick();syncUI('err');gInfo();TM.recoverState()})}else if(D.getToken()){show('main');syncUI('busy');D.autoConn().then(function(){UI.renderAll();RP.renderHeatmap();DL.startTick();syncUI('on');gInfo();TM.recoverState()}).catch(function(){UI.renderAll();RP.renderHeatmap();DL.startTick();syncUI('err');gInfo();TM.recoverState()})}else{show('setup')}
@@ -272,6 +272,9 @@ return{connect:connect,skip:skip,tab:tab,syncUI:syncUI,manSync:manSync,reconn:re
     /* Initialize study plan date and render */
     var spd=document.getElementById('studyPlanDate');
     if(spd){spd.value=D.todayKey();App.renderStudyPlans()}
+    /* Attach topic autocomplete to save modal */
+    var smNoteEl=document.getElementById('smNote');
+    if(smNoteEl)UI.autocomplete(smNoteEl,function(){return document.getElementById('smCat').textContent});
   }, 100);
 
   /* ========== TIME BUDGET CARD (#6) ========== */

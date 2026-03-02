@@ -138,67 +138,208 @@ var CAL=(function(){
     selectedDate=dk;render();
   }
 
+  var _quickAddHour=null; // hour being quick-added
+
   function renderDayDetail(dk){
     var el=document.getElementById('calDayDetail');
+    var cfg=D.getCfg();
+    var wakeH=cfg.wakeTime||6;var bedH=cfg.bedtime||22.5;
     var studySess=D.getSess('study',dk);var workSess=D.getSess('work',dk);
     var plans=PLAN.getForDate(dk);
-    var dayName=new Date(dk).toLocaleDateString([],{weekday:'long',month:'short',day:'numeric',year:'numeric'});
+    var _dayNames=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    var _dd=new Date(dk+'T12:00:00');
+    var dayName=_dayNames[_dd.getDay()]+', '+UI.fdate(dk);
+    var today=D.todayKey();var isToday=dk===today;var nowH=new Date().getHours()+new Date().getMinutes()/60;
 
-    var h='<div class="day-detail">';
-    h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">';
-    h+='<span style="font-size:.85rem;font-weight:700;color:var(--heading)">'+dayName+'</span>';
+    /* Compute day stats */
+    var totalStudyS=0,totalWorkS=0;
+    studySess.forEach(function(s){totalStudyS+=s.dur});
+    workSess.forEach(function(s){totalWorkS+=s.dur});
+    var totalStudyH=totalStudyS/3600;var totalWorkH=totalWorkS/3600;
+    var totalSessH=totalStudyH+totalWorkH;
+
+    var plannedH=0;
+    plans.forEach(function(p){if(p.status!=='completed'&&p.status!=='skipped')plannedH+=p.estHours});
+    var completedPlanH=0;
+    plans.forEach(function(p){if(p.status==='completed')completedPlanH+=p.estHours});
+
+    var awakeH=bedH-wakeH;
+    var sleepH=24-awakeH;
+    var usedH=totalSessH+plannedH;
+    var freeH=Math.max(0,awakeH-usedH);
+    var goalH=D.getGoalForDate(dk);
+
+    /* Build hourly view */
+    var h='<div class="hourly-view">';
+    /* Header */
+    h+='<div class="hv-header">';
+    h+='<div><span class="hv-title">'+dayName+'</span></div>';
     h+='<div style="display:flex;gap:6px">';
     h+='<button class="b b-xs" onclick="CAL.addPlanForDay(\''+dk+'\')">+ Plan</button>';
     h+='<button class="b b-xs" onclick="CAL.addSessionForDay(\''+dk+'\')">+ Session</button>';
     h+='</div>';
     h+='</div>';
 
-    // Plans section
-    if(plans.length){
-      var planDone=plans.filter(function(p){return p.status==='completed'}).length;
-      h+='<h4 style="font-size:.7rem;font-weight:700;color:var(--pur);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">📋 Plans ('+planDone+'/'+plans.length+' done)</h4>';
-      plans.forEach(function(p){
+    /* Stats bar */
+    h+='<div class="hv-stats">';
+    h+='<div class="hv-stat"><span class="hv-stat-val" style="color:var(--acc)">'+totalSessH.toFixed(1)+'h</span><span class="hv-stat-lbl">Done</span></div>';
+    h+='<div class="hv-stat"><span class="hv-stat-val" style="color:var(--pur)">'+plannedH.toFixed(1)+'h</span><span class="hv-stat-lbl">Planned</span></div>';
+    h+='<div class="hv-stat"><span class="hv-stat-val" style="color:var(--grn)">'+freeH.toFixed(1)+'h</span><span class="hv-stat-lbl">Free</span></div>';
+    h+='<div class="hv-stat"><span class="hv-stat-val" style="color:var(--td)">'+sleepH.toFixed(1)+'h</span><span class="hv-stat-lbl">Sleep</span></div>';
+    h+='</div>';
+
+    /* Goal progress */
+    var goalPct=goalH>0?Math.min(100,Math.round(totalSessH/goalH*100)):0;
+    h+='<div style="padding:6px 14px;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:8px">';
+    h+='<span style="font-size:.6rem;font-weight:700;color:var(--td)">GOAL</span>';
+    h+='<div style="flex:1;height:6px;background:var(--s3);border-radius:3px;overflow:hidden"><div style="width:'+goalPct+'%;height:100%;background:'+( goalPct>=100?'var(--grn)':'var(--acc)')+';border-radius:3px;transition:width .3s"></div></div>';
+    h+='<span style="font-family:JetBrains Mono,monospace;font-size:.62rem;font-weight:700;color:'+(goalPct>=100?'var(--grn)':'var(--acc)')+'">'+totalSessH.toFixed(1)+'/'+goalH+'h ('+goalPct+'%)</span>';
+    h+='</div>';
+
+    /* Unscheduled plans (no start time) */
+    var unscheduled=plans.filter(function(p){return !p.startTime});
+    if(unscheduled.length){
+      h+='<div style="padding:6px 14px;border-bottom:1px solid var(--brd)">';
+      h+='<div style="font-size:.6rem;font-weight:700;color:var(--pur);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Unscheduled Plans ('+unscheduled.length+')</div>';
+      unscheduled.forEach(function(p){
         var priIco={critical:'🔴',high:'🟠',medium:'🟡',low:'🟢'}[p.priority]||'🟡';
-        h+='<div style="font-size:.72rem;padding:4px 0;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:6px">';
+        h+='<div style="font-size:.7rem;padding:3px 0;display:flex;align-items:center;gap:6px">';
         h+='<span>'+priIco+'</span>';
-        h+='<span style="font-weight:600;flex:1">'+esc(p.subject)+': '+esc(p.topic)+'</span>';
+        h+='<span style="font-weight:600;flex:1;color:var(--heading)">'+esc(p.subject)+': '+esc(p.topic)+'</span>';
+        h+='<span style="font-family:JetBrains Mono,monospace;font-size:.6rem;color:var(--td)">'+p.estHours+'h</span>';
         h+='<span class="plan-status '+p.status+'">'+p.status+'</span>';
-        h+='</div>';
-      });
-    }
-
-    // Sessions timeline
-    var allSess=[];
-    studySess.forEach(function(s){allSess.push(Object.assign({_type:'study'},s))});
-    workSess.forEach(function(s){allSess.push(Object.assign({_type:'work'},s))});
-    allSess.sort(function(a,b){return new Date(a.start)-new Date(b.start)});
-
-    if(allSess.length){
-      var totalStudy=0,totalWork=0;
-      studySess.forEach(function(s){totalStudy+=s.dur});
-      workSess.forEach(function(s){totalWork+=s.dur});
-
-      h+='<h4 style="font-size:.7rem;font-weight:700;color:var(--acc);text-transform:uppercase;letter-spacing:.1em;margin:10px 0 6px">⏱ Sessions ('+allSess.length+') · Study '+UI.fd(totalStudy)+' · Work '+UI.fd(totalWork)+'</h4>';
-      h+='<div class="timeline">';
-      allSess.forEach(function(s){
-        var st=new Date(s.start).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-        var en=new Date(s.end).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-        h+='<div class="tl-item'+(s._type==='work'?' work-tl':'')+'">';
-        h+='<span style="font-family:JetBrains Mono,monospace;font-size:.62rem;color:var(--td);font-weight:600">'+st+' → '+en+'</span> ';
-        h+='<span style="font-size:.65rem;font-weight:700;padding:1px 6px;border-radius:3px;background:var(--s3);color:var(--t2)">'+esc(s.cat)+'</span> ';
-        h+='<span style="font-weight:600;color:var(--heading)">'+(s.note?esc(s.note):'—')+'</span> ';
-        h+='<span style="font-family:JetBrains Mono,monospace;font-size:.68rem;font-weight:700;color:var(--grn)">'+UI.fd(s.dur)+'</span>';
         h+='</div>';
       });
       h+='</div>';
     }
 
-    if(!plans.length&&!allSess.length){
-      h+='<div class="empty"><p>No plans or sessions</p></div>';
+    /* Hourly grid */
+    h+='<div class="hv-grid">';
+    var startHour=Math.floor(wakeH);var endHour=Math.ceil(bedH);
+
+    /* Build session and plan blocks data for positioning */
+    var blocks=[];
+    var allSess=[];
+    studySess.forEach(function(s){allSess.push({type:'study',start:s.start,end:s.end,dur:s.dur,cat:s.cat,note:s.note||''})});
+    workSess.forEach(function(s){allSess.push({type:'work',start:s.start,end:s.end,dur:s.dur,cat:s.cat,note:s.note||''})});
+    allSess.forEach(function(s){
+      var sd=new Date(s.start),ed=new Date(s.end);
+      blocks.push({type:s.type,startH:sd.getHours()+sd.getMinutes()/60,endH:ed.getHours()+ed.getMinutes()/60,title:s.cat,sub:s.note,dur:s.dur});
+    });
+
+    /* Scheduled plans as blocks */
+    plans.filter(function(p){return p.startTime&&p.endTime}).forEach(function(p){
+      var sp=p.startTime.split(':'),ep=p.endTime.split(':');
+      var sH=parseInt(sp[0])+parseInt(sp[1])/60,eH=parseInt(ep[0])+parseInt(ep[1])/60;
+      blocks.push({type:'plan',startH:sH,endH:eH,title:p.subject+': '+p.topic,sub:p.estHours+'h · '+p.status,status:p.status,planId:p.id});
+    });
+
+    for(var hr=startHour;hr<endHour;hr++){
+      var isPast=isToday&&hr<Math.floor(nowH);
+      var timeLabel=String(hr).padStart(2,'0')+':00';
+      h+='<div class="hv-row'+(isPast?' past-hour':'')+'" data-hour="'+hr+'" onclick="CAL.onHourClick(\''+dk+'\','+hr+')">';
+      h+='<div class="hv-time">'+timeLabel+'</div>';
+      h+='<div class="hv-slot" id="hvSlot-'+hr+'">';
+
+      /* Render blocks that fall in this hour */
+      blocks.forEach(function(b){
+        if(b.startH>=hr&&b.startH<hr+1){
+          var topPct=((b.startH-hr)*100);
+          var heightH=Math.max(b.endH-b.startH,0.25);
+          var heightPx=Math.max(heightH*48,20);
+          h+='<div class="hv-block '+b.type+'" style="top:'+topPct+'%;height:'+heightPx+'px">';
+          h+='<div class="hv-block-title">'+esc(b.title)+'</div>';
+          h+='<div class="hv-block-sub">'+esc(b.sub||(b.dur?UI.fd(b.dur):''))+'</div>';
+          h+='</div>';
+        }
+      });
+
+      h+='<span class="hv-add-hint">+ tap to plan</span>';
+      h+='</div></div>';
     }
 
-    h+='</div>';
+    /* Now indicator line */
+    if(isToday&&nowH>=wakeH&&nowH<=bedH){
+      var nowOffset=(nowH-startHour)*48;
+      h+='<div class="hv-now-line" style="top:'+nowOffset+'px"></div>';
+      h+='<div class="hv-now-dot" style="top:'+nowOffset+'px"></div>';
+    }
+
+    h+='</div>'; // hv-grid
+
+    /* Quick add form (hidden by default, shown on hour click) */
+    h+='<div id="hvQuickAdd" class="hidden" style="padding:8px 14px"></div>';
+
+    h+='</div>'; // hourly-view
     el.innerHTML=h;
+
+    /* Scroll to current hour if today */
+    if(isToday){
+      setTimeout(function(){
+        var grid=el.querySelector('.hv-grid');
+        if(grid){var scrollTo=Math.max(0,(nowH-startHour-2)*48);grid.scrollTop=scrollTo}
+      },50);
+    }
+  }
+
+  /* Handle hour slot click — show quick add form */
+  function onHourClick(dk,hour){
+    _quickAddHour=hour;
+    var el=document.getElementById('hvQuickAdd');
+    if(!el)return;
+    var cfg=D.getCfg();var cats=cfg.studySubjects;
+    var startT=String(hour).padStart(2,'0')+':00';
+    var endT=String(hour+1).padStart(2,'0')+':00';
+    var h='<div class="hv-quick-add">';
+    h+='<div style="font-size:.72rem;font-weight:700;color:var(--heading);margin-bottom:6px">Plan for '+startT+' — '+endT+'</div>';
+    h+='<div class="df"><span class="df-lbl" style="font-size:.65rem">Subject</span><select class="cat-sel" id="hvSubj" style="flex:1;font-size:.72rem">';
+    cats.forEach(function(s){h+='<option>'+esc(s)+'</option>'});
+    h+='</select></div>';
+    h+='<div class="df" style="margin-top:4px"><span class="df-lbl" style="font-size:.65rem">Topic</span>';
+    h+='<div class="ac-wrap" style="flex:1;position:relative"><input type="text" class="inp" id="hvTopic" placeholder="What to study..." style="font-size:.72rem;padding:6px 10px" autocomplete="off"></div></div>';
+    h+='<div class="df" style="margin-top:4px">';
+    h+='<span class="df-lbl" style="font-size:.65rem">Start</span><input type="time" class="inp" id="hvStart" value="'+startT+'" style="width:80px;font-size:.72rem;padding:6px 8px">';
+    h+='<span class="df-lbl" style="font-size:.65rem">End</span><input type="time" class="inp" id="hvEnd" value="'+endT+'" style="width:80px;font-size:.72rem;padding:6px 8px">';
+    h+='</div>';
+    h+='<div style="display:flex;gap:6px;margin-top:6px;justify-content:flex-end">';
+    h+='<button class="b b-xs" onclick="document.getElementById(\'hvQuickAdd\').classList.add(\'hidden\')">Cancel</button>';
+    h+='<button class="b b-xs b-acc" onclick="CAL.quickAddPlan(\''+dk+'\')">Add Plan</button>';
+    h+='</div></div>';
+    el.innerHTML=h;
+    el.classList.remove('hidden');
+    /* Attach autocomplete */
+    var topicEl=document.getElementById('hvTopic');
+    if(topicEl)UI.autocomplete(topicEl,function(){return document.getElementById('hvSubj').value});
+    topicEl.focus();
+  }
+
+  /* Quick add plan from hourly view */
+  function quickAddPlan(dk){
+    var subj=document.getElementById('hvSubj').value;
+    var topic=document.getElementById('hvTopic').value.trim();
+    var startTime=document.getElementById('hvStart').value;
+    var endTime=document.getElementById('hvEnd').value;
+    if(!subj||!topic){UI.toast('Fill subject & topic');return}
+    /* Calculate hours from start/end */
+    var sp=startTime.split(':'),ep=endTime.split(':');
+    var sh=parseInt(sp[0])*60+parseInt(sp[1]),eh=parseInt(ep[0])*60+parseInt(ep[1]);
+    var hours=eh>sh?Math.round((eh-sh)/60*10)/10:1;
+
+    var plans=PLAN.getPlans();
+    if(!plans[dk])plans[dk]=[];
+    plans[dk].push({
+      id:'pl_'+Date.now()+'_'+Math.random().toString(36).slice(2,5),
+      subject:subj,type:'topic',topic:topic,estHours:hours,priority:'medium',
+      lecNum:null,status:'planned',notes:'',actualSecs:0,
+      startTime:startTime,endTime:endTime,
+      createdAt:new Date().toISOString()
+    });
+    PLAN.setPlans(plans);
+    document.getElementById('hvQuickAdd').classList.add('hidden');
+    renderDayDetail(dk);
+    PLAN.render();
+    D.push();
+    UI.toast('Plan added ✓');
   }
 
   function addPlanForDay(dk){
@@ -331,5 +472,5 @@ var CAL=(function(){
     UI.toast('Exported '+events.length+' sessions to .ics');
   }
 
-  return{init:init,prev:prev,next:next,render:render,selectDay:selectDay,addPlanForDay:addPlanForDay,addSessionForDay:addSessionForDay,toggleView:toggleView,exportICS:exportICS};
+  return{init:init,prev:prev,next:next,render:render,selectDay:selectDay,addPlanForDay:addPlanForDay,addSessionForDay:addSessionForDay,toggleView:toggleView,exportICS:exportICS,onHourClick:onHourClick,quickAddPlan:quickAddPlan};
 })();

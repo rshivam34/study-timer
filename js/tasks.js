@@ -74,7 +74,8 @@ if(maxPoss>0&&rem>0)return"🌙 Day is ending. "+UI.fd(tot)+" of "+goalH+"h done
 if(rem>0)return"⚠️ Day is almost over. "+UI.fd(tot)+" of "+goalH+"h done. Not your best day, but tomorrow is another battle. Sleep well, wake up fierce, and come back twice as hard.";
 return"✅ Goal done! Rest now, fight harder tomorrow."}
 function build7DayPreview(now,today){var h='',cfg=D.getCfg(),rcs=D.getRC().filter(function(r){return r.active!==false}),done=D.getRCDone()[today]||[];
-for(var i=0;i<7;i++){var d=new Date(now);d.setDate(d.getDate()+i);var dk=D.todayKey(d);var dayLabel=i===0?'📌 TODAY ('+UI.fdate(dk)+')':i===1?'📅 Tomorrow ('+UI.fdate(dk)+')':'📅 '+d.toLocaleDateString([],{weekday:'long'})+' '+UI.fdate(dk);
+var _dayFull=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+for(var i=0;i<7;i++){var d=new Date(now);d.setDate(d.getDate()+i);var dk=D.todayKey(d);var dayLabel=i===0?'📌 TODAY ('+UI.fdate(dk)+')':i===1?'📅 Tomorrow ('+UI.fdate(dk)+')':'📅 '+_dayFull[d.getDay()]+' '+UI.fdate(dk);
 var items=[];
 // Recurring tasks for this day
 rcs.forEach(function(rc){if(RECUR.isDueOn(rc,d))items.push({type:'rc',data:rc})});

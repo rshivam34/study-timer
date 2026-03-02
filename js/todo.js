@@ -388,7 +388,7 @@ var TODO=(function(){
     /* FIX #4: Show completion timestamp */
     if(isDone&&item.completedAt){
       var cAt=new Date(item.completedAt);
-      h+='<span style="font-size:.5rem;color:var(--grn);font-weight:600">✓ '+cAt.toLocaleDateString([],{month:'short',day:'numeric'})+'</span>';
+      h+='<span style="font-size:.5rem;color:var(--grn);font-weight:600">✓ '+UI.fdate(D.todayKey(cAt))+'</span>';
     }
 
     h+='</div>';

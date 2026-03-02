@@ -7,6 +7,8 @@ var PLAN=(function(){
   function getPlans(){return D.getLocal().plans||{}}
   function setPlans(p){var d=D.getLocal();d.plans=p;D.saveLocal(d)}
   function getForDate(dk){return(getPlans()[dk]||[]).slice()}
+  /* Notify other modules after plan data changes — keeps calendar etc. in sync */
+  function _afterChange(){try{CAL.render()}catch(e){}try{if(typeof SUM!=='undefined')SUM.render()}catch(e){}}
 
   function init(){
     document.getElementById('planDate').value=D.todayKey();
@@ -17,6 +19,8 @@ var PLAN=(function(){
     // Fill subject dropdown
     var cfg=D.getCfg();
     document.getElementById('planSubj').innerHTML='<option value="">Select...</option>'+cfg.studySubjects.map(function(s){return'<option>'+esc(s)+'</option>'}).join('');
+    // Attach topic autocomplete
+    UI.autocomplete(document.getElementById('planTopic'),function(){return document.getElementById('planSubj').value});
   }
 
   function onSubjChange(){
@@ -29,13 +33,35 @@ var PLAN=(function(){
         var done=i<=(syl[subj].done||0);
         var color=done?'color:var(--grn)':'';
         el.innerHTML+='<label style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:.75rem;cursor:pointer;'+color+'">'
-          +'<input type="checkbox" class="plan-lec-cb" value="'+i+'" style="accent-color:var(--acc)">'
+          +'<input type="checkbox" class="plan-lec-cb" value="'+i+'" style="accent-color:var(--acc)" onchange="PLAN.onLecCheckChange()">'
           +'Lec '+i+(done?' ✓':'')+'</label>';
       }
       document.getElementById('planLecRow').style.display='';
     } else {
       document.getElementById('planLecRow').style.display='none';
     }
+    _updateMultiTopics();
+  }
+  /* Show per-lecture topic fields when multiple lectures are checked */
+  function onLecCheckChange(){_updateMultiTopics()}
+  function _updateMultiTopics(){
+    var checked=document.querySelectorAll('.plan-lec-cb:checked');
+    var box=document.getElementById('planMultiTopics');
+    if(!box)return;
+    if(checked.length<=1){box.style.display='none';box.innerHTML='';return}
+    box.style.display='block';
+    var subj=document.getElementById('planSubj').value;
+    var h='<div style="font-size:.65rem;color:var(--td);font-weight:600;margin-bottom:4px">Per-lecture topics <span style="color:var(--tf)">(optional — leave blank to use main topic for all)</span></div>';
+    checked.forEach(function(cb){
+      var lecN=cb.value;
+      h+='<div class="multi-topic-row"><span class="lec-label">Lec '+lecN+'</span>';
+      h+='<div class="ac-wrap" style="flex:1;position:relative"><input type="text" class="inp multi-lec-topic" data-lec="'+lecN+'" placeholder="Topic for Lec '+lecN+'..." autocomplete="off" style="font-size:.75rem;padding:6px 10px"></div></div>';
+    });
+    box.innerHTML=h;
+    /* Attach autocomplete to each per-lecture topic field */
+    box.querySelectorAll('.multi-lec-topic').forEach(function(inp){
+      UI.autocomplete(inp,function(){return document.getElementById('planSubj').value});
+    });
   }
 
   function add(){
@@ -45,6 +71,14 @@ var PLAN=(function(){
     var topic=document.getElementById('planTopic').value.trim();
     var hours=parseFloat(document.getElementById('planHours').value)||2;
     var priority=document.getElementById('planPriority').value;
+    var startTime=(document.getElementById('planStartTime')||{}).value||'';
+    var endTime=(document.getElementById('planEndTime')||{}).value||'';
+    /* Auto-calc hours from start/end if both set */
+    if(startTime&&endTime){
+      var sp=startTime.split(':'),ep=endTime.split(':');
+      var sh=parseInt(sp[0])*60+parseInt(sp[1]),eh=parseInt(ep[0])*60+parseInt(ep[1]);
+      if(eh>sh)hours=Math.round((eh-sh)/60*10)/10;
+    }
     /* FIX #2: notes field */
     var notes=(document.getElementById('planNotes')||{}).value||'';
     notes=notes.trim();
@@ -57,22 +91,31 @@ var PLAN=(function(){
       if(checked.length>0){
         var plans=getPlans();
         if(!plans[date])plans[date]=[];
+        /* Check for per-lecture topics */
+        var perLecTopics={};
+        document.querySelectorAll('.multi-lec-topic').forEach(function(inp){
+          var v=inp.value.trim();
+          if(v)perLecTopics[inp.getAttribute('data-lec')]=v;
+        });
         checked.forEach(function(cb){
           var lecN=parseInt(cb.value);
-          var lecTopic=topic||('Lecture '+lecN);
+          var lecTopic=perLecTopics[String(lecN)]||topic||('Lecture '+lecN);
           plans[date].push({
             id:'pl_'+Date.now()+'_'+Math.random().toString(36).slice(2,5),
             subject:subj,type:type,topic:lecTopic,estHours:hours,priority:priority,
             lecNum:lecN,status:'planned',notes:notes,actualSecs:0,
+            startTime:startTime||null,endTime:endTime||null,
             createdAt:new Date().toISOString()
           });
         });
         setPlans(plans);
-        /* Uncheck all checkboxes */
+        /* Uncheck all checkboxes and clear multi-topic fields */
         document.querySelectorAll('.plan-lec-cb').forEach(function(cb){cb.checked=false});
         document.getElementById('planTopic').value='';
         if(document.getElementById('planNotes'))document.getElementById('planNotes').value='';
-        render();D.push();
+        var mtBox=document.getElementById('planMultiTopics');
+        if(mtBox){mtBox.style.display='none';mtBox.innerHTML=''}
+        render();_afterChange();D.push();
         UI.toast(checked.length>1?checked.length+' plans added ✓':'Plan added ✓');
         return;
       }
@@ -87,12 +130,15 @@ var PLAN=(function(){
       id:'pl_'+Date.now()+'_'+Math.random().toString(36).slice(2,5),
       subject:subj,type:type,topic:topic,estHours:hours,priority:priority,
       lecNum:null,status:'planned',notes:notes,actualSecs:0,
+      startTime:startTime||null,endTime:endTime||null,
       createdAt:new Date().toISOString()
     });
     setPlans(plans);
     document.getElementById('planTopic').value='';
     if(document.getElementById('planNotes'))document.getElementById('planNotes').value='';
-    render();D.push();UI.toast('Plan added ✓');
+    if(document.getElementById('planStartTime'))document.getElementById('planStartTime').value='';
+    if(document.getElementById('planEndTime'))document.getElementById('planEndTime').value='';
+    render();_afterChange();D.push();UI.toast('Plan added ✓');
   }
 
   function updateStatus(date,id,status){
@@ -100,7 +146,7 @@ var PLAN=(function(){
     if(!plans[date])return;
     var p=plans[date].find(function(x){return x.id===id});
     if(p)p.status=status;
-    setPlans(plans);render();D.push();
+    setPlans(plans);render();_afterChange();D.push();
   }
 
   function remove(date,id){
@@ -109,7 +155,7 @@ var PLAN=(function(){
     if(!plans[date])return;
     plans[date]=plans[date].filter(function(x){return x.id!==id});
     if(!plans[date].length)delete plans[date];
-    setPlans(plans);render();D.push();UI.toast('Removed');
+    setPlans(plans);render();_afterChange();D.push();UI.toast('Removed');
   }
 
   function completePlan(date,id){
@@ -134,7 +180,7 @@ var PLAN=(function(){
     });
     setPlans(allPlans);
     document.getElementById('planViewDate').value=tomK;
-    render();D.push();UI.toast(pending.length+' items carried forward');
+    render();_afterChange();D.push();UI.toast(pending.length+' items carried forward');
   }
 
   /* Copy Day's Plans — clone all plans from source date to target date */
@@ -157,7 +203,7 @@ var PLAN=(function(){
     });
     setPlans(allPlans);
     document.getElementById('planViewDate').value=targetDate;
-    render();D.push();UI.toast(sourcePlans.length+' plans copied ✓');
+    render();_afterChange();D.push();UI.toast(sourcePlans.length+' plans copied ✓');
   }
 
   /* ========== GOAL PRESETS (Rule-based daily goals) ========== */
@@ -356,6 +402,8 @@ var PLAN=(function(){
     document.getElementById('pePriority').value=p.priority;
     document.getElementById('peNotes').value=p.notes||'';
     document.getElementById('peStatus').value=p.status;
+    document.getElementById('peStartTime').value=p.startTime||'';
+    document.getElementById('peEndTime').value=p.endTime||'';
 
     // Populate subject dropdown
     var cfg=D.getCfg();
@@ -396,11 +444,13 @@ var PLAN=(function(){
     p.priority=document.getElementById('pePriority').value;
     p.notes=document.getElementById('peNotes').value.trim();
     p.status=document.getElementById('peStatus').value;
+    p.startTime=document.getElementById('peStartTime').value||null;
+    p.endTime=document.getElementById('peEndTime').value||null;
     if(p.type==='lecture')p.lecNum=parseInt(document.getElementById('peLecNum').value)||null;
 
     setPlans(plans);
     closeEdit();
-    render();D.push();
+    render();_afterChange();D.push();
     UI.toast('Plan updated ✓');
   }
 
@@ -452,7 +502,7 @@ var PLAN=(function(){
       h+='<span class="plan-status '+p.status+'">'+p.status+'</span>';
       h+='</div>';
       h+='<div style="font-size:.72rem;color:var(--t2);font-weight:500">'+esc(p.topic)+(p.lecNum?' · Lec #'+p.lecNum:'')+'</div>';
-
+      if(p.startTime&&p.endTime)h+='<div style="font-size:.6rem;color:var(--cyn);font-weight:600;font-family:JetBrains Mono,monospace;margin-top:1px">🕐 '+p.startTime+' — '+p.endTime+'</div>';
       if(p.notes)h+='<div style="font-size:.62rem;color:var(--td);font-style:italic;margin-top:1px">'+esc(p.notes)+'</div>';
 
       var estStr='Est: '+p.estHours+'h';
@@ -521,7 +571,7 @@ var PLAN=(function(){
     var item=arr.splice(fromIdx,1)[0];
     arr.splice(toIdx,0,item);
     arr.forEach(function(p,i){p.sortOrder=i});
-    setPlans(plans);render();D.push();
+    setPlans(plans);render();_afterChange();D.push();
   }
 
   /* Plan Templates — Save / Load */
@@ -554,7 +604,7 @@ var PLAN=(function(){
       });
     });
     setPlans(plans);document.getElementById('planViewDate').value=date;
-    render();D.push();UI.toast('Template "'+tpl.name+'" applied ✓');
+    render();_afterChange();D.push();UI.toast('Template "'+tpl.name+'" applied ✓');
   }
 
   function deleteTemplate(id){
@@ -590,7 +640,7 @@ var PLAN=(function(){
     completePlan:completePlan,carryForward:carryForward,copyDayPlans:copyDayPlans,
     renderGoalPresets:renderGoalPresets,toggleGoalPreset:toggleGoalPreset,
     openAddPreset:openAddPreset,openEditPreset:openEditPreset,saveGoalPreset:saveGoalPreset,deleteGoalPreset:deleteGoalPreset,cycleDayChip:cycleDayChip,
-    onSubjChange:onSubjChange,getForDate:getForDate,getTodayPlansForSubject:getTodayPlansForSubject,
+    onSubjChange:onSubjChange,onLecCheckChange:onLecCheckChange,getForDate:getForDate,getTodayPlansForSubject:getTodayPlansForSubject,
     getPlans:getPlans,setPlans:setPlans,
     openEdit:openEdit,saveEdit:saveEdit,closeEdit:closeEdit,
     saveAsTemplate:saveAsTemplate,loadTemplate:loadTemplate,deleteTemplate:deleteTemplate,renderTemplates:renderTemplates

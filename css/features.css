@@ -150,4 +150,47 @@
 /* ========== OVERDUE TODO BADGE ========== */
 .overdue-badge{font-family:'JetBrains Mono',monospace;font-size:.6rem;font-weight:700;color:var(--red);background:var(--red2);padding:2px 8px;border-radius:4px}
 .todo-due.overdue{color:var(--red)!important;font-weight:700}
-
+/* ========== AUTOCOMPLETE DROPDOWN ========== */
+.ac-wrap{position:relative}
+.ac-list{position:absolute;top:100%;left:0;right:0;background:var(--s1);border:1px solid var(--brd2);border-radius:8px;max-height:160px;overflow-y:auto;z-index:80;box-shadow:0 4px 16px var(--shadow);display:none}
+.ac-list.show{display:block}
+.ac-item{padding:7px 12px;font-size:.75rem;color:var(--t2);cursor:pointer;border-bottom:1px solid var(--brd);font-weight:500;display:flex;align-items:center;gap:6px}
+.ac-item:last-child{border:none}
+.ac-item:hover,.ac-item.active{background:var(--acc2);color:var(--acc)}
+.ac-item .ac-subj{font-size:.55rem;color:var(--td);font-weight:600;background:var(--s3);padding:1px 5px;border-radius:3px}
+.ac-new{color:var(--acc);font-weight:700}
+/* ========== MULTI TOPIC FIELDS ========== */
+.multi-topic-row{display:flex;align-items:center;gap:6px;margin-top:4px}
+.multi-topic-row .lec-label{font-size:.7rem;font-weight:600;color:var(--td);white-space:nowrap;min-width:45px}
+.multi-topic-row input{flex:1}
+/* ========== HOURLY DAY VIEW (Google Calendar style) ========== */
+.hourly-view{background:var(--s1);border:1px solid var(--brd);border-radius:12px;overflow:hidden;margin-top:8px}
+.hv-header{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--brd)}
+.hv-title{font-size:.85rem;font-weight:700;color:var(--heading)}
+.hv-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:8px 14px;border-bottom:1px solid var(--brd);background:var(--s2)}
+.hv-stat{text-align:center;padding:4px 2px}
+.hv-stat-val{font-family:'JetBrains Mono',monospace;font-size:.72rem;font-weight:700;display:block}
+.hv-stat-lbl{font-size:.45rem;color:var(--td);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.hv-grid{position:relative;overflow-y:auto;max-height:65vh}
+.hv-row{display:flex;border-bottom:1px solid var(--brd);min-height:48px;position:relative;cursor:pointer;transition:background .1s}
+.hv-row:hover{background:var(--s2)}
+.hv-row.past-hour{opacity:.6}
+.hv-time{width:48px;font-family:'JetBrains Mono',monospace;font-size:.6rem;font-weight:600;color:var(--td);padding:4px 6px;flex-shrink:0;border-right:1px solid var(--brd);display:flex;align-items:flex-start}
+.hv-slot{flex:1;position:relative;min-height:48px;padding:2px 4px}
+.hv-block{position:absolute;left:2px;right:2px;border-radius:6px;padding:4px 8px;font-size:.65rem;font-weight:600;overflow:hidden;z-index:2;cursor:pointer;display:flex;flex-direction:column;gap:1px;border:1px solid transparent}
+.hv-block.study{background:var(--acc2);border-color:rgba(255,107,53,.25);color:var(--acc)}
+.hv-block.work{background:var(--cyn2);border-color:rgba(34,211,238,.25);color:var(--cyn)}
+.hv-block.plan{background:var(--pur2);border-color:rgba(167,139,250,.25);color:var(--pur)}
+.hv-block.sleep{background:var(--s3);border-color:var(--brd);color:var(--tf)}
+.hv-block-title{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hv-block-sub{font-size:.55rem;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hv-now-line{position:absolute;left:48px;right:0;height:2px;background:var(--red);z-index:5;pointer-events:none}
+.hv-now-dot{position:absolute;left:44px;width:10px;height:10px;border-radius:50%;background:var(--red);z-index:6;transform:translateY(-4px);pointer-events:none}
+.hv-add-hint{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:.55rem;color:var(--tf);font-weight:600;opacity:0;transition:opacity .15s;pointer-events:none}
+.hv-row:hover .hv-add-hint{opacity:1}
+/* Quick add form for time slot */
+.hv-quick-add{background:var(--s2);border:1px solid var(--acc);border-radius:8px;padding:10px;margin:4px 0;animation:fadeUp .15s ease}
+.hv-quick-add .df{gap:4px;margin-bottom:4px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.hv-back{background:none;border:1px solid var(--brd);border-radius:6px;color:var(--t2);cursor:pointer;padding:4px 10px;font-size:.7rem;font-weight:600}
+.hv-back:hover{background:var(--s2)}

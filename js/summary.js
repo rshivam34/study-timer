@@ -63,7 +63,7 @@ var SUM=(function(){
     var totalSess=studySess.length+workSess.length;
     var planDone=plans.filter(function(p){return p.status==='completed'}).length;
     var planPct=plans.length?Math.round(planDone/plans.length*100):0;
-    var dayName=new Date(dk).toLocaleDateString([],{weekday:'long',month:'short',day:'numeric'});
+    var dayName=UI.fdn(dk);
 
     var h='<div class="summary-card"><h4>📊 '+dayName+'</h4>';
     h+=sumRow('Study Hours',UI.fd(totalStudy));
