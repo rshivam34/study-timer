@@ -1,4 +1,4 @@
-const CACHE = 'study-timer-v15';
+const CACHE = 'study-timer-v16';
 const ASSETS = [
   './',
   './index.html',
@@ -38,8 +38,14 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+  /* For our own assets, use cache:'no-cache' to bypass browser HTTP cache
+     and always revalidate with the server. This ensures code updates are
+     picked up on normal reloads, not just hard refresh.
+     External assets (fonts, CDNs) use normal caching. */
+  const isLocal = new URL(e.request.url).origin === self.location.origin;
+  const req = isLocal ? new Request(e.request, { cache: 'no-cache' }) : e.request;
   e.respondWith(
-    fetch(e.request)
+    fetch(req)
       .then(r => { const c = r.clone(); caches.open(CACHE).then(ch => ch.put(e.request, c)); return r; })
       .catch(() => caches.match(e.request))
   );
