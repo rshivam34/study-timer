@@ -1,4 +1,4 @@
-const CACHE = 'study-timer-v20';
+const CACHE = 'study-timer-v21';
 const ASSETS = [
   './',
   './index.html',
@@ -19,7 +19,8 @@ const ASSETS = [
   './js/settings.js',
   './js/app.js',
   './js/todo.js',
-  './js/summary.js'
+  './js/summary.js',
+  './js/knowledge.js'
 ];
 
 self.addEventListener('install', e => {

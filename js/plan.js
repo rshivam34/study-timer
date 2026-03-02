@@ -13,14 +13,40 @@ var PLAN=(function(){
   function init(){
     document.getElementById('planDate').value=D.todayKey();
     document.getElementById('planViewDate').value=D.todayKey();
+    _populateSubjects();
     onSubjChange();
     render();
     renderGoalPresets();
-    // Fill subject dropdown
-    var cfg=D.getCfg();
-    document.getElementById('planSubj').innerHTML='<option value="">Select...</option>'+cfg.studySubjects.map(function(s){return'<option>'+esc(s)+'</option>'}).join('');
     // Attach topic autocomplete
     UI.autocomplete(document.getElementById('planTopic'),function(){return document.getElementById('planSubj').value});
+  }
+
+  /* Populate subject dropdown based on planFor selection */
+  function _populateSubjects(){
+    var cfg=D.getCfg();
+    var planFor=(document.getElementById('planFor')||{}).value||'study';
+    var list=planFor==='work'?cfg.workCategories:cfg.studySubjects;
+    document.getElementById('planSubj').innerHTML='<option value="">Select...</option>'+list.map(function(s){return'<option>'+esc(s)+'</option>'}).join('');
+  }
+
+  function onPlanForChange(){
+    var planFor=document.getElementById('planFor').value;
+    _populateSubjects();
+    /* Hide lecture-related fields and revision type for work */
+    var lecRow=document.getElementById('planLecRow');
+    var typeRow=document.getElementById('planTypeRow');
+    var typeEl=document.getElementById('planType');
+    if(planFor==='work'){
+      if(lecRow)lecRow.style.display='none';
+      /* Reset type to 'topic' and hide lecture/revision options */
+      typeEl.value='topic';
+      Array.from(typeEl.options).forEach(function(o){
+        o.style.display=(o.value==='lecture'||o.value==='revision')?'none':'';
+      });
+    } else {
+      Array.from(typeEl.options).forEach(function(o){o.style.display=''});
+    }
+    onSubjChange();
   }
 
   function onSubjChange(){
@@ -67,8 +93,11 @@ var PLAN=(function(){
   function add(){
     var date=document.getElementById('planDate').value;
     var subj=document.getElementById('planSubj').value;
+    var planFor=(document.getElementById('planFor')||{}).value||'study';
     var type=document.getElementById('planType').value;
     var topic=document.getElementById('planTopic').value.trim();
+    var source=(document.getElementById('planSource')||{}).value||'';
+    source=source.trim();
     var hours=parseFloat(document.getElementById('planHours').value)||2;
     var priority=document.getElementById('planPriority').value;
     var startTime=(document.getElementById('planStartTime')||{}).value||'';
@@ -102,7 +131,7 @@ var PLAN=(function(){
           var lecTopic=perLecTopics[String(lecN)]||topic||('Lecture '+lecN);
           plans[date].push({
             id:'pl_'+Date.now()+'_'+Math.random().toString(36).slice(2,5),
-            subject:subj,type:type,topic:lecTopic,estHours:hours,priority:priority,
+            subject:subj,planFor:planFor,type:type,topic:lecTopic,source:source,estHours:hours,priority:priority,
             lecNum:lecN,status:'planned',notes:notes,actualSecs:0,
             startTime:startTime||null,endTime:endTime||null,
             createdAt:new Date().toISOString()
@@ -112,6 +141,7 @@ var PLAN=(function(){
         /* Uncheck all checkboxes and clear multi-topic fields */
         document.querySelectorAll('.plan-lec-cb').forEach(function(cb){cb.checked=false});
         document.getElementById('planTopic').value='';
+        if(document.getElementById('planSource'))document.getElementById('planSource').value='';
         if(document.getElementById('planNotes'))document.getElementById('planNotes').value='';
         var mtBox=document.getElementById('planMultiTopics');
         if(mtBox){mtBox.style.display='none';mtBox.innerHTML=''}
@@ -128,13 +158,14 @@ var PLAN=(function(){
     if(!plans[date])plans[date]=[];
     plans[date].push({
       id:'pl_'+Date.now()+'_'+Math.random().toString(36).slice(2,5),
-      subject:subj,type:type,topic:topic,estHours:hours,priority:priority,
+      subject:subj,planFor:planFor,type:type,topic:topic,source:source,estHours:hours,priority:priority,
       lecNum:null,status:'planned',notes:notes,actualSecs:0,
       startTime:startTime||null,endTime:endTime||null,
       createdAt:new Date().toISOString()
     });
     setPlans(plans);
     document.getElementById('planTopic').value='';
+    if(document.getElementById('planSource'))document.getElementById('planSource').value='';
     if(document.getElementById('planNotes'))document.getElementById('planNotes').value='';
     if(document.getElementById('planStartTime'))document.getElementById('planStartTime').value='';
     if(document.getElementById('planEndTime'))document.getElementById('planEndTime').value='';
@@ -395,9 +426,11 @@ var PLAN=(function(){
     editingPlan={date:date,id:id};
 
     var modal=document.getElementById('planEditModal');
-    document.getElementById('peSubj').value=p.subject;
+    var pf=p.planFor||'study';
+    document.getElementById('pePlanFor').value=pf;
     document.getElementById('peType').value=p.type;
     document.getElementById('peTopic').value=p.topic;
+    document.getElementById('peSource').value=p.source||'';
     document.getElementById('peHours').value=p.estHours;
     document.getElementById('pePriority').value=p.priority;
     document.getElementById('peNotes').value=p.notes||'';
@@ -405,17 +438,18 @@ var PLAN=(function(){
     document.getElementById('peStartTime').value=p.startTime||'';
     document.getElementById('peEndTime').value=p.endTime||'';
 
-    // Populate subject dropdown
-    var cfg=D.getCfg();
-    var subjSel=document.getElementById('peSubj');
-    subjSel.innerHTML=cfg.studySubjects.map(function(s){return'<option'+(s===p.subject?' selected':'')+'>'+esc(s)+'</option>'}).join('');
+    // Populate subject dropdown based on planFor
+    _populateEditSubjects(pf,p.subject);
+
+    // Show/hide lecture & revision type based on planFor
+    _updateEditTypeOptions(pf);
 
     // Lecture number
     var syl=D.getSyl();
     var lecRow=document.getElementById('peLecRow');
     var lecSel=document.getElementById('peLecNum');
     lecSel.innerHTML='';
-    if(syl[p.subject]&&syl[p.subject].total){
+    if(pf==='study'&&syl[p.subject]&&syl[p.subject].total){
       lecRow.classList.remove('hidden');
       for(var i=1;i<=syl[p.subject].total;i++){
         var done=i<=(syl[p.subject].done||0);
@@ -428,6 +462,28 @@ var PLAN=(function(){
     modal.classList.remove('hidden');
   }
 
+  function _populateEditSubjects(planFor,selected){
+    var cfg=D.getCfg();
+    var list=planFor==='work'?cfg.workCategories:cfg.studySubjects;
+    var subjSel=document.getElementById('peSubj');
+    subjSel.innerHTML=list.map(function(s){return'<option'+(s===selected?' selected':'')+'>'+esc(s)+'</option>'}).join('');
+  }
+
+  function _updateEditTypeOptions(planFor){
+    var typeEl=document.getElementById('peType');
+    Array.from(typeEl.options).forEach(function(o){
+      o.style.display=(planFor==='work'&&(o.value==='lecture'||o.value==='revision'))?'none':'';
+    });
+    if(planFor==='work'&&(typeEl.value==='lecture'||typeEl.value==='revision'))typeEl.value='topic';
+    document.getElementById('peLecRow').classList.add('hidden');
+  }
+
+  function onEditPlanForChange(){
+    var pf=document.getElementById('pePlanFor').value;
+    _populateEditSubjects(pf,null);
+    _updateEditTypeOptions(pf);
+  }
+
   /* FIX #1: Save edits */
   function saveEdit(){
     if(!editingPlan)return;
@@ -437,9 +493,11 @@ var PLAN=(function(){
     var p=plans[dk].find(function(x){return x.id===editingPlan.id});
     if(!p)return;
 
+    p.planFor=document.getElementById('pePlanFor').value||'study';
     p.subject=document.getElementById('peSubj').value;
     p.type=document.getElementById('peType').value;
     p.topic=document.getElementById('peTopic').value.trim();
+    p.source=(document.getElementById('peSource').value||'').trim();
     p.estHours=parseFloat(document.getElementById('peHours').value)||2;
     p.priority=document.getElementById('pePriority').value;
     p.notes=document.getElementById('peNotes').value.trim();
@@ -499,9 +557,15 @@ var PLAN=(function(){
       h+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">';
       h+='<span>'+priIco+'</span><span>'+typeIco+'</span>';
       h+='<span style="font-size:.82rem;font-weight:700;color:var(--heading);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.subject)+'</span>';
+      if(p.planFor==='work')h+='<span style="font-size:.55rem;background:var(--cyn2);color:var(--cyn);padding:1px 5px;border-radius:4px;font-weight:700">💼 Work</span>';
       h+='<span class="plan-status '+p.status+'">'+p.status+'</span>';
       h+='</div>';
       h+='<div style="font-size:.72rem;color:var(--t2);font-weight:500">'+esc(p.topic)+(p.lecNum?' · Lec #'+p.lecNum:'')+'</div>';
+      if(p.source){
+        var srcHtml=esc(p.source);
+        if(/^https?:\/\//i.test(p.source))srcHtml='<a href="'+esc(p.source)+'" target="_blank" rel="noopener" style="color:var(--acc);text-decoration:underline">'+srcHtml+'</a>';
+        h+='<div style="font-size:.6rem;color:var(--td);margin-top:1px">📎 '+srcHtml+'</div>';
+      }
       if(p.startTime&&p.endTime)h+='<div style="font-size:.6rem;color:var(--cyn);font-weight:600;font-family:JetBrains Mono,monospace;margin-top:1px">🕐 '+p.startTime+' — '+p.endTime+'</div>';
       if(p.notes)h+='<div style="font-size:.62rem;color:var(--td);font-style:italic;margin-top:1px">'+esc(p.notes)+'</div>';
 
@@ -585,7 +649,7 @@ var PLAN=(function(){
     var name=prompt('Template name:');
     if(!name)return;
     var tpls=getTemplates();
-    var items=plans.map(function(p){return{subject:p.subject,type:p.type,topic:p.topic,estHours:p.estHours,priority:p.priority,lecNum:p.lecNum,notes:p.notes||''}});
+    var items=plans.map(function(p){return{subject:p.subject,planFor:p.planFor||'study',type:p.type,topic:p.topic,source:p.source||'',estHours:p.estHours,priority:p.priority,lecNum:p.lecNum,notes:p.notes||''}});
     tpls.push({id:'tpl_'+Date.now(),name:name.trim(),items:items,createdAt:new Date().toISOString()});
     setTemplates(tpls);UI.toast('Template "'+name+'" saved ✓');renderTemplates();
   }
@@ -598,7 +662,8 @@ var PLAN=(function(){
     tpl.items.forEach(function(item){
       plans[date].push({
         id:'pl_'+Date.now()+'_'+Math.random().toString(36).slice(2,5),
-        subject:item.subject,type:item.type,topic:item.topic,estHours:item.estHours,
+        subject:item.subject,planFor:item.planFor||'study',type:item.type,topic:item.topic,
+        source:item.source||'',estHours:item.estHours,
         priority:item.priority,lecNum:item.lecNum,status:'planned',notes:item.notes||'',
         actualSecs:0,createdAt:new Date().toISOString()
       });
@@ -640,7 +705,8 @@ var PLAN=(function(){
     completePlan:completePlan,carryForward:carryForward,copyDayPlans:copyDayPlans,
     renderGoalPresets:renderGoalPresets,toggleGoalPreset:toggleGoalPreset,
     openAddPreset:openAddPreset,openEditPreset:openEditPreset,saveGoalPreset:saveGoalPreset,deleteGoalPreset:deleteGoalPreset,cycleDayChip:cycleDayChip,
-    onSubjChange:onSubjChange,onLecCheckChange:onLecCheckChange,getForDate:getForDate,getTodayPlansForSubject:getTodayPlansForSubject,
+    onSubjChange:onSubjChange,onLecCheckChange:onLecCheckChange,onPlanForChange:onPlanForChange,onEditPlanForChange:onEditPlanForChange,
+    getForDate:getForDate,getTodayPlansForSubject:getTodayPlansForSubject,
     getPlans:getPlans,setPlans:setPlans,
     openEdit:openEdit,saveEdit:saveEdit,closeEdit:closeEdit,
     saveAsTemplate:saveAsTemplate,loadTemplate:loadTemplate,deleteTemplate:deleteTemplate,renderTemplates:renderTemplates

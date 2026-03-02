@@ -138,7 +138,10 @@ var TM=(function(){
 
   function discard(type){
     var t=T[type];
-    if(t.on&&t.el>5&&!confirm('Discard?'))return;
+    if(t.on&&t.el>5){
+      if(!confirm('Discard this session? All progress will be lost.'))return;
+      if(!confirm('Are you really sure? This cannot be undone.'))return;
+    }
     clearInterval(t.iv);t.on=false;t.pau=false;clearState();reset(type);
   }
 

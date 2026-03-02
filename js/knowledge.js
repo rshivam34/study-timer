@@ -1,0 +1,249 @@
+/* ========== KNOWLEDGE LOG MODULE (KNOW) ========== */
+/* Logs casual learning — things learned outside the study/work timer flow */
+
+var KNOW=(function(){
+  var editingId=null;
+
+  /* ── Data helpers ── */
+  function getEntries(){return D.getLocal().knowledge||[]}
+  function setEntries(arr){var d=D.getLocal();d.knowledge=arr;D.saveLocal(d)}
+  function getCategories(){return D.getCfg().knowledgeCategories||['Health & Fitness','Current Affairs','Technology','Finance','Life Skills','Other']}
+
+  /* ── Init ── */
+  function init(){
+    var dateEl=document.getElementById('knAddDate');
+    if(dateEl&&!dateEl.value)dateEl.value=D.todayKey();
+    _populateCategoryDropdowns();
+    render();
+  }
+
+  function _populateCategoryDropdowns(){
+    var cats=getCategories();
+    var opts=cats.map(function(c){return'<option>'+esc(c)+'</option>'}).join('');
+    var addCat=document.getElementById('knAddCat');
+    if(addCat)addCat.innerHTML=opts;
+    var filterCat=document.getElementById('knFilterCat');
+    if(filterCat)filterCat.innerHTML='<option value="">All Categories</option>'+opts;
+  }
+
+  /* ── Add entry ── */
+  function add(){
+    var cat=(document.getElementById('knAddCat')||{}).value;
+    var topic=(document.getElementById('knAddTopic')||{}).value||'';
+    topic=topic.trim();
+    if(!topic){UI.toast('Topic is required');return}
+    var hrs=parseInt(document.getElementById('knAddHrs').value)||0;
+    var mins=parseInt(document.getElementById('knAddMins').value)||0;
+    var duration=hrs*60+mins;
+    var source=(document.getElementById('knAddSource')||{}).value||'';
+    source=source.trim();
+    var notes=(document.getElementById('knAddNotes')||{}).value||'';
+    notes=notes.trim();
+    var date=(document.getElementById('knAddDate')||{}).value||D.todayKey();
+
+    var entry={
+      id:'kn_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
+      date:date,
+      category:cat,
+      topic:topic,
+      duration:duration,
+      source:source,
+      notes:notes,
+      createdAt:new Date().toISOString()
+    };
+
+    var entries=getEntries();
+    entries.push(entry);
+    setEntries(entries);
+
+    /* Clear form */
+    document.getElementById('knAddTopic').value='';
+    document.getElementById('knAddHrs').value='';
+    document.getElementById('knAddMins').value='';
+    document.getElementById('knAddSource').value='';
+    document.getElementById('knAddNotes').value='';
+
+    render();
+    D.push().then(function(){App.syncUI('on')}).catch(function(){App.syncUI('err')});
+    UI.toast('Knowledge entry added');
+  }
+
+  /* ── Remove entry ── */
+  function remove(id){
+    if(!confirm('Delete this entry?'))return;
+    var entries=getEntries().filter(function(e){return e.id!==id});
+    setEntries(entries);
+    render();
+    D.push();
+    UI.toast('Deleted');
+  }
+
+  /* ── Edit entry ── */
+  function openEdit(id){
+    var entry=getEntries().find(function(e){return e.id===id});
+    if(!entry)return;
+    editingId=id;
+
+    var cats=getCategories();
+    var catOpts=cats.map(function(c){return'<option'+(c===entry.category?' selected':'')+'>'+esc(c)+'</option>'}).join('');
+    document.getElementById('keCategory').innerHTML=catOpts;
+    document.getElementById('keTopic').value=entry.topic;
+    document.getElementById('keHrs').value=entry.duration>=60?Math.floor(entry.duration/60):'';
+    document.getElementById('keMins').value=entry.duration%60||'';
+    document.getElementById('keSource').value=entry.source||'';
+    document.getElementById('keNotes').value=entry.notes||'';
+    document.getElementById('keDate').value=entry.date;
+    document.getElementById('knowledgeEditModal').classList.remove('hidden');
+  }
+
+  function saveEdit(){
+    if(!editingId)return;
+    var entries=getEntries();
+    var entry=entries.find(function(e){return e.id===editingId});
+    if(!entry)return;
+
+    var topic=(document.getElementById('keTopic').value||'').trim();
+    if(!topic){UI.toast('Topic is required');return}
+
+    entry.category=document.getElementById('keCategory').value;
+    entry.topic=topic;
+    var hrs=parseInt(document.getElementById('keHrs').value)||0;
+    var mins=parseInt(document.getElementById('keMins').value)||0;
+    entry.duration=hrs*60+mins;
+    entry.source=(document.getElementById('keSource').value||'').trim();
+    entry.notes=(document.getElementById('keNotes').value||'').trim();
+    entry.date=document.getElementById('keDate').value||entry.date;
+
+    setEntries(entries);
+    closeEdit();
+    render();
+    D.push();
+    UI.toast('Updated');
+  }
+
+  function closeEdit(){
+    editingId=null;
+    document.getElementById('knowledgeEditModal').classList.add('hidden');
+  }
+
+  /* ── Render ── */
+  function render(){
+    var entries=getEntries();
+    var filterCat=(document.getElementById('knFilterCat')||{}).value||'';
+    var searchVal=((document.getElementById('knSearch')||{}).value||'').toLowerCase().trim();
+
+    /* Filter */
+    var filtered=entries.filter(function(e){
+      if(filterCat&&e.category!==filterCat)return false;
+      if(searchVal&&e.topic.toLowerCase().indexOf(searchVal)===-1&&(e.source||'').toLowerCase().indexOf(searchVal)===-1&&(e.notes||'').toLowerCase().indexOf(searchVal)===-1)return false;
+      return true;
+    });
+
+    /* Sort by date descending */
+    filtered.sort(function(a,b){return b.date.localeCompare(a.date)||b.createdAt.localeCompare(a.createdAt)});
+
+    var listEl=document.getElementById('knList');
+    if(!listEl)return;
+
+    if(!filtered.length){
+      listEl.innerHTML='<div class="empty"><div class="empty-ico">💡</div><p>No knowledge entries yet</p></div>';
+      _renderStats(entries);
+      return;
+    }
+
+    /* Group by date */
+    var groups={};var dateOrder=[];
+    filtered.forEach(function(e){
+      if(!groups[e.date]){groups[e.date]=[];dateOrder.push(e.date)}
+      groups[e.date].push(e);
+    });
+
+    var h='';
+    dateOrder.forEach(function(dk){
+      h+='<div style="font-size:.62rem;font-weight:700;color:var(--acc);text-transform:uppercase;letter-spacing:.06em;padding:8px 0 4px">'+UI.fdn(dk)+'</div>';
+      groups[dk].forEach(function(e){
+        var catColor=_catColor(e.category);
+        h+='<div class="knowledge-card">';
+        h+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">';
+        h+='<span class="knowledge-cat-badge" style="background:'+catColor+'">'+esc(e.category)+'</span>';
+        h+='<span style="font-size:.82rem;font-weight:700;color:var(--heading);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(e.topic)+'</span>';
+        h+='<div style="display:flex;gap:3px">';
+        h+='<button class="b b-xs" onclick="KNOW.openEdit(\''+e.id+'\')">✏️</button>';
+        h+='<button class="b b-xs b-danger" onclick="KNOW.remove(\''+e.id+'\')">✕</button>';
+        h+='</div></div>';
+        /* Duration + source */
+        var meta=[];
+        if(e.duration>0){
+          var dH=Math.floor(e.duration/60),dM=e.duration%60;
+          meta.push((dH?dH+'h ':'')+(dM?dM+'m':''));
+        }
+        if(e.source){
+          var srcHtml=esc(e.source);
+          if(/^https?:\/\//i.test(e.source))srcHtml='<a href="'+esc(e.source)+'" target="_blank" rel="noopener" style="color:var(--acc);text-decoration:underline">'+srcHtml+'</a>';
+          meta.push('📎 '+srcHtml);
+        }
+        if(meta.length)h+='<div style="font-size:.62rem;color:var(--td);margin-bottom:2px">'+meta.join(' · ')+'</div>';
+        if(e.notes)h+='<div style="font-size:.62rem;color:var(--tf);font-style:italic;line-height:1.4">'+esc(e.notes).substring(0,200)+(e.notes.length>200?'...':'')+'</div>';
+        h+='</div>';
+      });
+    });
+
+    listEl.innerHTML=h;
+    _renderStats(entries);
+  }
+
+  /* ── Stats ── */
+  function _renderStats(entries){
+    var el=document.getElementById('knStats');
+    if(!el)return;
+    if(!entries.length){el.innerHTML='';return}
+
+    var totalMins=0;var catCount={};
+    entries.forEach(function(e){
+      totalMins+=e.duration||0;
+      catCount[e.category]=(catCount[e.category]||0)+1;
+    });
+
+    var h='<div style="font-size:.62rem;font-weight:700;color:var(--heading);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Stats</div>';
+    h+='<div style="display:flex;gap:12px;margin-bottom:8px;flex-wrap:wrap">';
+    h+='<div style="text-align:center"><div style="font-family:JetBrains Mono,monospace;font-size:.9rem;font-weight:700;color:var(--acc)">'+entries.length+'</div><div style="font-size:.55rem;color:var(--td)">Entries</div></div>';
+    var totalH=Math.floor(totalMins/60),totalM=totalMins%60;
+    h+='<div style="text-align:center"><div style="font-family:JetBrains Mono,monospace;font-size:.9rem;font-weight:700;color:var(--grn)">'+(totalH?totalH+'h ':'')+(totalM?totalM+'m':'0m')+'</div><div style="font-size:.55rem;color:var(--td)">Total Time</div></div>';
+    h+='<div style="text-align:center"><div style="font-family:JetBrains Mono,monospace;font-size:.9rem;font-weight:700;color:var(--cyn)">'+Object.keys(catCount).length+'</div><div style="font-size:.55rem;color:var(--td)">Categories</div></div>';
+    h+='</div>';
+
+    /* Category bar chart */
+    var maxCount=Math.max.apply(null,Object.values(catCount));
+    var sortedCats=Object.keys(catCount).sort(function(a,b){return catCount[b]-catCount[a]});
+    sortedCats.forEach(function(cat){
+      var pct=Math.round(catCount[cat]/maxCount*100);
+      var color=_catColor(cat);
+      h+='<div style="margin-bottom:4px">';
+      h+='<div style="display:flex;justify-content:space-between;font-size:.58rem;color:var(--t2);margin-bottom:1px"><span>'+esc(cat)+'</span><span style="font-weight:700">'+catCount[cat]+'</span></div>';
+      h+='<div style="height:6px;background:var(--s3);border-radius:3px;overflow:hidden"><div style="width:'+pct+'%;height:100%;background:'+color+';border-radius:3px"></div></div>';
+      h+='</div>';
+    });
+
+    el.innerHTML=h;
+  }
+
+  /* ── Category color helper ── */
+  var _catColors={
+    'Health & Fitness':'var(--grn)','Current Affairs':'var(--acc)',
+    'Technology':'var(--cyn)','Finance':'var(--yel)',
+    'Life Skills':'var(--pur)','Other':'var(--td)'
+  };
+  function _catColor(cat){
+    if(_catColors[cat])return _catColors[cat];
+    /* Hash-based fallback */
+    var palette=['var(--acc)','var(--cyn)','var(--pur)','var(--grn)','var(--yel)','var(--blu)','var(--red)'];
+    var hash=0;for(var i=0;i<cat.length;i++)hash+=cat.charCodeAt(i);
+    return palette[hash%palette.length];
+  }
+
+  return{
+    init:init,render:render,add:add,remove:remove,
+    openEdit:openEdit,saveEdit:saveEdit,closeEdit:closeEdit,
+    getEntries:getEntries,setEntries:setEntries
+  };
+})();
