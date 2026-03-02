@@ -527,19 +527,29 @@ var CAL=(function(){
     var startT=String(hour).padStart(2,'0')+':00';
     var endT=String(hour+1).padStart(2,'0')+':00';
     var h='<div class="hv-quick-add">';
-    h+='<div style="font-size:.72rem;font-weight:700;color:var(--heading);margin-bottom:6px">Plan for '+startT+' \u2014 '+endT+'</div>';
-    h+='<div class="df"><span class="df-lbl" style="font-size:.65rem">Subject</span><select class="cat-sel" id="hvSubj" style="flex:1;font-size:.72rem">';
+    h+='<div style="font-size:.72rem;font-weight:700;color:var(--heading);margin-bottom:6px">Quick Add for '+startT+' \u2014 '+endT+'</div>';
+    /* Type selector */
+    h+='<div class="df"><span class="df-lbl" style="font-size:.65rem">Type</span>';
+    h+='<select class="cat-sel" id="hvType" style="flex:1;font-size:.72rem" onchange="CAL.updateQuickAddFields()">';
+    h+='<option value="study">\u{1F4D6} Study</option>';
+    h+='<option value="work">\u{1F4BC} Work</option>';
+    h+='<option value="knowledge">\u{1F4A1} Knowledge</option>';
+    h+='</select></div>';
+    /* Subject/Category dropdown — populated dynamically */
+    h+='<div class="df" style="margin-top:4px"><span class="df-lbl" id="hvSubjLbl" style="font-size:.65rem">Subject</span><select class="cat-sel" id="hvSubj" style="flex:1;font-size:.72rem">';
     h+=UI.examSubjectOptions(null,false);
     h+='</select></div>';
+    /* Topic input */
     h+='<div class="df" style="margin-top:4px"><span class="df-lbl" style="font-size:.65rem">Topic</span>';
     h+='<div class="ac-wrap" style="flex:1;position:relative"><input type="text" class="inp" id="hvTopic" placeholder="What to study..." style="font-size:.72rem;padding:6px 10px" autocomplete="off"></div></div>';
+    /* Time range */
     h+='<div class="df" style="margin-top:4px">';
     h+='<span class="df-lbl" style="font-size:.65rem">Start</span><input type="time" class="inp" id="hvStart" value="'+startT+'" style="width:80px;font-size:.72rem;padding:6px 8px">';
     h+='<span class="df-lbl" style="font-size:.65rem">End</span><input type="time" class="inp" id="hvEnd" value="'+endT+'" style="width:80px;font-size:.72rem;padding:6px 8px">';
     h+='</div>';
     h+='<div style="display:flex;gap:6px;margin-top:6px;justify-content:flex-end">';
     h+='<button class="b b-xs" onclick="document.getElementById(\'hvQuickAdd\').classList.add(\'hidden\')">Cancel</button>';
-    h+='<button class="b b-xs b-acc" onclick="CAL.quickAddPlan(\''+dk+'\')">Add Plan</button>';
+    h+='<button class="b b-xs b-acc" onclick="CAL.quickAddPlan(\''+dk+'\')">Add</button>';
     h+='</div></div>';
     el.innerHTML=h;
     el.classList.remove('hidden');
@@ -548,21 +558,72 @@ var CAL=(function(){
     topicEl.focus();
   }
 
+  /* Update subject/category dropdown when type changes */
+  function updateQuickAddFields(){
+    var type=(document.getElementById('hvType')||{}).value||'study';
+    var subjEl=document.getElementById('hvSubj');
+    var lblEl=document.getElementById('hvSubjLbl');
+    var topicEl=document.getElementById('hvTopic');
+    if(!subjEl)return;
+    var cfg=D.getCfg();
+    if(type==='study'){
+      if(lblEl)lblEl.textContent='Subject';
+      subjEl.innerHTML=UI.examSubjectOptions(null,false);
+      if(topicEl)topicEl.placeholder='What to study...';
+    } else if(type==='work'){
+      if(lblEl)lblEl.textContent='Category';
+      var opts='<option value="">Select...</option>';
+      (cfg.workCategories||[]).forEach(function(c){opts+='<option>'+esc(c)+'</option>'});
+      subjEl.innerHTML=opts;
+      if(topicEl)topicEl.placeholder='What to work on...';
+    } else {
+      /* knowledge */
+      if(lblEl)lblEl.textContent='Category';
+      var opts='<option value="">Select...</option>';
+      (cfg.knowledgeCategories||['Health & Fitness','Current Affairs','Technology','Finance','Life Skills','Other']).forEach(function(c){opts+='<option>'+esc(c)+'</option>'});
+      subjEl.innerHTML=opts;
+      if(topicEl)topicEl.placeholder='What did you learn?';
+    }
+  }
+
   function quickAddPlan(dk){
+    var type=(document.getElementById('hvType')||{}).value||'study';
     var subj=document.getElementById('hvSubj').value;
     var topic=document.getElementById('hvTopic').value.trim();
     var startTime=document.getElementById('hvStart').value;
     var endTime=document.getElementById('hvEnd').value;
-    if(!subj||!topic){UI.toast('Fill subject & topic');return}
+    if(!subj||!topic){UI.toast('Fill '+(type==='study'?'subject':'category')+' & topic');return}
     var sp=startTime.split(':'),ep=endTime.split(':');
     var sh=parseInt(sp[0])*60+parseInt(sp[1]),eh=parseInt(ep[0])*60+parseInt(ep[1]);
     var hours=eh>sh?Math.round((eh-sh)/60*10)/10:1;
 
+    if(type==='knowledge'){
+      /* Save as knowledge entry (same structure as KNOW.add()) */
+      try{
+        var entries=KNOW.getEntries();
+        entries.push({
+          id:'kn_'+Date.now()+'_'+Math.random().toString(36).slice(2,5),
+          date:dk,category:subj,topic:topic,
+          duration:Math.round(hours*60),
+          source:'',notes:'',
+          createdAt:new Date().toISOString()
+        });
+        KNOW.setEntries(entries);
+        document.getElementById('hvQuickAdd').classList.add('hidden');
+        renderDayDetail(dk);
+        try{KNOW.render()}catch(e){}
+        D.push();
+        UI.toast('Knowledge added \u2713');
+      }catch(e){UI.toast('Error adding knowledge')}
+      return;
+    }
+
+    /* Study or Work — save as plan */
     var plans=PLAN.getPlans();
     if(!plans[dk])plans[dk]=[];
     plans[dk].push({
       id:'pl_'+Date.now()+'_'+Math.random().toString(36).slice(2,5),
-      subject:subj,type:'topic',topic:topic,estHours:hours,priority:'medium',
+      subject:subj,planFor:type,type:'topic',topic:topic,estHours:hours,priority:'medium',
       lecNum:null,status:'planned',notes:'',actualSecs:0,
       startTime:startTime,endTime:endTime,
       createdAt:new Date().toISOString()
@@ -570,9 +631,9 @@ var CAL=(function(){
     PLAN.setPlans(plans);
     document.getElementById('hvQuickAdd').classList.add('hidden');
     renderDayDetail(dk);
-    PLAN.render();
+    try{PLAN.render()}catch(e){}
     D.push();
-    UI.toast('Plan added \u2713');
+    UI.toast((type==='work'?'Work':'Study')+' plan added \u2713');
   }
 
   function addPlanForDay(dk){
@@ -752,7 +813,7 @@ var CAL=(function(){
     addPlanForDay:addPlanForDay,addSessionForDay:addSessionForDay,
     addKnowledgeForDay:addKnowledgeForDay,startPlanFromCal:startPlanFromCal,
     toggleView:toggleView,exportICS:exportICS,
-    onHourClick:onHourClick,quickAddPlan:quickAddPlan,
+    onHourClick:onHourClick,quickAddPlan:quickAddPlan,updateQuickAddFields:updateQuickAddFields,
     showItemDetail:showItemDetail,openPlanDetail:openPlanDetail,
     closeCIModal:closeCIModal,setPlanStatus:setPlanStatus,
     editSession:editSession,deleteSession:deleteSession

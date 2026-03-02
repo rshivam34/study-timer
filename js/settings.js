@@ -57,6 +57,21 @@ if(_planRemHr>0&&hr===_planRemHr&&min<5&&!sent.planRem){
   var _unfinished=_plans.filter(function(p){return p.status!=='completed'&&p.status!=='skipped'}).length;
   if(_unfinished>0){fire('🎯 '+_unfinished+' unfinished plan'+((_unfinished>1)?'s':'')+' today','Open Planning to review!');sent.planRem=1}
 }
+// Plan start-time alerts — 5 min before scheduled plans
+var _todayPlans=PLAN.getForDate(today);
+_todayPlans.forEach(function(p){
+  if(!p.startTime||p.status==='completed'||p.status==='skipped')return;
+  var _sp=p.startTime.split(':');
+  var planMin=parseInt(_sp[0])*60+parseInt(_sp[1]);
+  var nowMin=hr*60+min;
+  var diff=planMin-nowMin;
+  if(diff>=0&&diff<=5&&!sent['planStart_'+p.id]){
+    fireWithSound('\u{1F4CB} Plan starting in '+diff+' min',
+      p.subject+': '+(p.topic||'')+' at '+p.startTime);
+    sent['planStart_'+p.id]=1;
+  }
+});
 localStorage.setItem(lastKey,JSON.stringify(sent))}
 function fire(title,body){try{if('serviceWorker' in navigator&&navigator.serviceWorker.controller){navigator.serviceWorker.ready.then(function(reg){reg.showNotification(title,{body:body,icon:'icon192.png',badge:'icon192.png',vibrate:[200,100,200]})})}else{new Notification(title,{body:body,icon:'icon192.png'})}}catch(e){new Notification(title,{body:body})}}
+function fireWithSound(title,body){fire(title,body);try{var ctx=new(window.AudioContext||window.webkitAudioContext)();var osc=ctx.createOscillator();var gain=ctx.createGain();osc.connect(gain);gain.connect(ctx.destination);osc.frequency.value=880;gain.gain.value=0.3;osc.start();osc.stop(ctx.currentTime+0.15);setTimeout(function(){var o2=ctx.createOscillator();var g2=ctx.createGain();o2.connect(g2);g2.connect(ctx.destination);o2.frequency.value=1046;g2.gain.value=0.3;o2.start();o2.stop(ctx.currentTime+0.15)},200)}catch(e){}}
 return{requestPerm:requestPerm,updateStatus:updateStatus,scheduleChecks:scheduleChecks,checkAndNotify:checkAndNotify}})();
