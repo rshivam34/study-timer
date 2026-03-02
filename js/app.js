@@ -311,13 +311,13 @@ return{connect:connect,skip:skip,tab:tab,syncUI:syncUI,manSync:manSync,reconn:re
     /* ── Committed = remaining plan hours + todo est hours (what's left to do) ── */
     var committed=planRemainingH+todoEstH;
 
-    /* ── Free = available - utilized - committed (can be negative = over-planned) ── */
-    var free=available-utilized-committed;
-
     /* ── Wasted: time elapsed since wake × effective ratio - utilized ── */
     var now=new Date();
     var hoursSinceWake=Math.max(0,(now.getHours()+now.getMinutes()/60)-wakeTime);
     var wasted=Math.max(0,hoursSinceWake*effectiveRatio-utilized);
+
+    /* ── Free = available - utilized - committed - wasted (actual remaining free time) ── */
+    var free=available-utilized-committed-wasted;
 
     var pct=available>0?Math.min(100,Math.round((utilized/available)*100)):0;
 
