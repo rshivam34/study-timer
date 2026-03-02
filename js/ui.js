@@ -138,7 +138,22 @@ function examFilterOptions(selected){
   });
   return h;
 }
-return{renderAll:renderAll,renderGoal:renderGoal,delS:delS,tog:tog,toast:toast,fd:fd,fdn:fdn,fdate:fdate,fdateISO:fdateISO,fdateFull:fdateFull,fillDD:fillDD,renderManage:renderManage,renderCB:renderCB,autocomplete:autocomplete,examSubjectOptions:examSubjectOptions,examFilterOptions:examFilterOptions}})();
+/* ========== INFO CIRCLES ========== */
+function infoBtn(text){
+  return '<span class="info-btn" onclick="event.stopPropagation();var p=this.querySelector(\'.info-popup\');p.classList.toggle(\'show\')" title="Info">\u24D8<div class="info-popup">'+text+'</div></span>';
+}
+function addInfoBtns(){
+  document.querySelectorAll('[data-info]').forEach(function(el){
+    el.innerHTML+=' '+infoBtn(el.getAttribute('data-info'));
+  });
+}
+/* Close info popups on outside click */
+document.addEventListener('click',function(e){
+  if(!e.target.closest('.info-btn')){
+    document.querySelectorAll('.info-popup.show').forEach(function(p){p.classList.remove('show')});
+  }
+});
+return{renderAll:renderAll,renderGoal:renderGoal,delS:delS,tog:tog,toast:toast,fd:fd,fdn:fdn,fdate:fdate,fdateISO:fdateISO,fdateFull:fdateFull,fillDD:fillDD,renderManage:renderManage,renderCB:renderCB,autocomplete:autocomplete,examSubjectOptions:examSubjectOptions,examFilterOptions:examFilterOptions,infoBtn:infoBtn,addInfoBtns:addInfoBtns}})();
 
 var DRAG=(function(){function init(listId){var list=document.getElementById(listId);if(!list)return;var dragEl=null,ghost=null,startX,startY,isDragging=false,holdTimer=null;function tagAt(x,y){var tags=list.querySelectorAll('.manage-tag');for(var i=0;i<tags.length;i++){var r=tags[i].getBoundingClientRect();if(x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom)return tags[i]}return null}function startDrag(el,x,y){isDragging=true;dragEl=el;el.classList.add('dragging');ghost=document.createElement('div');ghost.className='drag-ghost';ghost.textContent=el.dataset.name;document.body.appendChild(ghost);ghost.style.left=(x-40)+'px';ghost.style.top=(y-20)+'px'}function moveDrag(x,y){if(!isDragging)return;ghost.style.left=(x-40)+'px';ghost.style.top=(y-20)+'px';list.querySelectorAll('.manage-tag').forEach(function(t){t.classList.remove('drag-over')});var over=tagAt(x,y);if(over&&over!==dragEl)over.classList.add('drag-over')}function endDrag(x,y){if(!isDragging){clearTimeout(holdTimer);return}isDragging=false;list.querySelectorAll('.manage-tag').forEach(function(t){t.classList.remove('drag-over');t.classList.remove('dragging')});if(ghost){ghost.remove();ghost=null}var over=tagAt(x,y);if(over&&dragEl&&over!==dragEl){
 var examId=list.dataset.exam;

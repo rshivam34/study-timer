@@ -246,7 +246,7 @@ var KNOW=(function(){
         h+='</div>';
       });
     } else {
-      /* ── Group by Date (default) ── */
+      /* ── Group by Date (default) — sub-grouped by category ── */
       var groups={};var dateOrder=[];
       filtered.forEach(function(e){
         if(!groups[e.date]){groups[e.date]=[];dateOrder.push(e.date)}
@@ -255,7 +255,35 @@ var KNOW=(function(){
 
       dateOrder.forEach(function(dk){
         h+='<div style="font-size:.62rem;font-weight:700;color:var(--acc);text-transform:uppercase;letter-spacing:.06em;padding:8px 0 4px">'+UI.fdn(dk)+'</div>';
-        groups[dk].forEach(function(e){h+=_renderCard(e,false)});
+
+        /* Sub-group by category within this date */
+        var catGroups={};var catOrder=[];
+        groups[dk].forEach(function(e){
+          if(!catGroups[e.category]){catGroups[e.category]=[];catOrder.push(e.category)}
+          catGroups[e.category].push(e);
+        });
+
+        catOrder.forEach(function(cat){
+          var entries=catGroups[cat];
+          if(entries.length===1){
+            /* Single entry — render as flat card */
+            h+=_renderCard(entries[0],false);
+          } else {
+            /* Multiple entries — collapsible group */
+            var catKey=dk+'_'+cat;
+            var isCollapsed=collapsedCats[catKey];
+            var totalDur=0;entries.forEach(function(e){totalDur+=e.duration||0});
+            h+='<div class="kn-cat-group">';
+            h+='<div class="kn-cat-header" onclick="KNOW.toggleDateCatGroup(\''+catKey+'\')">';
+            h+='<span class="kn-cat-arrow'+(isCollapsed?'':' open')+'">▶</span>';
+            h+='<span class="kn-cat-badge" style="background:var(--acc2);color:var(--acc)">'+esc(cat)+'</span>';
+            h+='<span class="kn-cat-count">'+entries.length+' entries · '+Math.floor(totalDur/60)+'h '+((totalDur%60)||0)+'m</span>';
+            h+='</div>';
+            h+='<div class="kn-cat-body'+(isCollapsed?' hidden':'')+'">';
+            entries.forEach(function(e){h+=_renderCard(e,false)});
+            h+='</div></div>';
+          }
+        });
       });
     }
 
@@ -308,6 +336,12 @@ var KNOW=(function(){
     return total;
   }
 
+  /* ── Toggle date+category sub-group accordion ── */
+  function toggleDateCatGroup(key){
+    collapsedCats[key]=!collapsedCats[key];
+    render();
+  }
+
   /* ── Toggle category accordion group ── */
   function toggleCatGroup(catId){
     collapsedCats[catId]=!collapsedCats[catId];
@@ -358,6 +392,6 @@ var KNOW=(function(){
     openEdit:openEdit,saveEdit:saveEdit,closeEdit:closeEdit,
     getEntries:getEntries,setEntries:setEntries,
     setGroupBy:setGroupBy,getTodayMins:getTodayMins,
-    toggleCatGroup:toggleCatGroup,quickFilter:quickFilter
+    toggleCatGroup:toggleCatGroup,toggleDateCatGroup:toggleDateCatGroup,quickFilter:quickFilter
   };
 })();

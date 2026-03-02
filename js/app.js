@@ -29,7 +29,8 @@ navigator.serviceWorker.addEventListener('message',function(e){if(e.data&&e.data
 NOTIFY.updateStatus();if(Notification.permission==='granted')NOTIFY.scheduleChecks();
 var xCfg=D.getCfg();var wkEl=document.getElementById('cfgWakeTime');if(wkEl&&xCfg.wakeTime!==undefined)wkEl.value=xCfg.wakeTime;if(xCfg.bedtime)document.getElementById('cfgBedtime').value=xCfg.bedtime;if(xCfg.effectiveMins)document.getElementById('cfgEffective').value=xCfg.effectiveMins;var prEl2=document.getElementById('cfgPlanRemindHour');if(prEl2&&xCfg.planRemindHour)prEl2.value=xCfg.planRemindHour;
 setInterval(function(){if(document.getElementById('p-remind').classList.contains('on'))REM.render()},60000);
-window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();deferredPrompt=e;document.getElementById('pwaStatus').textContent='Ready to install!'})}
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();deferredPrompt=e;document.getElementById('pwaStatus').textContent='Ready to install!'});
+UI.addInfoBtns()}
 function show(w){document.getElementById('setup').classList.toggle('hidden',w!=='setup');document.getElementById('mainApp').classList.toggle('hidden',w!=='main')}
 function connect(){var token=document.getElementById('tokIn').value.trim(),hint=document.getElementById('sHint');if(!token){hint.className='shint';hint.textContent='Enter a token.';return}hint.className='shint ok';hint.textContent='Validating...';D.validate(token).then(function(eid){D.setToken(token);if(eid){D.setGistId(eid);hint.textContent='Syncing...';return D.sync()}hint.textContent='Creating...';return D.makeG().then(function(id){D.setGistId(id)})}).then(function(){hint.textContent='Connected ✓';setTimeout(function(){show('main');UI.renderAll();RP.renderHeatmap();syncUI('on');gInfo()},400)}).catch(function(e){hint.className='shint';hint.textContent='Invalid token.';console.error(e)})}
 function skip(){show('main');UI.renderAll();RP.renderHeatmap();syncUI('off')}
@@ -92,7 +93,15 @@ App.rmSubjectFromExam=function(examId,subject){if(!confirm('Remove "'+subject+'"
     document.querySelectorAll('.sp-nav a').forEach(function(a){
       if(a.getAttribute('onclick') && a.getAttribute('onclick').indexOf("'"+id+"'")>-1) a.classList.add('active');
     });
-    if(id==='report') RP.renderHeatmap();
+    if(id==='report'){
+      RP.renderHeatmap();
+      /* Auto-apply today's report with comparison on first visit */
+      if(!document.getElementById('rpFrom').value){
+        document.getElementById('rpFrom').value=D.todayKey();
+        document.getElementById('rpTo').value=D.todayKey();
+        RP.apply();
+      }
+    }
     if(id==='rev') REV.render();
     if(id==='syl') SYL.renderAll();
     if(id==='recur') RECUR.render();

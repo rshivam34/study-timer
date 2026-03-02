@@ -309,3 +309,7 @@
 .bc-icon{font-size:1.1rem;flex-shrink:0}
 .bc-text{font-size:.72rem;font-weight:700;line-height:1.4}
 @keyframes bcPulse{0%,100%{opacity:1}50%{opacity:.85}}
+/* ========== INFO CIRCLES ========== */
+.info-btn{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:var(--s3);color:var(--td);font-size:.55rem;font-weight:700;cursor:pointer;margin-left:6px;position:relative;vertical-align:middle;border:1px solid var(--brd);flex-shrink:0}
+.info-popup{display:none;position:absolute;top:22px;left:50%;transform:translateX(-50%);background:var(--s1);border:1px solid var(--brd);border-radius:8px;padding:10px 12px;font-size:.65rem;color:var(--t2);line-height:1.5;font-weight:400;min-width:200px;max-width:280px;z-index:50;box-shadow:0 8px 24px var(--shadow);white-space:normal;text-align:left}
+.info-popup.show{display:block}

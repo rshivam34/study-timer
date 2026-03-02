@@ -195,23 +195,23 @@
   </section>
   <div id="timeBudgetStudy"></div>
   <div style="text-align:right;margin-top:6px"><button class="b b-xs" onclick="PAST.open('study')">+ Add past session</button></div>
-  <div class="sl">Planned Tasks</div>
+  <div class="sl" data-info="Plans you created for today. Click ▶ to start the timer for that plan.">Planned Tasks</div>
   <div class="df" style="margin-bottom:4px">
     <span class="df-lbl">Date</span>
     <input type="date" class="inp" id="studyPlanDate" style="flex:1" onchange="App.renderPlans('study')">
     <button class="b b-xs" onclick="document.getElementById('studyPlanDate').value=D.todayKey();App.renderPlans('study')">Today</button>
   </div>
   <div id="studyPlannedTasks"></div>
-  <div class="sl">Today's To-Dos</div>
+  <div class="sl" data-info="Your study to-do items due today. Quick-add or manage in the full To-Do tab.">Today's To-Dos</div>
   <div id="todoInlineStudy"></div>
   <div style="text-align:right;margin:4px 0"><button class="b b-xs" onclick="TODO.quickAdd('study')">+ Add To-Do</button></div>
   <div class="sl">Today</div>
   <section class="ag" id="sa-study"></section>
-  <div class="sl">Subject Breakdown</div>
+  <div class="sl" data-info="How your study time is distributed across subjects today.">Subject Breakdown</div>
   <section class="cbrk" id="cb-study"></section>
-  <div class="sl">Last 7 Days</div>
+  <div class="sl" data-info="Daily study totals for the past week. Helps spot consistency.">Last 7 Days</div>
   <section class="wc"><div class="wc-bars" id="wb-study"></div></section>
-  <div class="sl">Sessions</div>
+  <div class="sl" data-info="All study sessions recorded today. Each shows subject, topic, and duration.">Sessions</div>
   <section id="sl-study" class="slist"></section>
   <button class="tog" id="togH-study" onclick="UI.tog('H-study')">Past Days <span class="chev">▾</span></button>
   <section class="hist hidden" id="secH-study"><div id="hl-study"></div></section>
@@ -240,7 +240,7 @@
     <div class="ctrls" id="ct-work"><button class="b b-cyn" onclick="TM.start('work')">Start</button></div>
   </section>
   <div style="text-align:right;margin-top:6px"><button class="b b-xs" onclick="PAST.open('work')">+ Add past session</button></div>
-  <div class="sl">Planned Tasks</div>
+  <div class="sl" data-info="Plans you created for today. Click ▶ to start the timer for that plan.">Planned Tasks</div>
   <div class="df" style="margin-bottom:4px">
     <span class="df-lbl">Date</span>
     <input type="date" class="inp" id="workPlanDate" style="flex:1" onchange="App.renderPlans('work')">
@@ -248,16 +248,16 @@
   </div>
   <div id="workPlannedTasks"></div>
   <div id="timeBudgetWork"></div>
-  <div class="sl">Today's To-Dos</div>
+  <div class="sl" data-info="Your work to-do items due today. Quick-add or manage in the full To-Do tab.">Today's To-Dos</div>
   <div id="todoInlineWork"></div>
   <div style="text-align:right;margin:4px 0"><button class="b b-xs" onclick="TODO.quickAdd('work')">+ Add To-Do</button></div>
   <div class="sl">Today</div>
   <section class="ag" id="sa-work"></section>
-  <div class="sl">Category Breakdown</div>
+  <div class="sl" data-info="How your work time is distributed across categories today.">Category Breakdown</div>
   <section class="cbrk" id="cb-work"></section>
-  <div class="sl">Last 7 Days</div>
+  <div class="sl" data-info="Daily work totals for the past week. Helps spot consistency.">Last 7 Days</div>
   <section class="wc"><div class="wc-bars" id="wb-work"></div></section>
-  <div class="sl">Sessions</div>
+  <div class="sl" data-info="All work sessions recorded today. Each shows category, topic, and duration.">Sessions</div>
   <section id="sl-work" class="slist"></section>
   <button class="tog" id="togH-work" onclick="UI.tog('H-work')">Past Days <span class="chev">▾</span></button>
   <section class="hist hidden" id="secH-work"><div id="hl-work"></div></section>
@@ -266,7 +266,7 @@
 
 <!-- PLANNING TAB -->
 <div class="tp" id="p-plan">
-  <div class="sl">Add Plan Item</div>
+  <div class="sl" data-info="Create a study or work plan with subject, topic, estimated time, and priority.">Add Plan Item</div>
   <div style="background:var(--s1);border:1px solid var(--brd);border-radius:10px;padding:14px;margin-bottom:10px">
     <div class="df"><span class="df-lbl">Date <span class="req">*</span></span><input type="date" class="inp" id="planDate" style="flex:1"></div>
     <div class="df" style="margin-top:6px">
@@ -312,7 +312,7 @@
     </div>
     <div style="text-align:right;margin-top:8px"><button class="b b-sm b-acc" onclick="PLAN.add()">Add to Plan</button></div>
   </div>
-  <div class="sl">Daily Goal Rules</div>
+  <div class="sl" data-info="Auto-set your daily study goal based on the day of the week. Manual overrides in Reminders always take priority.">Daily Goal Rules</div>
   <div style="background:var(--s1);border:1px solid var(--brd);border-radius:10px;padding:12px;margin-bottom:10px">
     <div style="font-size:.68rem;color:var(--t2);margin-bottom:8px;font-weight:500">
       <strong style="color:var(--heading)">Goal Presets</strong> — Auto-set your daily study goal based on the day. Manual overrides (Reminders tab) always take priority.
@@ -320,7 +320,7 @@
     <div id="goalPresetList"></div>
     <div style="text-align:right;margin-top:6px"><button class="b b-xs b-acc" onclick="PLAN.openAddPreset()">+ Add Rule</button></div>
   </div>
-  <div class="sl">Templates</div>
+  <div class="sl" data-info="Save today's plan as a template to reuse on similar days.">Templates</div>
   <div style="background:var(--s1);border:1px solid var(--brd);border-radius:10px;padding:12px;margin-bottom:10px">
     <div style="font-size:.68rem;color:var(--t2);margin-bottom:6px;font-weight:500">
       <strong style="color:var(--heading)">Saved Templates</strong> — Save today's plan as a reusable template, or load a previously saved one.
@@ -339,7 +339,7 @@
     <button class="b b-xs b-acc" onclick="PLAN.copyDayPlans()">📋 Copy Plans</button>
   </div>
   <div id="timeBudgetPlan"></div>
-  <div class="sl">Today's Plan</div>
+  <div class="sl" data-info="Your planned items for today. Click ▶ to start the timer, ✓ to complete, ✏️ to edit.">Today's Plan</div>
   <div id="planList"></div>
 </div>
 
@@ -414,23 +414,23 @@
   </div>
   <div id="sumDailyCard"></div>
   
-  <div class="sl">Daily Journal</div>
+  <div class="sl" data-info="Rate your day, track mood, and write reflections. Helps identify patterns over time.">Daily Journal</div>
   <div id="sumJournal"></div>
   
-  <div class="sl">Weekly Summary</div>
+  <div class="sl" data-info="Week-over-week comparison of study time, sessions, and performance grade.">Weekly Summary</div>
   <div id="sumWeekly"></div>
   
-  <div class="sl">Monthly Summary</div>
+  <div class="sl" data-info="Month-level overview with daily chart, subject breakdown, and comparison to last month.">Monthly Summary</div>
   <div id="sumMonthly"></div>
   
-  <div class="sl">Analytics Dashboard</div>
+  <div class="sl" data-info="Deep analytics: focus score, consistency streaks, peak hours, and study patterns.">Analytics Dashboard</div>
   <div id="sumAnalytics"></div>
 </div>
 
 
 <!-- KNOWLEDGE LOG TAB -->
 <div class="tp" id="p-knowledge">
-  <div class="sl">Add Knowledge Entry</div>
+  <div class="sl" data-info="Log what you learned outside of timed study — articles, videos, podcasts, books.">Add Knowledge Entry</div>
   <div style="background:var(--s1);border:1px solid var(--brd);border-radius:10px;padding:14px;margin-bottom:10px">
     <div class="df"><span class="df-lbl">Category</span><select class="cat-sel" id="knAddCat" style="flex:1"></select></div>
     <div class="df" style="margin-top:6px"><span class="df-lbl">Topic <span class="req">*</span></span><input type="text" class="inp" id="knAddTopic" placeholder="What did you learn?" style="flex:1"></div>
@@ -495,15 +495,15 @@
 
 <!-- REPORTS TAB -->
 <div class="tp" id="p-report">
-  <div class="sl">Study Heatmap (16 Weeks)</div>
+  <div class="sl" data-info="16-week heatmap of daily study hours. Darker = more hours studied that day.">Study Heatmap (16 Weeks)</div>
   <div class="heatmap" id="heatmap"></div>
-  <div class="sl">Date Range Analytics</div>
+  <div class="sl" data-info="Analyze study/work sessions in a custom date range. Enable Compare to see vs previous period.">Date Range Analytics</div>
   <div class="df"><span class="df-lbl">Type</span><select class="cat-sel" id="rpType" style="min-width:80px"><option value="study">Study</option><option value="work">Work</option></select><span class="df-lbl">From</span><input type="date" class="inp" id="rpFrom" style="width:auto;flex:1"><span class="df-lbl">To</span><input type="date" class="inp" id="rpTo" style="width:auto;flex:1"></div>
-  <div class="df" style="margin-top:0"><button class="b b-sm b-acc" onclick="RP.apply()">Apply</button><button class="b b-xs" onclick="RP.preset(7)">7d</button><button class="b b-xs" onclick="RP.preset(14)">14d</button><button class="b b-xs" onclick="RP.preset(30)">30d</button><label style="font-size:.7rem;color:var(--t2);font-weight:600;display:flex;align-items:center;gap:4px"><input type="checkbox" id="rpCompare"> Compare</label></div>
+  <div class="df" style="margin-top:0"><button class="b b-sm b-acc" onclick="RP.apply()">Apply</button><button class="b b-xs" onclick="RP.preset(7)">7d</button><button class="b b-xs" onclick="RP.preset(14)">14d</button><button class="b b-xs" onclick="RP.preset(30)">30d</button><label style="font-size:.7rem;color:var(--t2);font-weight:600;display:flex;align-items:center;gap:4px"><input type="checkbox" id="rpCompare" checked> Compare</label></div>
   <section class="ag" id="rpStats" style="margin-top:8px"></section>
   <section class="cbrk" id="rpCats" style="margin-top:5px"></section>
   <section class="compare hidden" id="rpCompare2"></section>
-  <div class="sl">Topic Log (Day-wise)</div>
+  <div class="sl" data-info="Day-by-day breakdown of every session — click a day to expand and see all topics studied.">Topic Log (Day-wise)</div>
   <div id="topicLog"></div>
 </div>
 
@@ -515,15 +515,15 @@
 <div class="tp" id="p-rev"><div class="df" style="margin-bottom:6px"><span class="df-lbl">Filter</span><select class="cat-sel" id="revFilter" onchange="REV.render()" style="flex:1"><option value="">All Subjects</option></select></div><div class="sl">🔴 Overdue</div><div id="revOverdue"></div><div class="sl">🟠 Due Today</div><div id="revToday"></div><div class="sl">🟡 Tomorrow</div><div id="revTomorrow"></div><div class="sl">📅 Upcoming (14 Days)</div><div id="revUpcoming"></div><div class="sl">✅ All Topics</div><div id="revTimeline"></div></div>
 
 <!-- REMINDERS TAB -->
-<div class="tp" id="p-remind"><div class="sl">Set Daily Goal</div><div class="df" style="margin-bottom:8px"><span class="df-lbl">Date <span class="req">*</span></span><input type="date" class="inp" id="goalDate" style="width:auto;flex:1"><span class="df-lbl">Hours <span class="req">*</span></span><input type="number" class="inp" id="goalHrs" style="width:60px" min="0" max="24" step="0.5" placeholder="6"><button class="b b-sm b-acc" onclick="REM.setGoal()">Set</button></div><div class="sl">Add Deadline</div><div class="df" style="flex-wrap:wrap;gap:5px;margin-bottom:4px"><input type="text" class="inp" id="dlTitle" placeholder="Title... *" style="flex:2;min-width:120px"><select class="cat-sel" id="dlType" style="min-width:80px"><option value="study">📖 Study</option><option value="work">💼 Work</option><option value="personal">🏠 Personal</option></select><input type="datetime-local" class="inp" id="dlDate" style="flex:1;min-width:150px"><button class="b b-sm b-acc" onclick="DL.add()">Add</button></div><div class="sl">📅 Active Deadlines</div><div id="dlList"></div><div id="remContent"></div></div>
+<div class="tp" id="p-remind"><div class="sl" data-info="Override the automatic daily goal for a specific date.">Set Daily Goal</div><div class="df" style="margin-bottom:8px"><span class="df-lbl">Date <span class="req">*</span></span><input type="date" class="inp" id="goalDate" style="width:auto;flex:1"><span class="df-lbl">Hours <span class="req">*</span></span><input type="number" class="inp" id="goalHrs" style="width:60px" min="0" max="24" step="0.5" placeholder="6"><button class="b b-sm b-acc" onclick="REM.setGoal()">Set</button></div><div class="sl" data-info="Track important deadlines. You'll get notifications at 30 days, 7 days, daily within a week, and on the day.">Add Deadline</div><div class="df" style="flex-wrap:wrap;gap:5px;margin-bottom:4px"><input type="text" class="inp" id="dlTitle" placeholder="Title... *" style="flex:2;min-width:120px"><select class="cat-sel" id="dlType" style="min-width:80px"><option value="study">📖 Study</option><option value="work">💼 Work</option><option value="personal">🏠 Personal</option></select><input type="datetime-local" class="inp" id="dlDate" style="flex:1;min-width:150px"><button class="b b-sm b-acc" onclick="DL.add()">Add</button></div><div class="sl">📅 Active Deadlines</div><div id="dlList"></div><div id="remContent"></div></div>
 
 <!-- RECURRING TAB -->
-<div class="tp" id="p-recur"><div class="sl">Add Recurring Task</div><div style="background:var(--s1);border:1px solid var(--brd);border-radius:10px;padding:14px;margin-bottom:10px"><div class="df"><input type="text" class="inp" id="rcTitle" placeholder="Task title... *" style="flex:2"><select class="cat-sel" id="rcType" style="flex:1"></select></div><div class="df" style="margin-top:6px"><span class="df-lbl">Pattern</span><select class="cat-sel" id="rcPattern" onchange="RECUR.patternChange()" style="flex:1"><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="specific">Specific Days</option><option value="fortnightly">Fortnightly</option><option value="monthly">Monthly</option><option value="yearly">Yearly</option></select></div><div id="rcPatternOpts" style="margin-top:6px"></div><div class="df" style="margin-top:6px"><span class="df-lbl">Time</span><input type="time" class="inp" id="rcTime" value="08:00" style="width:110px"><button class="b b-sm b-acc" onclick="RECUR.add()" style="margin-left:auto">Add Task</button></div></div><div class="sl">Manage Types</div><div class="df" style="margin-bottom:10px"><input type="text" class="inp" id="rcNewType" placeholder="New type..." style="flex:1"><button class="b b-sm" onclick="RECUR.addType()">Add Type</button></div><div id="rcTypeList" style="margin-bottom:10px"></div><div class="sl">Filter</div><div class="df" style="margin-bottom:10px"><select class="cat-sel" id="rcFilter" onchange="RECUR.render()" style="flex:1"><option value="">All Types</option></select></div><div id="rcList"></div></div>
+<div class="tp" id="p-recur"><div class="sl" data-info="Tasks that repeat on a schedule — daily, weekly, specific days, monthly, or yearly.">Add Recurring Task</div><div style="background:var(--s1);border:1px solid var(--brd);border-radius:10px;padding:14px;margin-bottom:10px"><div class="df"><input type="text" class="inp" id="rcTitle" placeholder="Task title... *" style="flex:2"><select class="cat-sel" id="rcType" style="flex:1"></select></div><div class="df" style="margin-top:6px"><span class="df-lbl">Pattern</span><select class="cat-sel" id="rcPattern" onchange="RECUR.patternChange()" style="flex:1"><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="specific">Specific Days</option><option value="fortnightly">Fortnightly</option><option value="monthly">Monthly</option><option value="yearly">Yearly</option></select></div><div id="rcPatternOpts" style="margin-top:6px"></div><div class="df" style="margin-top:6px"><span class="df-lbl">Time</span><input type="time" class="inp" id="rcTime" value="08:00" style="width:110px"><button class="b b-sm b-acc" onclick="RECUR.add()" style="margin-left:auto">Add Task</button></div></div><div class="sl">Manage Types</div><div class="df" style="margin-bottom:10px"><input type="text" class="inp" id="rcNewType" placeholder="New type..." style="flex:1"><button class="b b-sm" onclick="RECUR.addType()">Add Type</button></div><div id="rcTypeList" style="margin-bottom:10px"></div><div class="sl">Filter</div><div class="df" style="margin-bottom:10px"><select class="cat-sel" id="rcFilter" onchange="RECUR.render()" style="flex:1"><option value="">All Types</option></select></div><div id="rcList"></div></div>
 
 <!-- SETTINGS TAB -->
-<div class="tp" id="p-sett"><div class="sl">Study Subjects (hold ☰ to drag)</div><div id="mngStudy"></div><div class="manage-add" style="margin-bottom:12px"><input type="text" class="inp" id="addStudy" placeholder="New subject..." style="flex:1"><button class="b b-sm" onclick="App.addCat('study')">Add</button></div><div class="sl">Work Categories (hold ☰ to drag)</div><div id="mngWork"></div><div class="manage-add" style="margin-bottom:12px"><input type="text" class="inp" id="addWork" placeholder="New category..." style="flex:1"><button class="b b-sm" onclick="App.addCat('work')">Add</button></div><div class="sl">Knowledge Categories</div><div id="mngKnowledge"></div><div class="manage-add" style="margin-bottom:12px"><input type="text" class="inp" id="addKnowledge" placeholder="New category..." style="flex:1"><button class="b b-sm" onclick="App.addCat('knowledge')">Add</button></div>
-<div class="sl">Time Settings</div><div class="srow" style="flex-direction:column;gap:6px;align-items:stretch"><div class="df"><span class="df-lbl">Wake Time</span><select class="cat-sel" id="cfgWakeTime" onchange="App.saveCfgExtra()" style="flex:1"><option value="5">5:00 AM</option><option value="5.5">5:30 AM</option><option value="6" selected>6:00 AM</option><option value="6.5">6:30 AM</option><option value="7">7:00 AM</option><option value="7.5">7:30 AM</option><option value="8">8:00 AM</option></select></div><div class="df"><span class="df-lbl">Bedtime</span><select class="cat-sel" id="cfgBedtime" onchange="App.saveCfgExtra()" style="flex:1"><option value="21">9:00 PM</option><option value="21.5">9:30 PM</option><option value="22">10:00 PM</option><option value="22.5" selected>10:30 PM</option><option value="23">11:00 PM</option><option value="23.5">11:30 PM</option><option value="24">12:00 AM</option></select></div><div class="df"><span class="df-lbl">Effective min/hr</span><input type="number" class="inp" id="cfgEffective" value="50" min="30" max="60" style="width:60px" onchange="App.saveCfgExtra()"><span class="df-lbl">min</span></div></div>
-<div class="sl">Notifications</div><div class="srow"><div><strong id="notifStatus">Notifications: Not set</strong><p class="srow-d">Deadline, revision & recurring reminders</p></div><button class="b b-sm" onclick="NOTIFY.requestPerm()">Enable</button></div>
+<div class="tp" id="p-sett"><div class="sl" data-info="Manage exam groups and subjects. These appear in timer dropdowns, plans, and reports.">Study Subjects (hold ☰ to drag)</div><div id="mngStudy"></div><div class="manage-add" style="margin-bottom:12px"><input type="text" class="inp" id="addStudy" placeholder="New subject..." style="flex:1"><button class="b b-sm" onclick="App.addCat('study')">Add</button></div><div class="sl">Work Categories (hold ☰ to drag)</div><div id="mngWork"></div><div class="manage-add" style="margin-bottom:12px"><input type="text" class="inp" id="addWork" placeholder="New category..." style="flex:1"><button class="b b-sm" onclick="App.addCat('work')">Add</button></div><div class="sl">Knowledge Categories</div><div id="mngKnowledge"></div><div class="manage-add" style="margin-bottom:12px"><input type="text" class="inp" id="addKnowledge" placeholder="New category..." style="flex:1"><button class="b b-sm" onclick="App.addCat('knowledge')">Add</button></div>
+<div class="sl" data-info="Configure wake time, bedtime, and effective minutes per hour for accurate time budget calculations.">Time Settings</div><div class="srow" style="flex-direction:column;gap:6px;align-items:stretch"><div class="df"><span class="df-lbl">Wake Time</span><select class="cat-sel" id="cfgWakeTime" onchange="App.saveCfgExtra()" style="flex:1"><option value="5">5:00 AM</option><option value="5.5">5:30 AM</option><option value="6" selected>6:00 AM</option><option value="6.5">6:30 AM</option><option value="7">7:00 AM</option><option value="7.5">7:30 AM</option><option value="8">8:00 AM</option></select></div><div class="df"><span class="df-lbl">Bedtime</span><select class="cat-sel" id="cfgBedtime" onchange="App.saveCfgExtra()" style="flex:1"><option value="21">9:00 PM</option><option value="21.5">9:30 PM</option><option value="22">10:00 PM</option><option value="22.5" selected>10:30 PM</option><option value="23">11:00 PM</option><option value="23.5">11:30 PM</option><option value="24">12:00 AM</option></select></div><div class="df"><span class="df-lbl">Effective min/hr</span><input type="number" class="inp" id="cfgEffective" value="50" min="30" max="60" style="width:60px" onchange="App.saveCfgExtra()"><span class="df-lbl">min</span></div></div>
+<div class="sl" data-info="Enable push notifications for deadlines, revision reminders, recurring tasks, and daily journal.">Notifications</div><div class="srow"><div><strong id="notifStatus">Notifications: Not set</strong><p class="srow-d">Deadline, revision & recurring reminders</p></div><button class="b b-sm" onclick="NOTIFY.requestPerm()">Enable</button></div>
 <div class="srow"><div><strong>Plan Reminder</strong><p class="srow-d">Daily reminder for unfinished plans</p></div><select class="cat-sel" id="cfgPlanRemindHour" onchange="App.saveCfgExtra()" style="min-width:90px"><option value="0">Off</option><option value="6">6 AM</option><option value="7">7 AM</option><option value="8">8 AM</option><option value="9">9 AM</option><option value="10">10 AM</option></select></div>
 <div class="sl">Install as App</div><div class="srow" style="flex-direction:column;gap:8px;align-items:stretch"><div style="display:flex;justify-content:space-between;align-items:center"><div><strong>Install on Device</strong><p class="srow-d" id="pwaStatus">Tap Install to add to home screen</p></div><button class="b b-sm b-acc" id="pwaInstallBtn" onclick="App.installPWA()">📲 Install</button></div><div id="pwaManual" class="hidden" style="background:var(--s2);border-radius:8px;padding:10px 12px;font-size:.72rem;color:var(--t2);line-height:1.7"><b>Android Chrome:</b> Tap ⋮ menu → <b>Add to Home Screen</b><br><b>iOS Safari:</b> Tap Share □↑ → <b>Add to Home Screen</b></div></div>
 <div class="sl">Shortcuts</div><div class="srow"><div><strong>Keyboard</strong><p class="srow-d"><span class="kbd">Space</span> Start/Pause <span class="kbd">S</span> Save <span class="kbd">Shift+D</span> Discard <span class="kbd">F</span> Focus <span class="kbd">T</span> Theme <span class="kbd">P</span> Planning <span class="kbd">C</span> Calendar <span class="kbd">D</span> To-Do <span class="kbd">U</span> Summary</p></div></div>

@@ -516,7 +516,7 @@ var TODO=(function(){
     } else {
       h+='<span class="todo-expand-spacer"></span>';
     }
-    h+='<input type="checkbox" class="todo-select-cb" '+(_selected[item.id]?'checked':'')+' onclick="event.stopPropagation();TODO.toggleSelect(\''+item.id+'\')" title="Select for bulk action">';
+    h+='<input type="checkbox" class="todo-select-cb" '+(_selected[item.id]?'checked':'')+' onclick="event.stopPropagation();if(!document.getElementById(\'todoFullList\').classList.contains(\'todo-bulk-active\'))return;TODO.toggleSelect(\''+item.id+'\')" title="Select for bulk action">';
     if(!isNote){
       h+='<div class="todo-cb'+(isDone?' done':' p-'+priCls)+'" onclick="event.stopPropagation();TODO.toggleDone(\''+item.id+'\',\''+group+'\')">'+(isDone?'✓':'')+'</div>';
     } else {
