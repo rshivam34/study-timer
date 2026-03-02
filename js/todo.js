@@ -587,20 +587,7 @@ var TODO=(function(){
       swiping=false;
       swipeEl=item;
 
-      /* Long-press: 500ms to enter select mode */
-      _longPressTimer=setTimeout(function(){
-        _longPressTimer=null;
-        var id=item.getAttribute('data-todo-id');
-        if(id){
-          /* Enter select mode and check this item */
-          var list=document.getElementById('todoFullList');
-          if(!_bulkMode){_bulkMode=true;list.classList.add('todo-bulk-active');var bar=document.getElementById('todoBulkActions');if(bar)bar.classList.remove('hidden')}
-          if(!_selected[id]){_selected[id]=true;_updateBulkBar();render()}
-          try{navigator.vibrate(30)}catch(err){}
-        }
-        /* Prevent swipe from firing */
-        swipeEl=null;swiping=false;
-      },500);
+      /* Long-press disabled — use ☑ Select button to enter select mode */
     },{passive:true});
 
     todoList.addEventListener('touchmove',function(e){
@@ -608,8 +595,7 @@ var TODO=(function(){
       var touch=e.touches[0];
       var dx=touch.clientX-startX;
       var dy=touch.clientY-startY;
-      /* Cancel long-press if finger moves >10px */
-      if(_longPressTimer&&(Math.abs(dx)>10||Math.abs(dy)>10)){clearTimeout(_longPressTimer);_longPressTimer=null}
+      /* (long-press removed — select mode via ☑ button only) */
       /* Only start swiping if horizontal movement dominates */
       if(!swiping&&Math.abs(dx)>10&&Math.abs(dx)>Math.abs(dy)*1.5){
         swiping=true;
@@ -639,7 +625,6 @@ var TODO=(function(){
     },{passive:false});
 
     todoList.addEventListener('touchend',function(e){
-      if(_longPressTimer){clearTimeout(_longPressTimer);_longPressTimer=null}
       if(!swipeEl){return}
       var touch=e.changedTouches[0];
       var dx=touch.clientX-startX;
@@ -665,7 +650,6 @@ var TODO=(function(){
     },{passive:true});
 
     todoList.addEventListener('touchcancel',function(){
-      if(_longPressTimer){clearTimeout(_longPressTimer);_longPressTimer=null}
       if(swipeEl){
         swipeEl.style.transition='transform 0.2s ease, background 0.2s ease';
         swipeEl.style.transform='';
