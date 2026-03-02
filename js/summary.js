@@ -39,6 +39,20 @@ var SUM=(function(){
   }
   var _COLORS=['var(--acc)','var(--cyn)','var(--pur)','var(--grn)','var(--yel)','var(--blu)','var(--red)','#ec4899'];
 
+  /* Rating info popup HTML */
+  function _ratingInfoBtn(){
+    return '<span class="rating-info-btn" onclick="event.stopPropagation();this.querySelector(\'.rating-popup\').classList.toggle(\'show\')" title="What do ratings mean?">ⓘ'
+      +'<div class="rating-popup">'
+      +'<div style="font-size:.7rem;font-weight:700;color:var(--heading);margin-bottom:6px">Grade Scale</div>'
+      +'<div class="rating-popup-row"><span class="rating-popup-grade" style="color:var(--grn)">A</span><span class="rating-popup-desc">Excellent — 90%+ of daily goal met</span></div>'
+      +'<div class="rating-popup-row"><span class="rating-popup-grade" style="color:var(--cyn)">B</span><span class="rating-popup-desc">Good — 75-89% of daily goal met</span></div>'
+      +'<div class="rating-popup-row"><span class="rating-popup-grade" style="color:var(--yel)">C</span><span class="rating-popup-desc">Average — 60-74% of daily goal met</span></div>'
+      +'<div class="rating-popup-row"><span class="rating-popup-grade" style="color:var(--acc)">D</span><span class="rating-popup-desc">Below Average — 40-59% of goal</span></div>'
+      +'<div class="rating-popup-row"><span class="rating-popup-grade" style="color:var(--red)">F</span><span class="rating-popup-desc">Poor — Less than 40% of goal</span></div>'
+      +'<div style="font-size:.55rem;color:var(--tf);margin-top:6px;border-top:1px solid var(--brd);padding-top:4px">Based on avg % of daily goal achieved across the period</div>'
+      +'</div></span>';
+  }
+
   /* ---- DAILY ---- */
   function renderDaily(dk){
     var studySess=D.getSess('study',dk);var workSess=D.getSess('work',dk);
@@ -209,7 +223,7 @@ var SUM=(function(){
     var wkLabel=UI.fdate(D.todayKey(weekStart))+' — '+UI.fdate(D.todayKey(weekEnd));
     var h='<div class="summary-card">';
     h+='<div style="display:flex;justify-content:space-between;align-items:center"><h4>📅 Week: '+wkLabel+'</h4>';
-    h+='<span class="week-grade" style="color:'+grade.color+'">'+grade.letter+'</span></div>';
+    h+='<div style="display:flex;align-items:center;gap:2px"><span class="week-grade" style="color:'+grade.color+'">'+grade.letter+'</span>'+_ratingInfoBtn()+'</div></div>';
 
     /* [5] Work hours in breakdown */
     h+=sumRow('Total Study',UI.fd(totalStudy));
@@ -263,22 +277,39 @@ var SUM=(function(){
       h+='</div>';
     }
 
-    /* [3] Week-over-Week Comparison */
+    /* [3] Week-over-Week Comparison — FAIR: only compare same number of days */
     var prevWeekStart=new Date(weekStart);prevWeekStart.setDate(prevWeekStart.getDate()-7);
+    /* Calculate how many days into the current week we are */
+    var todayDate=new Date(D.todayKey());
+    var daysIntoCurrWeek=Math.min(7,Math.floor((todayDate-weekStart)/(1000*60*60*24))+1);
+    /* If viewing a past week, compare full 7 days */
+    var compareDays=(weekEnd<todayDate)?7:daysIntoCurrWeek;
     var pStudy=0,pWork=0,pSess=0;
-    for(var i=0;i<7;i++){
+    for(var i=0;i<compareDays;i++){
       var pd=new Date(prevWeekStart);pd.setDate(prevWeekStart.getDate()+i);
       var pk=D.todayKey(pd);
       D.getSess('study',pk).forEach(function(s){pStudy+=s.dur});
       D.getSess('work',pk).forEach(function(s){pWork+=s.dur});
       pSess+=D.getSess('study',pk).length+D.getSess('work',pk).length;
     }
-    h+='<div style="margin-top:10px;font-size:.65rem;color:var(--td);font-weight:600;margin-bottom:6px">vs Previous Week</div>';
+    /* Only sum current week's data for same number of days for fair comparison */
+    var currStudyFair=0,currWorkFair=0,currSessFair=0;
+    for(var ci=0;ci<compareDays;ci++){
+      var cd=new Date(weekStart);cd.setDate(weekStart.getDate()+ci);
+      var ck=D.todayKey(cd);
+      D.getSess('study',ck).forEach(function(s){currStudyFair+=s.dur});
+      D.getSess('work',ck).forEach(function(s){currWorkFair+=s.dur});
+      currSessFair+=D.getSess('study',ck).length+D.getSess('work',ck).length;
+    }
+    var prevWkLabel=UI.fdate(D.todayKey(prevWeekStart));
+    var prevWkEnd=new Date(prevWeekStart);prevWkEnd.setDate(prevWeekStart.getDate()+compareDays-1);
+    h+='<div style="margin-top:10px;font-size:.65rem;color:var(--td);font-weight:600;margin-bottom:2px">vs Previous Week</div>';
+    h+='<div style="font-size:.52rem;color:var(--tf);margin-bottom:6px">Comparing '+compareDays+' day'+(compareDays>1?'s':'')+': '+prevWkLabel+' — '+UI.fdate(D.todayKey(prevWkEnd))+'</div>';
     h+='<div class="delta-grid">';
-    h+=_deltaCard('Study',totalStudy,pStudy,UI.fd);
-    h+=_deltaCard('Work',totalWork,pWork,UI.fd);
-    h+=_deltaCard('Sessions',totalSess,pSess);
-    h+=_deltaCard('Total',totalStudy+totalWork,pStudy+pWork,UI.fd);
+    h+=_deltaCard('Study',currStudyFair,pStudy,UI.fd);
+    h+=_deltaCard('Work',currWorkFair,pWork,UI.fd);
+    h+=_deltaCard('Sessions',currSessFair,pSess);
+    h+=_deltaCard('Total',currStudyFair+currWorkFair,pStudy+pWork,UI.fd);
     h+='</div>';
 
     h+='</div>';
@@ -329,7 +360,7 @@ var SUM=(function(){
     var monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
     var h='<div class="summary-card">';
     h+='<div style="display:flex;justify-content:space-between;align-items:center"><h4>📆 '+monthNames[month]+' '+year+'</h4>';
-    h+='<span class="week-grade" style="color:'+grade.color+'">'+grade.letter+'</span></div>';
+    h+='<div style="display:flex;align-items:center;gap:2px"><span class="week-grade" style="color:'+grade.color+'">'+grade.letter+'</span>'+_ratingInfoBtn()+'</div></div>';
 
     h+=sumRow('Days Tracked',daysTracked+'/'+daysInMonth);
     h+=sumRow('Total Study',UI.fd(totalStudy));
@@ -381,24 +412,39 @@ var SUM=(function(){
       h+='</div></div>';
     }
 
-    /* [9] Month-over-Month Comparison */
+    /* [9] Month-over-Month Comparison — FAIR: compare same day range */
     var prevMonth=month-1,prevYear=year;
     if(prevMonth<0){prevMonth=11;prevYear--}
-    var prevDays=new Date(prevYear,prevMonth+1,0).getDate();
+    /* Determine how many days to compare fairly */
+    var todayD=new Date(D.todayKey());
+    var isCurrentMonth=(todayD.getFullYear()===year&&todayD.getMonth()===month);
+    var comparableDays=isCurrentMonth?todayD.getDate():daysInMonth;
+    var prevDaysInMonth=new Date(prevYear,prevMonth+1,0).getDate();
+    var fairDays=Math.min(comparableDays,prevDaysInMonth);
     var pmStudy=0,pmWork=0,pmSess=0;
-    for(var i=1;i<=prevDays;i++){
+    for(var i=1;i<=fairDays;i++){
       var pk=prevYear+'-'+String(prevMonth+1).padStart(2,'0')+'-'+String(i).padStart(2,'0');
       D.getSess('study',pk).forEach(function(s){pmStudy+=s.dur});
       D.getSess('work',pk).forEach(function(s){pmWork+=s.dur});
       pmSess+=D.getSess('study',pk).length+D.getSess('work',pk).length;
     }
+    /* Also recalculate current month totals for fair days only */
+    var currMStudy=0,currMWork=0,currMSess=0;
+    for(var fi=1;fi<=fairDays;fi++){
+      var fk=year+'-'+String(month+1).padStart(2,'0')+'-'+String(fi).padStart(2,'0');
+      D.getSess('study',fk).forEach(function(s){currMStudy+=s.dur});
+      D.getSess('work',fk).forEach(function(s){currMWork+=s.dur});
+      currMSess+=D.getSess('study',fk).length+D.getSess('work',fk).length;
+    }
     var prevMonthName=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][prevMonth];
-    h+='<div style="margin-top:10px;font-size:.65rem;color:var(--td);font-weight:600;margin-bottom:6px">vs '+prevMonthName+' '+prevYear+'</div>';
+    var currMonthShort=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][month];
+    h+='<div style="margin-top:10px;font-size:.65rem;color:var(--td);font-weight:600;margin-bottom:2px">vs '+prevMonthName+' '+prevYear+'</div>';
+    h+='<div style="font-size:.52rem;color:var(--tf);margin-bottom:6px">Fair comparison: 1st — '+fairDays+(fairDays===1?'st':fairDays===2?'nd':fairDays===3?'rd':'th')+' of each month ('+currMonthShort+' vs '+prevMonthName+')</div>';
     h+='<div class="delta-grid">';
-    h+=_deltaCard('Study',totalStudy,pmStudy,UI.fd);
-    h+=_deltaCard('Work',totalWork,pmWork,UI.fd);
-    h+=_deltaCard('Sessions',totalSess,pmSess);
-    h+=_deltaCard('Total',totalStudy+totalWork,pmStudy+pmWork,UI.fd);
+    h+=_deltaCard('Study',currMStudy,pmStudy,UI.fd);
+    h+=_deltaCard('Work',currMWork,pmWork,UI.fd);
+    h+=_deltaCard('Sessions',currMSess,pmSess);
+    h+=_deltaCard('Total',currMStudy+currMWork,pmStudy+pmWork,UI.fd);
     h+='</div>';
 
     h+='</div>';

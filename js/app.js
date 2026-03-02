@@ -123,6 +123,13 @@ return{connect:connect,skip:skip,tab:tab,syncUI:syncUI,manSync:manSync,reconn:re
   var saveModalEl = document.getElementById('saveModal');
   if(saveModalEl) _mObserver.observe(saveModalEl, {attributes:true,attributeFilter:['class']});
 
+  // Close rating popups when clicking outside
+  document.addEventListener('click',function(e){
+    if(!e.target.closest('.rating-info-btn')){
+      document.querySelectorAll('.rating-popup.show').forEach(function(p){p.classList.remove('show')});
+    }
+  });
+
   // [#55] Onboarding hints — show on first launch
   function _showOnboarding(){
     if(localStorage.getItem('st3_onboarded'))return;
@@ -161,6 +168,97 @@ return{connect:connect,skip:skip,tab:tab,syncUI:syncUI,manSync:manSync,reconn:re
     _update();
   }
 
+  /* ========== PLANNED TASKS IN STUDY TAB (#11) ========== */
+  App.renderStudyPlans = function(){
+    var dateInput=document.getElementById('studyPlanDate');
+    if(!dateInput)return;
+    var dk=dateInput.value||D.todayKey();
+    var plans=PLAN.getForDate(dk);
+    var el=document.getElementById('studyPlannedTasks');
+    if(!el)return;
+
+    var today=D.todayKey();
+    var todayDate=new Date(today);
+    var priOrder={critical:0,high:1,medium:2,low:3};
+
+    /* Also get overdue plans from past dates */
+    var allOverdue=[];
+    if(dk===today){
+      /* Show overdue from last 7 days */
+      for(var oi=1;oi<=7;oi++){
+        var od=new Date();od.setDate(od.getDate()-oi);
+        var ok=D.todayKey(od);
+        var op=PLAN.getForDate(ok);
+        op.forEach(function(p){
+          if(p.status==='planned'||p.status==='in-progress'){
+            p._overdueDays=oi;p._overdueDate=ok;
+            allOverdue.push(p);
+          }
+        });
+      }
+    }
+
+    /* Sort plans by priority */
+    plans.sort(function(a,b){return(priOrder[a.priority]||2)-(priOrder[b.priority]||2)});
+    allOverdue.sort(function(a,b){return(priOrder[a.priority]||2)-(priOrder[b.priority]||2)});
+
+    if(!plans.length&&!allOverdue.length){
+      el.innerHTML='<div style="font-size:.72rem;color:var(--tf);padding:6px 0">No planned tasks for this day</div>';
+      return;
+    }
+
+    var h='';
+
+    /* Overdue section */
+    if(allOverdue.length){
+      h+='<div style="font-size:.62rem;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.06em;padding:4px 0;margin-bottom:2px">⚠ Overdue ('+allOverdue.length+')</div>';
+      allOverdue.forEach(function(p){
+        var priIco={critical:'🔴',high:'🟠',medium:'🟡',low:'🟢'}[p.priority]||'🟡';
+        h+='<div class="study-plan-card overdue">';
+        h+='<span class="plan-pri">'+priIco+'</span>';
+        h+='<div class="plan-info"><div class="plan-title">'+esc(p.topic||p.subject)+'</div>';
+        h+='<div class="plan-meta">'+esc(p.subject)+' · '+p.type+' · Est: '+p.estHours+'h</div></div>';
+        h+='<span class="study-plan-deadline" style="color:var(--red)">'+p._overdueDays+'d overdue</span>';
+        h+='</div>';
+      });
+    }
+
+    /* Today / selected date plans */
+    var dateLabel=dk===today?'Today':UI.fdate(dk);
+    var pendingPlans=plans.filter(function(p){return p.status!=='completed'&&p.status!=='skipped'});
+    var donePlans=plans.filter(function(p){return p.status==='completed'||p.status==='skipped'});
+
+    if(pendingPlans.length){
+      h+='<div style="font-size:.62rem;font-weight:700;color:var(--acc);text-transform:uppercase;letter-spacing:.06em;padding:4px 0;margin-bottom:2px">'+dateLabel+' — Pending ('+pendingPlans.length+')</div>';
+      pendingPlans.forEach(function(p){
+        var priIco={critical:'🔴',high:'🟠',medium:'🟡',low:'🟢'}[p.priority]||'🟡';
+        var statusCol=p.status==='in-progress'?'color:var(--acc)':'color:var(--blu)';
+        h+='<div class="study-plan-card">';
+        h+='<span class="plan-pri">'+priIco+'</span>';
+        h+='<div class="plan-info"><div class="plan-title">'+esc(p.topic||p.subject)+'</div>';
+        h+='<div class="plan-meta">'+esc(p.subject)+' · '+p.type+' · Est: '+p.estHours+'h · <span style="'+statusCol+';font-weight:600">'+p.status+'</span></div></div>';
+        var actualH=(p.actualSecs||0)/3600;
+        if(actualH>0)h+='<span class="study-plan-deadline" style="color:var(--grn)">'+actualH.toFixed(1)+'h done</span>';
+        h+='</div>';
+      });
+    }
+
+    if(donePlans.length){
+      h+='<div style="font-size:.62rem;font-weight:700;color:var(--grn);text-transform:uppercase;letter-spacing:.06em;padding:4px 0;margin-bottom:2px">Completed ('+donePlans.length+')</div>';
+      donePlans.forEach(function(p){
+        h+='<div class="study-plan-card" style="opacity:.5">';
+        h+='<span class="plan-pri">✅</span>';
+        h+='<div class="plan-info"><div class="plan-title" style="text-decoration:line-through">'+esc(p.topic||p.subject)+'</div>';
+        h+='<div class="plan-meta">'+esc(p.subject)+' · '+p.type+' · '+p.estHours+'h est</div></div>';
+        var actualH=(p.actualSecs||0)/3600;
+        if(actualH>0)h+='<span class="study-plan-deadline" style="color:var(--grn)">'+actualH.toFixed(1)+'h</span>';
+        h+='</div>';
+      });
+    }
+
+    el.innerHTML=h;
+  };
+
   // Initialize new modules after DOM ready
   setTimeout(function(){
     PLAN.init();
@@ -171,6 +269,9 @@ return{connect:connect,skip:skip,tab:tab,syncUI:syncUI,manSync:manSync,reconn:re
     SUM.init();
     _showOnboarding();
     _initOffline();
+    /* Initialize study plan date and render */
+    var spd=document.getElementById('studyPlanDate');
+    if(spd){spd.value=D.todayKey();App.renderStudyPlans()}
   }, 100);
 
   // Patch renderAll to include new modules
@@ -178,5 +279,6 @@ return{connect:connect,skip:skip,tab:tab,syncUI:syncUI,manSync:manSync,reconn:re
   UI.renderAll = function(){
     _origRenderAll();
     try{TODO.renderInline()}catch(e){}
+    try{App.renderStudyPlans()}catch(e){}
   };
 })();

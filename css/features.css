@@ -54,7 +54,7 @@
 .todo-badge.high{background:var(--acc2);color:var(--acc)}
 .todo-badge.medium{background:var(--yel2);color:var(--yel)}
 .todo-badge.low{background:var(--grn2);color:var(--grn)}
-.todo-due{font-family:'JetBrains Mono',monospace;font-size:.55rem;color:var(--td);font-weight:600}
+.todo-due{font-family:'JetBrains Mono',monospace;font-size:.55rem;color:var(--t2);font-weight:600}
 .todo-expand-btn{background:none;border:none;color:var(--td);cursor:pointer;font-size:.55rem;padding:2px 4px;transition:transform .2s}
 .todo-expand-btn.open{transform:rotate(180deg)}
 .todo-children{padding-left:14px;border-left:2px solid var(--brd);margin-left:18px}
@@ -76,7 +76,7 @@
 .summary-card h4{font-size:.78rem;font-weight:700;color:var(--heading);margin-bottom:8px}
 .sum-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--brd);font-size:.74rem}
 .sum-row:last-child{border:none}
-.sum-label{color:var(--t2);font-weight:500}
+.sum-label{color:var(--t);font-weight:500}
 .sum-value{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--heading)}
 .chart-bars{display:flex;gap:3px;align-items:flex-end;height:80px;padding:4px 0}
 .chart-bar{flex:1;border-radius:3px 3px 0 0;min-height:2px;position:relative;cursor:pointer}
@@ -91,4 +91,35 @@
 .donut-center{position:absolute;inset:15px;border-radius:50%;background:var(--s1);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:.7rem;font-weight:700;color:var(--heading)}
 .legend-item{display:flex;align-items:center;gap:6px;font-size:.68rem;color:var(--t2);padding:2px 0}
 .legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+/* ========== TODO SELECTION MODE ========== */
+.todo-select-cb{display:none!important}
+.todo-bulk-active .todo-select-cb{display:block!important}
+.todo-header:hover .todo-select-cb{display:block!important}
+/* ========== TODO COLLAPSE/EXPAND ========== */
+.todo-collapse-bar{display:flex;gap:5px;align-items:center;margin-bottom:6px}
+.todo-collapse-bar .b{font-size:.6rem;padding:3px 8px}
+/* ========== SHORTCUTS SECTION ========== */
+.shortcuts-section{background:var(--s1);border:1px solid var(--brd);border-radius:12px;padding:16px;margin-top:20px}
+.shortcuts-section h4{font-size:.78rem;font-weight:700;color:var(--heading);margin-bottom:10px}
+.shortcut-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.shortcut-item{display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--s2);border-radius:6px;font-size:.72rem;color:var(--t2);font-weight:500}
+.shortcut-item .kbd{margin-right:2px}
+/* ========== RATING INFO POPUP ========== */
+.rating-info-btn{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:var(--s3);border:1px solid var(--brd2);color:var(--td);font-size:.55rem;font-weight:700;cursor:pointer;margin-left:6px;position:relative;vertical-align:middle}
+.rating-info-btn:hover{background:var(--s4);color:var(--heading)}
+.rating-popup{display:none;position:absolute;top:24px;right:0;background:var(--s1);border:1px solid var(--brd2);border-radius:8px;padding:10px 12px;z-index:50;min-width:200px;box-shadow:0 4px 16px var(--shadow)}
+.rating-popup.show{display:block}
+.rating-popup-row{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:.68rem;font-weight:500}
+.rating-popup-grade{font-family:'JetBrains Mono',monospace;font-size:.82rem;font-weight:800;width:20px}
+.rating-popup-desc{color:var(--t2)}
+/* ========== PLANNED TASKS IN STUDY TAB ========== */
+.study-plan-card{background:var(--s1);border:1px solid var(--brd);border-radius:8px;padding:8px 10px;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.study-plan-card.overdue{border-color:rgba(248,113,113,.25);background:var(--red2)}
+.study-plan-card .plan-pri{font-size:.7rem}
+.study-plan-card .plan-info{flex:1;min-width:0}
+.study-plan-card .plan-info .plan-title{font-size:.76rem;font-weight:600;color:var(--heading);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.study-plan-card .plan-info .plan-meta{font-size:.58rem;color:var(--td);margin-top:1px}
+.study-plan-deadline{font-family:'JetBrains Mono',monospace;font-size:.6rem;font-weight:700;white-space:nowrap}
+/* ========== MANDATORY FIELD MARKER ========== */
+.req{color:var(--red);font-weight:700}
 

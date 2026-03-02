@@ -324,12 +324,18 @@ var TODO=(function(){
     var count=Object.keys(_selected).length;
     var bar=document.getElementById('todoBulkActions');
     var countEl=document.getElementById('todoBulkCount');
+    var list=document.getElementById('todoFullList');
     if(bar){
       if(count>0){bar.classList.remove('hidden')}
       else{bar.classList.add('hidden')}
     }
     if(countEl){
       countEl.textContent=count+' selected';
+    }
+    /* Toggle bulk-active class to show/hide selection checkboxes */
+    if(list){
+      if(count>0){list.classList.add('todo-bulk-active')}
+      else{list.classList.remove('todo-bulk-active')}
     }
   }
 
@@ -342,7 +348,7 @@ var TODO=(function(){
     var h='<div class="todo-item" draggable="true" data-todo-id="'+item.id+'">';
     h+='<div class="todo-header">';
     h+='<div class="todo-drag-handle" title="Drag to reorder">⠿</div>';
-    h+='<input type="checkbox" class="todo-select-cb" '+(_selected[item.id]?'checked':'')+' onclick="event.stopPropagation();TODO.toggleSelect(\''+item.id+'\')" title="Select" style="width:14px;height:14px;cursor:pointer;accent-color:var(--acc)">';
+    h+='<input type="checkbox" class="todo-select-cb" '+(_selected[item.id]?'checked':'')+' onclick="event.stopPropagation();TODO.toggleSelect(\''+item.id+'\')" title="Select for bulk action" style="width:14px;height:14px;cursor:pointer;accent-color:var(--acc)">';
 
     if(!isNote){
       h+='<div class="todo-cb'+(isDone?' done':' p-'+priCls)+'" onclick="event.stopPropagation();TODO.toggleDone(\''+item.id+'\',\''+group+'\')">'+(isDone?'✓':'')+'</div>';
@@ -540,31 +546,77 @@ var TODO=(function(){
   }
 
   function renderInline(){
+    var today=D.todayKey();
     ['study','work'].forEach(function(group){
       var el=document.getElementById('todoInline'+group.charAt(0).toUpperCase()+group.slice(1));
       if(!el)return;
       var todos=getTodos();
-      var items=(todos[group]||[]).filter(function(i){return i.status!=='done'}).slice(0,5);
+      var items=(todos[group]||[]).filter(function(i){return i.status!=='done'}).slice(0,8);
       var priOrder={critical:0,high:1,medium:2,low:3};
       items.sort(function(a,b){return(priOrder[a.priority]||2)-(priOrder[b.priority]||2)});
 
       if(!items.length){el.innerHTML='<div style="font-size:.72rem;color:var(--tf);padding:6px 0">No pending to-dos</div>';return}
       var h='';
       items.forEach(function(item){
+        /* Calculate deadline info */
+        var deadlineHtml='';
+        if(item.due){
+          var dueDate=new Date(item.due);
+          var todayDate=new Date(today);
+          var diffDays=Math.round((dueDate-todayDate)/(1000*60*60*24));
+          if(diffDays<0){
+            deadlineHtml='<span style="font-family:JetBrains Mono,monospace;font-size:.5rem;font-weight:700;color:var(--red)">'+Math.abs(diffDays)+'d overdue</span>';
+          } else if(diffDays===0){
+            deadlineHtml='<span style="font-family:JetBrains Mono,monospace;font-size:.5rem;font-weight:700;color:var(--acc)">Today</span>';
+          } else if(diffDays<=3){
+            deadlineHtml='<span style="font-family:JetBrains Mono,monospace;font-size:.5rem;font-weight:700;color:var(--yel)">'+diffDays+'d left</span>';
+          } else {
+            deadlineHtml='<span style="font-family:JetBrains Mono,monospace;font-size:.5rem;font-weight:600;color:var(--td)">'+diffDays+'d</span>';
+          }
+        }
+        var hasChildren=item.children&&item.children.length>0;
+        var childCount=hasChildren?item.children.length:0;
+        var childDone=hasChildren?item.children.filter(function(c){return c.status==='done'}).length:0;
+
         h+='<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--brd);font-size:.73rem">';
         h+='<div class="todo-cb p-'+item.priority+'" onclick="TODO.toggleDone(\''+item.id+'\',\''+group+'\')" style="width:16px;height:16px;font-size:.5rem"></div>';
-        h+='<span style="flex:1;font-weight:600;color:var(--heading)">'+esc(item.title)+'</span>';
+        h+='<span style="flex:1;font-weight:600;color:var(--heading)">'+esc(item.title);
+        if(hasChildren)h+=' <span style="font-size:.5rem;color:var(--td);font-weight:500">('+childDone+'/'+childCount+')</span>';
+        h+='</span>';
         h+='<span class="todo-badge '+item.priority+'" style="font-size:.45rem">'+item.priority+'</span>';
+        if(deadlineHtml)h+=deadlineHtml;
         h+='</div>';
       });
       el.innerHTML=h;
     });
   }
 
+  /* Collapse All / Expand All */
+  function collapseAll(){
+    document.querySelectorAll('#todoFullList .todo-children').forEach(function(c){c.classList.add('hidden')});
+    document.querySelectorAll('#todoFullList .todo-expand-btn').forEach(function(b){b.classList.remove('open')});
+  }
+  function expandAll(){
+    document.querySelectorAll('#todoFullList .todo-children').forEach(function(c){c.classList.remove('hidden')});
+    document.querySelectorAll('#todoFullList .todo-expand-btn').forEach(function(b){b.classList.add('open')});
+  }
+
+  /* Enter selection mode (show checkboxes for bulk actions) */
+  function enterSelectMode(){
+    var list=document.getElementById('todoFullList');
+    if(list)list.classList.add('todo-bulk-active');
+    var bar=document.getElementById('todoBulkActions');
+    if(bar)bar.classList.remove('hidden');
+  }
+
+  /* Get todos for external modules */
+  function getTodosExternal(){return getTodos()}
+
   return{quickAdd:quickAdd,openAddModal:openAddModal,addChild:addChild,editItem:editItem,
     onTypeChange:onTypeChange,closeModal:closeModal,saveFromModal:saveFromModal,
     toggleDone:toggleDone,deleteItem:deleteItem,render:render,renderInline:renderInline,
-    getOverdueCount:getOverdueCount,
+    getOverdueCount:getOverdueCount,getTodos:getTodosExternal,
     toggleSelect:toggleSelect,toggleSelectAll:toggleSelectAll,
-    markSelectedDone:markSelectedDone,removeSelected:removeSelected};
+    markSelectedDone:markSelectedDone,removeSelected:removeSelected,
+    collapseAll:collapseAll,expandAll:expandAll,enterSelectMode:enterSelectMode};
 })();
