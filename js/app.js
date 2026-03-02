@@ -38,7 +38,7 @@ function reconn(){show('setup')}
 function addCat(type){var inp=document.getElementById(type==='study'?'addStudy':type==='work'?'addWork':'addKnowledge');var val=inp.value.trim();if(!val)return;var cfg=D.getCfg();var list=type==='study'?cfg.studySubjects:type==='work'?cfg.workCategories:(cfg.knowledgeCategories||(cfg.knowledgeCategories=[]));if(list.indexOf(val)===-1)list.push(val);D.setCfg(cfg);inp.value='';UI.renderAll();D.push();UI.toast('Added')}
 function rmCat(type,name){if(!confirm('Remove "'+name+'"?'))return;var cfg=D.getCfg();if(type==='study')cfg.studySubjects=cfg.studySubjects.filter(function(s){return s!==name});else if(type==='work')cfg.workCategories=cfg.workCategories.filter(function(s){return s!==name});else if(type==='knowledge')cfg.knowledgeCategories=(cfg.knowledgeCategories||[]).filter(function(s){return s!==name});D.setCfg(cfg);UI.renderAll();D.push()}
 function toggleTheme(){var cfg=D.getCfg();cfg.theme=cfg.theme==='dark'?'light':'dark';D.setCfg(cfg);document.documentElement.setAttribute('data-theme',cfg.theme);D.push()}
-function saveCfgExtra(){var cfg=D.getCfg();cfg.wakeTime=parseFloat(document.getElementById('cfgWakeTime').value)||6;cfg.bedtime=parseFloat(document.getElementById('cfgBedtime').value)||22.5;cfg.effectiveMins=parseInt(document.getElementById('cfgEffective').value)||50;var prEl=document.getElementById('cfgPlanRemindHour');if(prEl)cfg.planRemindHour=parseInt(prEl.value)||0;D.setCfg(cfg);D.push();try{App.renderTimeBudget()}catch(e){}UI.toast('Settings saved')}
+function saveCfgExtra(){var cfg=D.getCfg();cfg.wakeTime=parseFloat(document.getElementById('cfgWakeTime').value)||6;cfg.bedtime=parseFloat(document.getElementById('cfgBedtime').value)||22.5;cfg.effectiveMins=parseInt(document.getElementById('cfgEffective').value)||50;var prEl=document.getElementById('cfgPlanRemindHour');if(prEl)cfg.planRemindHour=parseInt(prEl.value)||0;D.setCfg(cfg);D.push();try{App.renderTimeBudget()}catch(e){}try{App.renderDayOverview()}catch(e){}UI.toast('Settings saved')}
 function enterFocus(){if(!TM.isOn()){UI.toast('Start timer first');return}document.getElementById('focusMode').classList.remove('hidden');var at=TM.activeType();document.getElementById('focusSub').textContent=at==='study'?'Studying':'Working';document.getElementById('focusCat').textContent=document.getElementById(at==='study'?'studyCat':'workCat').value;updateFocusBtns();moveFocusTimer();focusMoveIv=setInterval(moveFocusTimer,8000)}
 function exitFocus(){document.getElementById('focusMode').classList.add('hidden');if(focusMoveIv){clearInterval(focusMoveIv);focusMoveIv=null}}
 function moveFocusTimer(){var el=document.getElementById('focusInner');el.style.left=Math.max(20,Math.random()*(window.innerWidth-300))+'px';el.style.top=Math.max(20,Math.random()*(window.innerHeight-200))+'px'}
@@ -76,7 +76,7 @@ return{connect:connect,skip:skip,tab:tab,syncUI:syncUI,manSync:manSync,reconn:re
     if(id==='plan') PLAN.init();
     if(id==='calendar') CAL.init();
     if(id==='todo') TODO.render();
-    if(id==='summary') SUM.init();
+    if(id==='summary') try{SUM.init()}catch(e){}
     if(id==='knowledge') try{KNOW.init()}catch(e){}
   };
   App.tab = App.navTo;
@@ -113,7 +113,8 @@ return{connect:connect,skip:skip,tab:tab,syncUI:syncUI,manSync:manSync,reconn:re
         var todoSel = document.getElementById('smLinkTodo');
         if(todoSel){
           var todos = D.getLocal().todos || {};
-          var items = (todos[type] || []).filter(function(i){return i.status !== 'done'});
+          var today = D.todayKey();
+          var items = (todos[type] || []).filter(function(i){return i.status !== 'done' && (!i.due || i.due <= today)});
           todoSel.innerHTML = '<option value="">— None —</option>';
           items.slice(0, 15).forEach(function(t){
             todoSel.innerHTML += '<option value="'+t.id+'">'+t.title+'</option>';
@@ -438,7 +439,12 @@ return{connect:connect,skip:skip,tab:tab,syncUI:syncUI,manSync:manSync,reconn:re
     var todoEstH=0;
     try{todoEstH=TODO.getTodayEstHours()}catch(e){}
     ['study','work'].forEach(function(g){
-      (todos[g]||[]).forEach(function(t){if(t.status!=='done')todoPending++});
+      (function countItems(items){
+        items.forEach(function(t){
+          if(t.status!=='done'&&(!t.due||t.due<=today))todoPending++;
+          if(t.children)countItems(t.children);
+        });
+      })(todos[g]||[]);
     });
 
     var h='<div class="day-overview" style="grid-template-columns:repeat(5,1fr)">';

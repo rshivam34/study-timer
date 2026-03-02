@@ -207,7 +207,7 @@ var TODO=(function(){
             id:'td_'+Date.now()+'_'+Math.random().toString(36).slice(2,5),
             title:item.title,type:item.type,priority:item.priority,
             due:nextDue,content:item.content||'',status:'pending',
-            children:[],createdAt:D.todayKey(),repeat:item.repeat
+            children:[],createdAt:D.todayKey(),repeat:item.repeat,estMins:item.estMins||undefined
           };
           if(!todos[group])todos[group]=[];
           todos[group].push(clone);
@@ -665,7 +665,7 @@ var TODO=(function(){
       var el=document.getElementById('todoInline'+group.charAt(0).toUpperCase()+group.slice(1));
       if(!el)return;
       var todos=getTodos();
-      var items=(todos[group]||[]).filter(function(i){return i.status!=='done'}).slice(0,8);
+      var items=(todos[group]||[]).filter(function(i){return i.status!=='done'&&(!i.due||i.due<=today)}).slice(0,8);
       var priOrder={critical:0,high:1,medium:2,low:3};
       items.sort(function(a,b){return(priOrder[a.priority]||2)-(priOrder[b.priority]||2)});
 
