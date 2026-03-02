@@ -42,9 +42,9 @@
 .jtag:hover{border-color:var(--acc)}
 .jtag.on{background:var(--acc2);color:var(--acc);border-color:var(--acc)}
 /* Part 6 CSS — Calendar week view, drag, overdue */
-.week-cell{min-height:90px}
+.week-cell{min-height:96px}
 .week-blocks{display:flex;flex-direction:column;gap:1px;margin-top:2px}
-.week-block{height:6px;border-radius:2px;min-width:100%}
+.week-block{height:8px;border-radius:2px;min-width:100%}
 .overdue-badge{display:inline-block;font-size:.55rem;font-weight:700;color:var(--red);background:rgba(248,113,113,.12);padding:2px 8px;border-radius:8px;margin-bottom:4px}
 .todo-due.overdue{color:var(--red)!important;font-weight:700}
 .drag-handle{cursor:grab;font-size:.8rem;color:var(--tf);padding:0 4px;user-select:none;line-height:1}
@@ -82,8 +82,8 @@
 /* V3 — Todo Swipe */
 .todo-item{touch-action:pan-y;will-change:transform}
 /* V3 — Calendar Dot Variants */
-.cal-dot-hollow{width:5px;height:5px;border-radius:50%;border:1.5px solid var(--pur);background:transparent;display:inline-block}
-.cal-dot-filled{width:5px;height:5px;border-radius:50%;background:var(--grn);display:inline-block}
+.cal-dot-hollow{width:6px;height:6px;border-radius:50%;border:1.5px solid var(--pur);background:transparent;display:inline-block}
+.cal-dot-filled{width:6px;height:6px;border-radius:50%;background:var(--grn);display:inline-block}
 /* V3 — Onboarding Hints */
 .onboard-hint{background:var(--acc2);border:1px solid var(--acc);border-radius:10px;padding:10px 14px;margin:8px 0;font-size:.72rem;color:var(--t2);display:flex;align-items:center;gap:8px}
 .onboard-hint button{margin-left:auto;background:none;border:none;color:var(--acc);font-weight:700;cursor:pointer;font-size:.72rem;white-space:nowrap}
@@ -319,6 +319,17 @@
   </div>
   <div class="cal-grid" id="calGrid"></div>
   <div id="calDayDetail"></div>
+  <!-- Calendar Item Detail Modal -->
+  <div class="modal hidden" id="calItemModal" onclick="if(event.target===this)CAL.closeCIModal()">
+    <div class="modal-content" style="max-width:380px">
+      <div class="modal-hdr" id="ciModalHeader">
+        <span id="ciModalTitle">Item Details</span>
+        <button class="modal-close" onclick="CAL.closeCIModal()">&times;</button>
+      </div>
+      <div id="ciModalBody" style="padding:12px 16px"></div>
+      <div id="ciModalActions" style="padding:8px 16px 14px;display:flex;gap:6px;justify-content:flex-end"></div>
+    </div>
+  </div>
 </div>
 
 
