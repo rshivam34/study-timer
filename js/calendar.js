@@ -206,7 +206,7 @@ var CAL=(function(){
     var totalSessH=totalStudyH+totalWorkH;
 
     var plannedH=0;
-    plans.forEach(function(p){if(p.status!=='completed'&&p.status!=='skipped')plannedH+=p.estHours});
+    plans.forEach(function(p){if(p.status!=='completed'&&p.status!=='skipped')plannedH+=Math.max(0,p.estHours-(p.actualSecs||0)/3600)});
 
     var awakeH=bedH-wakeH;
     var sleepH=24-awakeH;

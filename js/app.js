@@ -422,7 +422,7 @@ App.rmSubjectFromExam=function(examId,subject){if(!confirm('Remove "'+subject+'"
       if(p.status==='skipped')return;
       var est=p.estHours||0;
       planTotalH+=est;
-      if(p.status!=='completed')planRemainingH+=est;
+      if(p.status!=='completed')planRemainingH+=Math.max(0,est-(p.actualSecs||0)/3600);
     });
 
     /* ── Todos: total est hours for pending items due today/overdue ── */
@@ -456,15 +456,24 @@ App.rmSubjectFromExam=function(examId,subject){if(!confirm('Remove "'+subject+'"
     var overPlanned=free<0;
     var overBy=Math.abs(free);
 
-    /* Motivation message */
+    /* Motivation message — aggressive, FOMO-based */
+    var _wastedMins=Math.round(wasted*60);
+    var _msgPool90=['Beast mode! You\'re outworking 99% of aspirants today.','This is what toppers look like. Don\'t stop now.','Your future self is thanking you right now. Finish strong.'];
+    var _msgPool70=['Solid grind, but toppers don\'t stop at 70%. Close the gap.','Your competition just finished another chapter. Match them.','Good is the enemy of great. Push to 90%.'];
+    var _msgPool50=['Half your day is gone and half your work remains. Speed up NOW.','Average effort = average result. Is that what you want?','Someone with your exact dream is studying harder right now.','Mediocrity is a choice. You\'re halfway to making it.'];
+    var _msgPool25=['You\'ve wasted '+_wastedMins+' minutes today. That\'s '+_wastedMins+' minutes closer to failure.','Your competition doesn\'t take this many breaks. Wake up.','At this rate, you\'re handing your seat to someone hungrier.','Every hour you waste, 1000 others are grinding. Move.'];
+    var _msgPoolLow=['You started but barely moved. '+wasted.toFixed(1)+'h wasted already — that\'s someone else\'s revision done.','Scrolling won\'t get you selected. Your phone is your enemy today.','You\'re burning daylight. The exam doesn\'t care about your excuses.','This pace means failure. Not maybe — certainly. Fix it NOW.'];
+    var _msgPool0=['ZERO hours logged. The day is slipping away and you\'re watching.','Right now, lakhs of aspirants are studying while you do nothing.','Every minute without action is a minute spent choosing failure.','You\'re not resting — you\'re quitting in slow motion. Start NOW.','Your parents didn\'t sacrifice everything for you to waste today.'];
+    function _pick(arr){return arr[Math.floor(Math.random()*arr.length)]}
     var msg='';
-    if(overPlanned)msg='Over-planned by '+overBy.toFixed(1)+'h! Reduce tasks or extend your day.';
-    else if(pct>=90)msg='Outstanding! You\'re crushing it today!';
-    else if(pct>=70)msg='Great progress! Keep the momentum going!';
-    else if(pct>=50)msg='Halfway there. Push harder!';
-    else if(pct>=25)msg='Good start. Stay focused!';
-    else if(utilized>0)msg='Just getting started. Let\'s go!';
-    else msg='Start your first session today!';
+    if(overPlanned)msg='Over-planned by '+overBy.toFixed(1)+'h! Cut the fluff or you\'ll crash and burn.';
+    else if(pct>=90)msg=_pick(_msgPool90);
+    else if(pct>=70)msg=_pick(_msgPool70);
+    else if(pct>=50)msg=_pick(_msgPool50);
+    else if(pct>=25)msg=_pick(_msgPool25);
+    else if(utilized>0)msg=_pick(_msgPoolLow);
+    else if(hoursSinceWake>=1)msg=_pick(_msgPool0);
+    else msg='New day. Lakhs are competing for your seat. Prove you deserve it.';
 
     var barColor=pct>=70?'var(--grn)':pct>=40?'var(--acc)':'var(--yel)';
 
