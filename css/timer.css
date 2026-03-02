@@ -114,8 +114,8 @@
 .focus-timer{font-family:'JetBrains Mono',monospace;font-size:5.5rem;font-weight:700;color:var(--acc);letter-spacing:.04em;margin-bottom:8px}
 .focus-sub{font-size:.88rem;color:var(--t2);font-weight:600;margin-bottom:6px}.focus-cat{font-size:.8rem;color:var(--acc);opacity:.6;margin-bottom:20px}
 .focus-close{position:absolute;top:20px;right:20px;background:none;border:1px solid var(--brd);border-radius:8px;color:var(--td);cursor:pointer;padding:6px 14px;font-size:.78rem;font-weight:600;font-family:'Outfit',sans-serif;z-index:1000}
-.modal{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .2s}
-.modal-box{background:var(--s1);border:1px solid var(--brd);border-radius:14px;padding:22px;max-width:420px;width:100%;text-align:center;max-height:90vh;overflow-y:auto}
+.modal{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.65);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .2s}
+.modal-box{background:linear-gradient(135deg,var(--s1),var(--s2));border:1px solid var(--brd2);border-radius:16px;padding:22px;max-width:420px;width:100%;text-align:center;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px var(--shadow)}
 .modal-box h3{font-size:.9rem;font-weight:700;color:var(--heading);margin-bottom:3px}
 .modal-dur{font-family:'JetBrains Mono',monospace;font-size:1.3rem;font-weight:700;color:var(--grn);margin:5px 0 12px}
 .modal-cat{font-size:.8rem;color:var(--t2);margin-bottom:10px}

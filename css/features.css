@@ -41,7 +41,7 @@
 .tl-item.work-tl::before{background:var(--cyn)}
 .tl-item.plan-tl::before{background:var(--pur)}
 /* ========== TO-DO ========== */
-.todo-item{background:var(--s1);border:1px solid var(--brd);border-radius:8px;margin-bottom:4px;overflow:hidden}
+.todo-item{background:linear-gradient(135deg,var(--s1),var(--s2));border:1px solid var(--brd);border-radius:8px;margin-bottom:4px;overflow:hidden;transition:box-shadow .15s}.todo-item:hover{box-shadow:0 2px 10px var(--shadow)}
 .todo-header{display:flex;align-items:center;gap:6px;padding:8px 10px;cursor:pointer}
 .todo-header:hover{background:var(--s2)}
 .todo-cb{width:18px;height:18px;border-radius:4px;border:2px solid var(--brd2);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.55rem;transition:all .15s}
@@ -64,7 +64,7 @@
 .todo-note-body{padding:4px 10px 8px;font-size:.72rem;color:var(--t2);line-height:1.5;background:var(--s2);margin:0 8px 6px;border-radius:6px;white-space:pre-wrap}
 .todo-filter-bar{display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap;align-items:center}
 /* ========== PLANNING ========== */
-.plan-card{background:var(--s1);border:1px solid var(--brd);border-radius:8px;padding:10px 12px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center}
+.plan-card{background:linear-gradient(135deg,var(--s1),var(--s2));border:1px solid var(--brd);border-radius:8px;padding:10px 12px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;transition:border-color .15s,box-shadow .15s}.plan-card:hover{border-color:var(--brd2);box-shadow:0 2px 12px var(--shadow)}
 .plan-card.completed{opacity:.5;border-color:var(--grn)}
 .plan-card.in-progress{border-color:var(--acc)}
 .plan-status{font-size:.55rem;font-weight:700;text-transform:uppercase;padding:2px 6px;border-radius:3px}
@@ -74,7 +74,7 @@
 .plan-status.skipped{background:var(--s3);color:var(--td)}
 .plan-status.carried{background:var(--yel2);color:var(--yel)}
 /* ========== SUMMARY & ANALYTICS ========== */
-.summary-card{background:var(--s1);border:1px solid var(--brd);border-radius:12px;padding:16px;margin-bottom:8px}
+.summary-card{background:linear-gradient(135deg,var(--s1),var(--s2));border:1px solid var(--brd);border-radius:12px;padding:16px;margin-bottom:8px;transition:transform .15s,box-shadow .15s}.summary-card:hover{transform:translateY(-2px);box-shadow:0 4px 16px var(--shadow)}
 .summary-card h4{font-size:.78rem;font-weight:700;color:var(--heading);margin-bottom:8px}
 .sum-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--brd);font-size:.74rem}
 .sum-row:last-child{border:none}
@@ -124,4 +124,21 @@
 .study-plan-deadline{font-family:'JetBrains Mono',monospace;font-size:.6rem;font-weight:700;white-space:nowrap}
 /* ========== MANDATORY FIELD MARKER ========== */
 .req{color:var(--red);font-weight:700}
+/* ========== PRESET BUTTON ACTIVE STATE ========== */
+.preset-btn{transition:all .15s}
+.preset-btn.preset-active{border-color:var(--acc)!important;color:var(--acc)!important;background:var(--acc2)!important;box-shadow:0 0 10px var(--accg)}
+/* ========== TIME BUDGET CARD ========== */
+.time-budget-card{background:linear-gradient(135deg,var(--s1),var(--s2));border:1px solid var(--brd);border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 2px 12px var(--shadow)}
+.tb-stats{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px}
+.tb-stat{text-align:center;padding:6px 4px;background:var(--s2);border-radius:8px;border:1px solid var(--brd)}
+.tb-val{font-family:'JetBrains Mono',monospace;font-size:.82rem;font-weight:700;display:block}
+.tb-lbl{font-size:.5rem;color:var(--td);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+/* ========== DAY OVERVIEW WIDGET ========== */
+.day-overview{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:10px}
+.do-item{text-align:center;padding:8px 4px;background:linear-gradient(135deg,var(--s1),var(--s2));border:1px solid var(--brd);border-radius:10px}
+.do-val{font-family:'JetBrains Mono',monospace;font-size:.9rem;font-weight:700;display:block}
+.do-lbl{font-size:.5rem;color:var(--td);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+/* ========== OVERDUE TODO BADGE ========== */
+.overdue-badge{font-family:'JetBrains Mono',monospace;font-size:.6rem;font-weight:700;color:var(--red);background:var(--red2);padding:2px 8px;border-radius:4px}
+.todo-due.overdue{color:var(--red)!important;font-weight:700}
 

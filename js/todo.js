@@ -27,6 +27,7 @@ var TODO=(function(){
     document.getElementById('todoInpContent').value='';
     document.getElementById('todoInpParent').value='';
     document.getElementById('todoInpEditId').value='';
+    var estEl=document.getElementById('todoInpEstMins');if(estEl)estEl.value='';
     document.getElementById('todoModalTitle').textContent='Add To-Do';
     document.getElementById('todoExtraFields').classList.remove('hidden');
     document.getElementById('todoNoteArea').classList.add('hidden');
@@ -61,6 +62,7 @@ var TODO=(function(){
     document.getElementById('todoInpDue').value=item.due||'';
     document.getElementById('todoInpContent').value=item.content||'';
     if(document.getElementById('todoInpRepeat'))document.getElementById('todoInpRepeat').value=item.repeat||'';
+    var estEl=document.getElementById('todoInpEstMins');if(estEl)estEl.value=item.estMins||'';
     document.getElementById('todoInpParent').value='';
     document.getElementById('todoInpEditId').value=id;
     document.getElementById('todoModalTitle').textContent='Edit Item';
@@ -90,18 +92,20 @@ var TODO=(function(){
     var todos=getTodos();
     if(!todos[group])todos[group]=[];
     var repeat=(document.getElementById('todoInpRepeat')||{}).value||'';
+    var estMins=parseInt((document.getElementById('todoInpEstMins')||{}).value)||0;
 
     if(editId){
       var item=findItem(todos[group],editId);
       if(item){
         item.title=title;item.type=type;item.priority=priority;item.due=due;item.content=content;
-        item.repeat=repeat;
+        item.repeat=repeat;item.estMins=estMins||undefined;
       }
     } else {
       var newItem={
         id:'td_'+Date.now()+'_'+Math.random().toString(36).slice(2,5),
         title:title,type:type,priority:priority,due:due,content:content,
-        status:'pending',children:[],createdAt:D.todayKey(),repeat:repeat
+        status:'pending',children:[],createdAt:D.todayKey(),repeat:repeat,
+        estMins:estMins||undefined
       };
       if(parentId){
         var parent=findItem(todos[group],parentId);
@@ -367,6 +371,7 @@ var TODO=(function(){
     h+='<span class="todo-title'+(isDone?' completed':'')+'">'+esc(item.title)+'</span>';
     if(!isNote)h+='<span class="todo-badge '+priCls+'">'+priCls+'</span>';
     if(item.due)h+='<span class="todo-due'+(item.status!=='done'&&item.due<D.todayKey()?' overdue':'')+'">'+UI.fdate(item.due)+'</span>';
+    if(item.estMins)h+='<span style="font-size:.5rem;color:var(--cyn);font-weight:700;background:var(--cyn2);padding:1px 5px;border-radius:3px">~'+item.estMins+'m</span>';
     if(item.repeat)h+='<span style="font-size:.45rem;color:var(--cyn);font-weight:700">🔄 '+item.repeat+'</span>';
 
     /* FIX #4: Show completion timestamp */

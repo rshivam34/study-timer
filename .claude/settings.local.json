@@ -4,7 +4,8 @@
       "Bash(cd:*)",
       "Bash(sort:*)",
       "Bash(do echo:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(grep:*)"
     ]
   }
 }

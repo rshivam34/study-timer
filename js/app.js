@@ -7,7 +7,7 @@ if(typeof QUOTES==='undefined'){
 }
 
 var App=(function(){var deferredPrompt=null,focusMoveIv=null,quoteIv=null;
-function rotateQuote(){var all=getAllQuotes();var q=all[Math.floor(Math.random()*all.length)];var el=document.getElementById('quoteBar');el.style.opacity='0';setTimeout(function(){el.textContent='"'+q+'"';el.style.opacity='.7'},500)}
+function rotateQuote(){var all=getAllQuotes();var q=all[Math.floor(Math.random()*all.length)];var el=document.getElementById('quoteBar');el.style.opacity='0';el.style.transform='translateY(4px)';setTimeout(function(){el.textContent='"'+q+'"';el.style.opacity='1';el.style.transform='translateY(0)'},500)}
 function getAllQuotes(){var cfg=D.getCfg();return QUOTES.concat(cfg.customQuotes||[])}
 function toggleQuotes(){var p=document.getElementById('quotePanel');p.classList.toggle('hidden');if(!p.classList.contains('hidden'))renderQuotes()}
 function renderQuotes(){var all=getAllQuotes(),cfg=D.getCfg(),custom=cfg.customQuotes||[];var el=document.getElementById('quoteList');el.innerHTML=all.map(function(q,i){var isCustom=i>=QUOTES.length;return'<div class="quote-item"><span>"'+esc(q)+'"</span>'+(isCustom?'<button class="quote-rm" onclick="event.stopPropagation();App.rmQuote('+(i-QUOTES.length)+')">✕</button>':'')+'</div>'}).join('')}
@@ -24,7 +24,7 @@ if('periodicSync' in reg){reg.periodicSync.register('study-timer-check',{minInte
 navigator.serviceWorker.addEventListener('message',function(e){if(e.data&&e.data.type==='check-notifications')NOTIFY.checkAndNotify()})
 }).catch(function(e){console.log('SW:',e)})}
 NOTIFY.updateStatus();if(Notification.permission==='granted')NOTIFY.scheduleChecks();
-var xCfg=D.getCfg();if(xCfg.bedtime)document.getElementById('cfgBedtime').value=xCfg.bedtime;if(xCfg.effectiveMins)document.getElementById('cfgEffective').value=xCfg.effectiveMins;var prEl2=document.getElementById('cfgPlanRemindHour');if(prEl2&&xCfg.planRemindHour)prEl2.value=xCfg.planRemindHour;
+var xCfg=D.getCfg();var wkEl=document.getElementById('cfgWakeTime');if(wkEl&&xCfg.wakeTime!==undefined)wkEl.value=xCfg.wakeTime;if(xCfg.bedtime)document.getElementById('cfgBedtime').value=xCfg.bedtime;if(xCfg.effectiveMins)document.getElementById('cfgEffective').value=xCfg.effectiveMins;var prEl2=document.getElementById('cfgPlanRemindHour');if(prEl2&&xCfg.planRemindHour)prEl2.value=xCfg.planRemindHour;
 setInterval(function(){if(document.getElementById('p-remind').classList.contains('on'))REM.render()},60000);
 window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();deferredPrompt=e;document.getElementById('pwaStatus').textContent='Ready to install!'})}
 function show(w){document.getElementById('setup').classList.toggle('hidden',w!=='setup');document.getElementById('mainApp').classList.toggle('hidden',w!=='main')}
@@ -38,7 +38,7 @@ function reconn(){show('setup')}
 function addCat(type){var inp=document.getElementById(type==='study'?'addStudy':'addWork');var val=inp.value.trim();if(!val)return;var cfg=D.getCfg();var list=type==='study'?cfg.studySubjects:cfg.workCategories;if(list.indexOf(val)===-1)list.push(val);D.setCfg(cfg);inp.value='';UI.renderAll();D.push();UI.toast('Added')}
 function rmCat(type,name){if(!confirm('Remove "'+name+'"?'))return;var cfg=D.getCfg();if(type==='study')cfg.studySubjects=cfg.studySubjects.filter(function(s){return s!==name});else cfg.workCategories=cfg.workCategories.filter(function(s){return s!==name});D.setCfg(cfg);UI.renderAll();D.push()}
 function toggleTheme(){var cfg=D.getCfg();cfg.theme=cfg.theme==='dark'?'light':'dark';D.setCfg(cfg);document.documentElement.setAttribute('data-theme',cfg.theme);D.push()}
-function saveCfgExtra(){var cfg=D.getCfg();cfg.bedtime=parseInt(document.getElementById('cfgBedtime').value)||23;cfg.effectiveMins=parseInt(document.getElementById('cfgEffective').value)||45;var prEl=document.getElementById('cfgPlanRemindHour');if(prEl)cfg.planRemindHour=parseInt(prEl.value)||0;D.setCfg(cfg);D.push();UI.toast('Settings saved')}
+function saveCfgExtra(){var cfg=D.getCfg();cfg.wakeTime=parseFloat(document.getElementById('cfgWakeTime').value)||6;cfg.bedtime=parseFloat(document.getElementById('cfgBedtime').value)||22.5;cfg.effectiveMins=parseInt(document.getElementById('cfgEffective').value)||50;var prEl=document.getElementById('cfgPlanRemindHour');if(prEl)cfg.planRemindHour=parseInt(prEl.value)||0;D.setCfg(cfg);D.push();try{App.renderTimeBudget()}catch(e){}UI.toast('Settings saved')}
 function enterFocus(){if(!TM.isOn()){UI.toast('Start timer first');return}document.getElementById('focusMode').classList.remove('hidden');var at=TM.activeType();document.getElementById('focusSub').textContent=at==='study'?'Studying':'Working';document.getElementById('focusCat').textContent=document.getElementById(at==='study'?'studyCat':'workCat').value;updateFocusBtns();moveFocusTimer();focusMoveIv=setInterval(moveFocusTimer,8000)}
 function exitFocus(){document.getElementById('focusMode').classList.add('hidden');if(focusMoveIv){clearInterval(focusMoveIv);focusMoveIv=null}}
 function moveFocusTimer(){var el=document.getElementById('focusInner');el.style.left=Math.max(20,Math.random()*(window.innerWidth-300))+'px';el.style.top=Math.max(20,Math.random()*(window.innerHeight-200))+'px'}
@@ -274,11 +274,119 @@ return{connect:connect,skip:skip,tab:tab,syncUI:syncUI,manSync:manSync,reconn:re
     if(spd){spd.value=D.todayKey();App.renderStudyPlans()}
   }, 100);
 
+  /* ========== TIME BUDGET CARD (#6) ========== */
+  App.renderTimeBudget = function(){
+    var cfg=D.getCfg();
+    var wakeTime=cfg.wakeTime||6;
+    var bedtime=cfg.bedtime||22.5;
+    var effectiveMins=cfg.effectiveMins||50;
+    var effectiveRatio=effectiveMins/60;
+    var available=(bedtime-wakeTime)*effectiveRatio;
+
+    /* Planned hours from today's plans */
+    var today=D.todayKey();
+    var plans=PLAN.getForDate(today);
+    var planned=0;
+    plans.forEach(function(p){if(p.status!=='skipped')planned+=p.estHours||0});
+
+    /* Utilized = study + work session durations today */
+    var studySess=D.todayS('study'),workSess=D.todayS('work');
+    var utilizedSecs=0;
+    studySess.forEach(function(s){utilizedSecs+=s.dur});
+    workSess.forEach(function(s){utilizedSecs+=s.dur});
+    var utilized=utilizedSecs/3600;
+
+    var remaining=Math.max(0,available-utilized);
+
+    /* Wasted: hours since wake × effective ratio - utilized */
+    var now=new Date();
+    var hoursSinceWake=Math.max(0,(now.getHours()+now.getMinutes()/60)-wakeTime);
+    var wasted=Math.max(0,hoursSinceWake*effectiveRatio-utilized);
+
+    var pct=available>0?Math.min(100,Math.round((utilized/available)*100)):0;
+
+    /* Motivation message */
+    var msg='';
+    if(pct>=90)msg='Outstanding! You\'re crushing it today!';
+    else if(pct>=70)msg='Great progress! Keep the momentum going!';
+    else if(pct>=50)msg='Halfway there. Push harder!';
+    else if(pct>=25)msg='Good start. Stay focused!';
+    else if(utilized>0)msg='Just getting started. Let\'s go!';
+    else msg='Start your first session today!';
+
+    var barColor=pct>=70?'var(--grn)':pct>=40?'var(--acc)':'var(--yel)';
+
+    var h='<div class="time-budget-card">';
+    h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
+    h+='<span style="font-family:JetBrains Mono,monospace;font-size:.68rem;font-weight:700;color:var(--heading);letter-spacing:.08em;text-transform:uppercase">Time Budget</span>';
+    h+='<span style="font-family:JetBrains Mono,monospace;font-size:.72rem;font-weight:700;color:var(--acc)">'+available.toFixed(1)+'h available</span>';
+    h+='</div>';
+    /* Progress bar */
+    h+='<div style="height:8px;background:var(--s3);border-radius:4px;overflow:hidden;margin-bottom:10px">';
+    h+='<div style="width:'+pct+'%;height:100%;border-radius:4px;background:'+barColor+';transition:width .5s ease"></div>';
+    h+='</div>';
+    /* Stats grid */
+    h+='<div class="tb-stats">';
+    h+='<div class="tb-stat"><span class="tb-val" style="color:var(--grn)">'+utilized.toFixed(1)+'h</span><span class="tb-lbl">Utilized</span></div>';
+    h+='<div class="tb-stat"><span class="tb-val" style="color:var(--cyn)">'+remaining.toFixed(1)+'h</span><span class="tb-lbl">Remaining</span></div>';
+    h+='<div class="tb-stat"><span class="tb-val" style="color:var(--pur)">'+planned.toFixed(1)+'h</span><span class="tb-lbl">Planned</span></div>';
+    h+='<div class="tb-stat"><span class="tb-val" style="color:var(--red)">'+wasted.toFixed(1)+'h</span><span class="tb-lbl">Wasted</span></div>';
+    h+='</div>';
+    /* Message */
+    h+='<div style="font-size:.7rem;font-weight:600;color:var(--t2);text-align:center;margin-top:8px;font-style:italic">'+msg+'</div>';
+    h+='</div>';
+
+    /* Render to all containers */
+    ['timeBudgetStudy','timeBudgetWork','timeBudgetPlan','timeBudgetTodo'].forEach(function(id){
+      var el=document.getElementById(id);
+      if(el)el.innerHTML=h;
+    });
+  };
+
+  /* ========== DAY OVERVIEW WIDGET (#4) ========== */
+  App.renderDayOverview = function(){
+    var el=document.getElementById('dayOverview');
+    if(!el)return;
+    var today=D.todayKey();
+
+    /* Study time */
+    var studySess=D.todayS('study'),studySecs=0;
+    studySess.forEach(function(s){studySecs+=s.dur});
+    var studyH=(studySecs/3600).toFixed(1);
+
+    /* Work time */
+    var workSess=D.todayS('work'),workSecs=0;
+    workSess.forEach(function(s){workSecs+=s.dur});
+    var workH=(workSecs/3600).toFixed(1);
+
+    /* Plans done/total */
+    var plans=PLAN.getForDate(today);
+    var plansDone=plans.filter(function(p){return p.status==='completed'}).length;
+    var plansTotal=plans.length;
+
+    /* Todos pending */
+    var todos=D.getLocal().todos||{};
+    var todoPending=0;
+    ['study','work'].forEach(function(g){
+      (todos[g]||[]).forEach(function(t){if(t.status!=='done')todoPending++});
+    });
+
+    var h='<div class="day-overview">';
+    h+='<div class="do-item"><span class="do-val" style="color:var(--acc)">'+studyH+'h</span><span class="do-lbl">Study</span></div>';
+    h+='<div class="do-item"><span class="do-val" style="color:var(--cyn)">'+workH+'h</span><span class="do-lbl">Work</span></div>';
+    h+='<div class="do-item"><span class="do-val" style="color:var(--grn)">'+plansDone+'/'+plansTotal+'</span><span class="do-lbl">Plans</span></div>';
+    h+='<div class="do-item"><span class="do-val" style="color:var(--pur)">'+todoPending+'</span><span class="do-lbl">To-Dos</span></div>';
+    h+='</div>';
+    el.innerHTML=h;
+  };
+
   // Patch renderAll to include new modules
   var _origRenderAll = UI.renderAll;
   UI.renderAll = function(){
     _origRenderAll();
     try{TODO.renderInline()}catch(e){}
     try{App.renderStudyPlans()}catch(e){}
+    try{App.renderTimeBudget()}catch(e){}
+    try{App.renderDayOverview()}catch(e){}
   };
 })();

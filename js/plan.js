@@ -20,13 +20,20 @@ var PLAN=(function(){
 
   function onSubjChange(){
     var subj=document.getElementById('planSubj').value;
-    var syl=D.getSyl();var el=document.getElementById('planLecNum');
+    var syl=D.getSyl();var el=document.getElementById('planLecChecklist');
+    if(!el)return;
     el.innerHTML='';
     if(syl[subj]&&syl[subj].total){
       for(var i=1;i<=syl[subj].total;i++){
         var done=i<=(syl[subj].done||0);
-        el.innerHTML+='<option value="'+i+'"'+(done?' style="color:var(--grn)"':'')+'>Lec '+i+(done?' ✓':'')+'</option>';
+        var color=done?'color:var(--grn)':'';
+        el.innerHTML+='<label style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:.75rem;cursor:pointer;'+color+'">'
+          +'<input type="checkbox" class="plan-lec-cb" value="'+i+'" style="accent-color:var(--acc)">'
+          +'Lec '+i+(done?' ✓':'')+'</label>';
       }
+      document.getElementById('planLecRow').style.display='';
+    } else {
+      document.getElementById('planLecRow').style.display='none';
     }
   }
 
@@ -37,21 +44,48 @@ var PLAN=(function(){
     var topic=document.getElementById('planTopic').value.trim();
     var hours=parseFloat(document.getElementById('planHours').value)||2;
     var priority=document.getElementById('planPriority').value;
-    var lecNum=type==='lecture'?parseInt(document.getElementById('planLecNum').value)||null:null;
     /* FIX #2: notes field */
     var notes=(document.getElementById('planNotes')||{}).value||'';
     notes=notes.trim();
 
     if(!date||!subj){UI.toast('Select date & subject');return}
+
+    /* Multi-lecture selection via checkboxes */
+    if(type==='lecture'){
+      var checked=document.querySelectorAll('.plan-lec-cb:checked');
+      if(checked.length>0){
+        var plans=getPlans();
+        if(!plans[date])plans[date]=[];
+        checked.forEach(function(cb){
+          var lecN=parseInt(cb.value);
+          var lecTopic=topic||('Lecture '+lecN);
+          plans[date].push({
+            id:'pl_'+Date.now()+'_'+Math.random().toString(36).slice(2,5),
+            subject:subj,type:type,topic:lecTopic,estHours:hours,priority:priority,
+            lecNum:lecN,status:'planned',notes:notes,actualSecs:0,
+            createdAt:new Date().toISOString()
+          });
+        });
+        setPlans(plans);
+        /* Uncheck all checkboxes */
+        document.querySelectorAll('.plan-lec-cb').forEach(function(cb){cb.checked=false});
+        document.getElementById('planTopic').value='';
+        if(document.getElementById('planNotes'))document.getElementById('planNotes').value='';
+        render();D.push();
+        UI.toast(checked.length>1?checked.length+' plans added ✓':'Plan added ✓');
+        return;
+      }
+    }
+
     if(!topic&&type!=='lecture'){UI.toast('Enter topic');return}
-    if(type==='lecture'&&!topic) topic='Lecture '+(lecNum||'');
+    if(type==='lecture'&&!topic) topic='Lecture';
 
     var plans=getPlans();
     if(!plans[date])plans[date]=[];
     plans[date].push({
       id:'pl_'+Date.now()+'_'+Math.random().toString(36).slice(2,5),
       subject:subj,type:type,topic:topic,estHours:hours,priority:priority,
-      lecNum:lecNum,status:'planned',notes:notes,actualSecs:0,
+      lecNum:null,status:'planned',notes:notes,actualSecs:0,
       createdAt:new Date().toISOString()
     });
     setPlans(plans);
