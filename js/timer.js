@@ -91,12 +91,14 @@ var TM=(function(){
       }
     }
 
-    /* [#54] Insights toast — show session count + goal progress */
-    var _todaySess=D.getSess(pending.type,D.todayKey());var _todayTotal=0;
-    _todaySess.forEach(function(s2){_todayTotal+=s2.dur});_todayTotal+=pending.dur;
+    /* [#54] Insights toast — show session count + study goal progress */
+    var _todaySess=D.getSess(pending.type,D.todayKey());
+    var _studySess=D.getSess('study',D.todayKey());var _studyTotal=0;
+    _studySess.forEach(function(s2){_studyTotal+=s2.dur});
+    if(pending.type==='study')_studyTotal+=pending.dur;
     var _goal=D.getGoalForDate(D.todayKey())*3600;
-    var _goalPct=Math.min(100,Math.round(_todayTotal/_goal*100));
-    UI.toast('Saved! Session #'+_todaySess.length+' today. '+_goalPct+'% to your goal!');
+    var _goalPct=Math.min(100,Math.round(_studyTotal/_goal*100));
+    UI.toast('Saved! Session #'+_todaySess.length+' today. '+_goalPct+'% study goal!');
     document.getElementById('saveModal').classList.add('hidden');
 
     /* Session-to-Todo linking: mark linked todo as done */

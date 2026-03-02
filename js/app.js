@@ -307,12 +307,15 @@ return{connect:connect,skip:skip,tab:tab,syncUI:syncUI,manSync:manSync,reconn:re
     var todoEstH=0;
     try{todoEstH=TODO.getTodayEstHours()}catch(e){}
 
-    /* ── Utilized = actual study + work session durations today ── */
+    /* ── Utilized = actual study + work + knowledge time today ── */
     var studySess=D.todayS('study'),workSess=D.todayS('work');
     var studySecs=0,workSecs=0;
     studySess.forEach(function(s){studySecs+=s.dur});
     workSess.forEach(function(s){workSecs+=s.dur});
-    var utilized=(studySecs+workSecs)/3600;
+    var knowledgeMins=0;
+    try{knowledgeMins=KNOW.getTodayMins()}catch(e){}
+    var knowledgeSecs=knowledgeMins*60;
+    var utilized=(studySecs+workSecs+knowledgeSecs)/3600;
 
     /* ── Committed = remaining plan hours + todo est hours (what's left to do) ── */
     var committed=planRemainingH+todoEstH;
@@ -372,14 +375,19 @@ return{connect:connect,skip:skip,tab:tab,syncUI:syncUI,manSync:manSync,reconn:re
     h+='<span><span style="display:inline-block;width:8px;height:8px;background:'+commitColor+';opacity:'+commitOpacity+';border-radius:2px;vertical-align:middle;margin-right:3px"></span>'+commitLabel+'</span>';
     h+='<span><span style="display:inline-block;width:8px;height:8px;background:var(--s3);border-radius:2px;vertical-align:middle;margin-right:3px"></span>Free</span>';
     h+='</div>';
-    /* Stats grid — 6 columns */
+    /* Stats grid — 3 col × 2 rows */
+    var studyH=(studySecs/3600);
+    var workH=(workSecs/3600);
+    var knowH=(knowledgeSecs/3600);
+    var dailyGoal=D.getGoalForDate(D.todayKey());
+    var goalPctStudy=dailyGoal>0?Math.min(999,Math.round(studyH/dailyGoal*100)):0;
     h+='<div class="tb-stats tb-stats-6">';
-    h+='<div class="tb-stat"><span class="tb-val" style="color:var(--grn)">'+utilized.toFixed(1)+'h</span><span class="tb-lbl">Done</span></div>';
-    h+='<div class="tb-stat"><span class="tb-val" style="color:var(--pur)">'+planRemainingH.toFixed(1)+'h</span><span class="tb-lbl">Plans</span></div>';
-    h+='<div class="tb-stat"><span class="tb-val" style="color:var(--cyn)">'+todoEstH.toFixed(1)+'h</span><span class="tb-lbl">To-Dos</span></div>';
+    h+='<div class="tb-stat"><span class="tb-val" style="color:var(--acc)">'+studyH.toFixed(1)+'h</span><span class="tb-lbl">Study</span></div>';
+    h+='<div class="tb-stat"><span class="tb-val" style="color:var(--cyn)">'+workH.toFixed(1)+'h</span><span class="tb-lbl">Work</span></div>';
+    h+='<div class="tb-stat"><span class="tb-val" style="color:var(--yel)">'+knowH.toFixed(1)+'h</span><span class="tb-lbl">Know</span></div>';
+    h+='<div class="tb-stat"><span class="tb-val" style="color:'+(goalPctStudy>=100?'var(--grn)':'var(--acc)')+'">'+goalPctStudy+'%</span><span class="tb-lbl">Goal</span></div>';
     h+='<div class="tb-stat"><span class="tb-val" style="color:'+(overPlanned?'var(--red)':'var(--blu)')+'">'+Math.abs(free).toFixed(1)+'h</span><span class="tb-lbl">'+(overPlanned?'Over!':'Free')+'</span></div>';
     h+='<div class="tb-stat"><span class="tb-val" style="color:var(--red)">'+wasted.toFixed(1)+'h</span><span class="tb-lbl">Wasted</span></div>';
-    h+='<div class="tb-stat"><span class="tb-val" style="color:var(--yel)">'+pct+'%</span><span class="tb-lbl">Used</span></div>';
     h+='</div>';
     /* Over-planning warning */
     if(overPlanned){
@@ -412,6 +420,11 @@ return{connect:connect,skip:skip,tab:tab,syncUI:syncUI,manSync:manSync,reconn:re
     workSess.forEach(function(s){workSecs+=s.dur});
     var workH=(workSecs/3600).toFixed(1);
 
+    /* Knowledge time */
+    var knowledgeMins=0;
+    try{knowledgeMins=KNOW.getTodayMins()}catch(e){}
+    var knowH=(knowledgeMins/60).toFixed(1);
+
     /* Plans done/total + remaining plan hours */
     var plans=PLAN.getForDate(today);
     var plansDone=plans.filter(function(p){return p.status==='completed'}).length;
@@ -428,9 +441,10 @@ return{connect:connect,skip:skip,tab:tab,syncUI:syncUI,manSync:manSync,reconn:re
       (todos[g]||[]).forEach(function(t){if(t.status!=='done')todoPending++});
     });
 
-    var h='<div class="day-overview">';
+    var h='<div class="day-overview" style="grid-template-columns:repeat(5,1fr)">';
     h+='<div class="do-item"><span class="do-val" style="color:var(--acc)">'+studyH+'h</span><span class="do-lbl">Study</span></div>';
     h+='<div class="do-item"><span class="do-val" style="color:var(--cyn)">'+workH+'h</span><span class="do-lbl">Work</span></div>';
+    h+='<div class="do-item"><span class="do-val" style="color:var(--yel)">'+knowH+'h</span><span class="do-lbl">Know</span></div>';
     h+='<div class="do-item"><span class="do-val" style="color:var(--grn)">'+plansDone+'/'+plansTotal+'</span><span class="do-lbl">Plans</span>';
     if(planRemH>0)h+='<span class="do-sub">'+planRemH.toFixed(1)+'h left</span>';
     h+='</div>';

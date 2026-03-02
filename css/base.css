@@ -72,3 +72,4 @@ input[type="date"],input[type="datetime-local"]{color-scheme:dark;cursor:pointer
 .tsub{font-size:.7rem;color:var(--td);text-transform:uppercase;letter-spacing:.14em;margin-bottom:16px;font-weight:600}
 .cat-sel{background:var(--s2);border:1px solid var(--brd);border-radius:8px;padding:7px 28px 7px 10px;color:var(--t);font-family:'Outfit',sans-serif;font-size:.78rem;font-weight:500;outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%236a6a84' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center}
 .cat-sel:focus{border-color:var(--acc)}
+.top-bar-sticky{position:sticky;top:0;z-index:100;background:var(--bg);padding:10px 0 8px;margin-bottom:4px;border-bottom:1px solid var(--brd)}

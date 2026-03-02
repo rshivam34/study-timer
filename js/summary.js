@@ -215,7 +215,7 @@ var SUM=(function(){
     var goalPcts=[];
     dayData.forEach(function(dd){
       var goal=D.getGoalForDate(dd.dk)*3600;
-      goalPcts.push(Math.min(100,Math.round((dd.study+dd.work)/goal*100)));
+      goalPcts.push(Math.min(100,Math.round(dd.study/goal*100)));
     });
     var avgGoalPct=Math.round(goalPcts.reduce(function(a,b){return a+b},0)/7);
     var grade=_grade(avgGoalPct);
@@ -345,7 +345,7 @@ var SUM=(function(){
       totalStudy+=ds;totalWork+=dw;totalSess+=ss.length+ws.length;
       dayTotals.push({day:i,study:ds,work:dw,total:dayTotal,dk:mk});
       var goal=D.getGoalForDate(mk)*3600;
-      if(dayTotal>0)goalPcts.push(Math.min(100,Math.round(dayTotal/goal*100)));
+      if(ds>0)goalPcts.push(Math.min(100,Math.round(ds/goal*100)));
       if(dayTotal>bestDay.total){bestDay={dk:mk,total:dayTotal,day:i}}
       if(dayTotal>0&&dayTotal<worstDay.total){worstDay={dk:mk,total:dayTotal,day:i}}
       var plans=PLAN.getForDate(mk);

@@ -14,6 +14,9 @@
 <link rel="stylesheet" href="css/timer.css">
 <link rel="stylesheet" href="css/features.css">
 <style>
+/* Knowledge group toggle buttons */
+.kn-group-btn{background:var(--s2);color:var(--td);padding:4px 10px!important}
+.kn-group-btn.on{background:var(--acc2);color:var(--acc);font-weight:700}
 /* Part 2 CSS additions */
 .cal-sess-count{font-family:'JetBrains Mono',monospace;font-size:.42rem;color:var(--td);font-weight:600;line-height:1}
 /* Part 4 CSS — Summary Enhancements */
@@ -145,7 +148,8 @@
 <div class="app hidden" id="mainApp">
 <div class="offline-banner hidden" id="offlineBanner">⚡ You're offline — changes saved locally</div>
 <!-- Top Bar: Hamburger + Sync + Actions -->
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<div class="top-bar-sticky">
+<div style="display:flex;justify-content:space-between;align-items:center">
   <div style="display:flex;align-items:center;gap:8px">
     <button class="nav-hamburger" onclick="App.openSidePanel()" title="Menu">☰</button>
     <div class="sync"><span class="sdot" id="sDot"></span><span id="sTxt">Local</span><button class="sbtn" id="sBtn" onclick="App.manSync()">&#x27F3;</button></div>
@@ -154,6 +158,7 @@
     <button class="b b-xs" onclick="App.enterFocus()" title="Focus (F)">🎯</button>
     <div class="theme-toggle" onclick="App.toggleTheme()" title="Theme (T)"></div>
   </div>
+</div>
 </div>
 <header class="hdr"><h1>STUDY TIMER</h1><div class="hdr-d" id="todayD"></div></header>
 <div class="quote-bar" id="quoteBar" onclick="App.toggleQuotes()"></div>
@@ -406,9 +411,20 @@
     <div class="df" style="margin-top:6px"><span class="df-lbl">Date</span><input type="date" class="inp" id="knAddDate" style="flex:1"></div>
     <div style="text-align:right;margin-top:8px"><button class="b b-sm b-acc" onclick="KNOW.add()">Add Entry</button></div>
   </div>
-  <div class="df" style="margin-bottom:8px;gap:6px">
+  <div class="df" style="margin-bottom:6px;gap:6px">
     <select class="cat-sel" id="knFilterCat" onchange="KNOW.render()" style="flex:1"><option value="">All Categories</option></select>
+    <select class="cat-sel" id="knFilterDays" onchange="KNOW.render()" style="flex:1">
+      <option value="">All Time</option>
+      <option value="0">Today</option>
+      <option value="3">Last 3 Days</option>
+      <option value="7">Last 7 Days</option>
+      <option value="30">Last 30 Days</option>
+    </select>
+  </div>
+  <div class="df" style="margin-bottom:8px;gap:6px;align-items:center">
     <input type="text" class="inp" id="knSearch" placeholder="Search..." oninput="KNOW.render()" style="flex:1">
+    <button class="b b-xs kn-group-btn on" id="knGrpDate" onclick="KNOW.setGroupBy('date')">By Date</button>
+    <button class="b b-xs kn-group-btn" id="knGrpCat" onclick="KNOW.setGroupBy('category')">By Category</button>
   </div>
   <div id="knList"></div>
   <div id="knStats" style="margin-top:10px"></div>

@@ -233,11 +233,13 @@ var CAL=(function(){
     h+='</div>';
 
     /* Goal progress */
-    var goalPct=goalH>0?Math.min(100,Math.round(totalSessH/goalH*100)):0;
+    /* Goal uses study hours only */
+    var goalStudyH=totalStudyH;
+    var goalPct=goalH>0?Math.min(100,Math.round(goalStudyH/goalH*100)):0;
     h+='<div style="padding:6px 14px;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:8px">';
     h+='<span style="font-size:.6rem;font-weight:700;color:var(--td)">GOAL</span>';
     h+='<div style="flex:1;height:6px;background:var(--s3);border-radius:3px;overflow:hidden"><div style="width:'+goalPct+'%;height:100%;background:'+(goalPct>=100?'var(--grn)':'var(--acc)')+';border-radius:3px;transition:width .3s"></div></div>';
-    h+='<span style="font-family:JetBrains Mono,monospace;font-size:.62rem;font-weight:700;color:'+(goalPct>=100?'var(--grn)':'var(--acc)')+'">'+totalSessH.toFixed(1)+'/'+goalH+'h ('+goalPct+'%)</span>';
+    h+='<span style="font-family:JetBrains Mono,monospace;font-size:.62rem;font-weight:700;color:'+(goalPct>=100?'var(--grn)':'var(--acc)')+'">'+goalStudyH.toFixed(1)+'/'+goalH+'h study ('+goalPct+'%)</span>';
     h+='</div>';
 
     /* Unscheduled plans — rich cards */

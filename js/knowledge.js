@@ -3,6 +3,7 @@
 
 var KNOW=(function(){
   var editingId=null;
+  var groupBy='date'; /* 'date' or 'category' */
 
   /* ── Data helpers ── */
   function getEntries(){return D.getLocal().knowledge||[]}
@@ -126,15 +127,65 @@ var KNOW=(function(){
     document.getElementById('knowledgeEditModal').classList.add('hidden');
   }
 
+  /* ── Group-by toggle ── */
+  function setGroupBy(mode){
+    groupBy=mode;
+    var dateBtn=document.getElementById('knGrpDate');
+    var catBtn=document.getElementById('knGrpCat');
+    if(dateBtn)dateBtn.classList.toggle('on',mode==='date');
+    if(catBtn)catBtn.classList.toggle('on',mode==='category');
+    render();
+  }
+
+  /* ── Card helper — renders one knowledge entry card ── */
+  function _renderCard(e,showDate){
+    var catColor=_catColor(e.category);
+    var h='<div class="knowledge-card">';
+    h+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">';
+    h+='<span class="knowledge-cat-badge" style="background:'+catColor+'">'+esc(e.category)+'</span>';
+    h+='<span style="font-size:.82rem;font-weight:700;color:var(--heading);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(e.topic)+'</span>';
+    if(showDate)h+='<span style="font-family:JetBrains Mono,monospace;font-size:.55rem;color:var(--td);font-weight:600;white-space:nowrap">'+UI.fdate(e.date)+'</span>';
+    h+='<div style="display:flex;gap:3px">';
+    h+='<button class="b b-xs" onclick="KNOW.openEdit(\''+e.id+'\')">✏️</button>';
+    h+='<button class="b b-xs b-danger" onclick="KNOW.remove(\''+e.id+'\')">✕</button>';
+    h+='</div></div>';
+    /* Duration + source */
+    var meta=[];
+    if(e.duration>0){
+      var dH=Math.floor(e.duration/60),dM=e.duration%60;
+      meta.push((dH?dH+'h ':'')+(dM?dM+'m':''));
+    }
+    if(e.source){
+      var srcHtml=esc(e.source);
+      if(/^https?:\/\//i.test(e.source))srcHtml='<a href="'+esc(e.source)+'" target="_blank" rel="noopener" style="color:var(--acc);text-decoration:underline">'+srcHtml+'</a>';
+      meta.push('📎 '+srcHtml);
+    }
+    if(meta.length)h+='<div style="font-size:.62rem;color:var(--td);margin-bottom:2px">'+meta.join(' · ')+'</div>';
+    if(e.notes)h+='<div style="font-size:.62rem;color:var(--tf);font-style:italic;line-height:1.4">'+esc(e.notes).substring(0,200)+(e.notes.length>200?'...':'')+'</div>';
+    h+='</div>';
+    return h;
+  }
+
   /* ── Render ── */
   function render(){
     var entries=getEntries();
     var filterCat=(document.getElementById('knFilterCat')||{}).value||'';
     var searchVal=((document.getElementById('knSearch')||{}).value||'').toLowerCase().trim();
 
+    /* Day range filter */
+    var filterDays=(document.getElementById('knFilterDays')||{}).value;
+    var cutoffKey='';
+    if(filterDays!==''&&filterDays!==undefined){
+      var daysBack=parseInt(filterDays);
+      var cutoff=new Date();
+      cutoff.setDate(cutoff.getDate()-daysBack);
+      cutoffKey=cutoff.getFullYear()+'-'+String(cutoff.getMonth()+1).padStart(2,'0')+'-'+String(cutoff.getDate()).padStart(2,'0');
+    }
+
     /* Filter */
     var filtered=entries.filter(function(e){
       if(filterCat&&e.category!==filterCat)return false;
+      if(cutoffKey&&e.date<cutoffKey)return false;
       if(searchVal&&e.topic.toLowerCase().indexOf(searchVal)===-1&&(e.source||'').toLowerCase().indexOf(searchVal)===-1&&(e.notes||'').toLowerCase().indexOf(searchVal)===-1)return false;
       return true;
     });
@@ -146,50 +197,51 @@ var KNOW=(function(){
     if(!listEl)return;
 
     if(!filtered.length){
-      listEl.innerHTML='<div class="empty"><div class="empty-ico">💡</div><p>No knowledge entries yet</p></div>';
-      _renderStats(entries);
+      listEl.innerHTML='<div class="empty"><div class="empty-ico">💡</div><p>No knowledge entries'+(cutoffKey?' in this range':'')+'</p></div>';
+      _renderStats(filtered);
       return;
     }
 
-    /* Group by date */
-    var groups={};var dateOrder=[];
-    filtered.forEach(function(e){
-      if(!groups[e.date]){groups[e.date]=[];dateOrder.push(e.date)}
-      groups[e.date].push(e);
-    });
-
     var h='';
-    dateOrder.forEach(function(dk){
-      h+='<div style="font-size:.62rem;font-weight:700;color:var(--acc);text-transform:uppercase;letter-spacing:.06em;padding:8px 0 4px">'+UI.fdn(dk)+'</div>';
-      groups[dk].forEach(function(e){
-        var catColor=_catColor(e.category);
-        h+='<div class="knowledge-card">';
-        h+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">';
-        h+='<span class="knowledge-cat-badge" style="background:'+catColor+'">'+esc(e.category)+'</span>';
-        h+='<span style="font-size:.82rem;font-weight:700;color:var(--heading);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(e.topic)+'</span>';
-        h+='<div style="display:flex;gap:3px">';
-        h+='<button class="b b-xs" onclick="KNOW.openEdit(\''+e.id+'\')">✏️</button>';
-        h+='<button class="b b-xs b-danger" onclick="KNOW.remove(\''+e.id+'\')">✕</button>';
-        h+='</div></div>';
-        /* Duration + source */
-        var meta=[];
-        if(e.duration>0){
-          var dH=Math.floor(e.duration/60),dM=e.duration%60;
-          meta.push((dH?dH+'h ':'')+(dM?dM+'m':''));
-        }
-        if(e.source){
-          var srcHtml=esc(e.source);
-          if(/^https?:\/\//i.test(e.source))srcHtml='<a href="'+esc(e.source)+'" target="_blank" rel="noopener" style="color:var(--acc);text-decoration:underline">'+srcHtml+'</a>';
-          meta.push('📎 '+srcHtml);
-        }
-        if(meta.length)h+='<div style="font-size:.62rem;color:var(--td);margin-bottom:2px">'+meta.join(' · ')+'</div>';
-        if(e.notes)h+='<div style="font-size:.62rem;color:var(--tf);font-style:italic;line-height:1.4">'+esc(e.notes).substring(0,200)+(e.notes.length>200?'...':'')+'</div>';
-        h+='</div>';
+
+    if(groupBy==='category'){
+      /* ── Group by Category ── */
+      var catGroups={};var catOrder=[];
+      filtered.forEach(function(e){
+        if(!catGroups[e.category]){catGroups[e.category]=[];catOrder.push(e.category)}
+        catGroups[e.category].push(e);
       });
-    });
+      catOrder.sort(function(a,b){return catGroups[b].length-catGroups[a].length});
+
+      catOrder.forEach(function(cat){
+        var items=catGroups[cat];
+        var totalMins=0;
+        items.forEach(function(e){totalMins+=e.duration||0});
+        var tH=Math.floor(totalMins/60),tM=totalMins%60;
+        var timeStr=tH?tH+'h '+(tM?tM+'m':''):(tM?tM+'m':'0m');
+        var catColor=_catColor(cat);
+        h+='<div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:8px 0 4px;display:flex;align-items:center;gap:8px">';
+        h+='<span class="knowledge-cat-badge" style="background:'+catColor+'">'+esc(cat)+'</span>';
+        h+='<span style="color:var(--td)">'+items.length+' entries · '+timeStr+'</span>';
+        h+='</div>';
+        items.forEach(function(e){h+=_renderCard(e,true)});
+      });
+    } else {
+      /* ── Group by Date (default) ── */
+      var groups={};var dateOrder=[];
+      filtered.forEach(function(e){
+        if(!groups[e.date]){groups[e.date]=[];dateOrder.push(e.date)}
+        groups[e.date].push(e);
+      });
+
+      dateOrder.forEach(function(dk){
+        h+='<div style="font-size:.62rem;font-weight:700;color:var(--acc);text-transform:uppercase;letter-spacing:.06em;padding:8px 0 4px">'+UI.fdn(dk)+'</div>';
+        groups[dk].forEach(function(e){h+=_renderCard(e,false)});
+      });
+    }
 
     listEl.innerHTML=h;
-    _renderStats(entries);
+    _renderStats(filtered);
   }
 
   /* ── Stats ── */
@@ -227,6 +279,16 @@ var KNOW=(function(){
     el.innerHTML=h;
   }
 
+  /* ── Today's knowledge minutes (for time budget) ── */
+  function getTodayMins(){
+    var today=D.todayKey();
+    var total=0;
+    getEntries().forEach(function(e){
+      if(e.date===today)total+=(e.duration||0);
+    });
+    return total;
+  }
+
   /* ── Category color helper ── */
   var _catColors={
     'Health & Fitness':'var(--grn)','Current Affairs':'var(--acc)',
@@ -244,6 +306,7 @@ var KNOW=(function(){
   return{
     init:init,render:render,add:add,remove:remove,
     openEdit:openEdit,saveEdit:saveEdit,closeEdit:closeEdit,
-    getEntries:getEntries,setEntries:setEntries
+    getEntries:getEntries,setEntries:setEntries,
+    setGroupBy:setGroupBy,getTodayMins:getTodayMins
   };
 })();
