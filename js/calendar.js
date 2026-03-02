@@ -724,9 +724,7 @@ var CAL=(function(){
     /* Lecture count (only meaningful for study type) */
     var lecCount=(type==='study')?(parseInt(document.getElementById('hvLecCount').value)||0):0;
 
-    /* Validate: study + no lectures requires topic */
-    if(type==='study'&&lecCount===0&&!topic){UI.toast('Enter a topic');return}
-    /* For work/knowledge, default topic to category name */
+    /* Topic is always optional — default to subject/category name */
     if(!topic&&lecCount===0)topic=subj;
 
     var sp=startTime.split(':'),ep=endTime.split(':');

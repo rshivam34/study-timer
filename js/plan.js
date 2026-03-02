@@ -15,6 +15,9 @@ var PLAN=(function(){
     document.getElementById('planViewDate').value=D.todayKey();
     _populateSubjects();
     onSubjChange();
+    /* Set initial type UI — lecture is default, hide revision dropdown */
+    var revRow=document.getElementById('planRevRow');
+    if(revRow)revRow.style.display='none';
     render();
     renderGoalPresets();
     // Attach topic autocomplete
@@ -36,21 +39,69 @@ var PLAN=(function(){
   function onPlanForChange(){
     var planFor=document.getElementById('planFor').value;
     _populateSubjects();
-    /* Hide lecture-related fields and revision type for work */
-    var lecRow=document.getElementById('planLecRow');
     var typeRow=document.getElementById('planTypeRow');
-    var typeEl=document.getElementById('planType');
+    var lecRow=document.getElementById('planLecRow');
+    var revRow=document.getElementById('planRevRow');
+    var topicRow=document.getElementById('planTopicRow');
     if(planFor==='work'){
+      /* Work: no type selector, no lectures, just topic (optional) */
+      if(typeRow)typeRow.style.display='none';
       if(lecRow)lecRow.style.display='none';
-      /* Reset type to 'topic' and hide lecture/revision options */
-      typeEl.value='topic';
-      Array.from(typeEl.options).forEach(function(o){
-        o.style.display=(o.value==='lecture'||o.value==='revision')?'none':'';
-      });
+      if(revRow)revRow.style.display='none';
+      if(topicRow)topicRow.style.display='';
     } else {
-      Array.from(typeEl.options).forEach(function(o){o.style.display=''});
+      /* Study: show type selector */
+      if(typeRow)typeRow.style.display='';
+      document.getElementById('planType').value='lecture';
+      onTypeChange();
     }
     onSubjChange();
+  }
+
+  /* Toggle between lecture/revision UI */
+  function onTypeChange(){
+    var type=document.getElementById('planType').value;
+    var topicRow=document.getElementById('planTopicRow');
+    var revRow=document.getElementById('planRevRow');
+    if(type==='revision'){
+      if(topicRow)topicRow.style.display='none';
+      if(revRow)revRow.style.display='';
+      _populateRevTopics();
+    } else {
+      /* lecture — show free topic input, hide revision dropdown */
+      if(topicRow)topicRow.style.display='';
+      if(revRow)revRow.style.display='none';
+    }
+  }
+
+  /* Populate revision dropdown with topics already studied for the selected subject */
+  function _populateRevTopics(){
+    var subj=document.getElementById('planSubj').value;
+    var sel=document.getElementById('planRevTopic');
+    if(!sel)return;
+    var seen={},topics=[];
+    /* Gather from study sessions */
+    var d=D.getLocal();
+    if(d.study){Object.keys(d.study).forEach(function(dk){
+      (d.study[dk]||[]).forEach(function(s){
+        if(s.cat===subj&&s.topic&&!seen[s.topic]){seen[s.topic]=1;topics.push(s.topic)}
+      });
+    })}
+    /* Gather from plans */
+    var plans=d.plans||{};
+    Object.keys(plans).forEach(function(dk){
+      (plans[dk]||[]).forEach(function(p){
+        if(p.subject===subj&&p.topic&&!seen[p.topic]){seen[p.topic]=1;topics.push(p.topic)}
+      });
+    });
+    /* Gather from revisions */
+    (d.revisions||[]).forEach(function(r){
+      if(r.subj===subj&&r.topic&&!seen[r.topic]){seen[r.topic]=1;topics.push(r.topic)}
+    });
+    topics.sort();
+    var h='<option value="">Select studied topic...</option>';
+    topics.forEach(function(t){h+='<option>'+esc(t)+'</option>'});
+    sel.innerHTML=h;
   }
 
   function onSubjChange(){
@@ -71,6 +122,8 @@ var PLAN=(function(){
       document.getElementById('planLecRow').style.display='none';
     }
     _updateMultiTopics();
+    /* Refresh revision topics when subject changes */
+    if(document.getElementById('planType').value==='revision')_populateRevTopics();
   }
   /* Show per-lecture topic fields when multiple lectures are checked */
   function onLecCheckChange(){_updateMultiTopics()}
@@ -98,8 +151,15 @@ var PLAN=(function(){
     var date=document.getElementById('planDate').value;
     var subj=document.getElementById('planSubj').value;
     var planFor=(document.getElementById('planFor')||{}).value||'study';
-    var type=document.getElementById('planType').value;
-    var topic=document.getElementById('planTopic').value.trim();
+    var type=planFor==='work'?'topic':document.getElementById('planType').value;
+    /* For revision, read from revision dropdown; otherwise from topic input */
+    var topic;
+    if(planFor==='study'&&type==='revision'){
+      topic=(document.getElementById('planRevTopic')||{}).value||'';
+      if(!topic){UI.toast('Select a topic to revise');return}
+    } else {
+      topic=document.getElementById('planTopic').value.trim();
+    }
     var source=(document.getElementById('planSource')||{}).value||'';
     source=source.trim();
     var hours=parseFloat(document.getElementById('planHours').value)||2;
@@ -112,7 +172,6 @@ var PLAN=(function(){
       var sh=parseInt(sp[0])*60+parseInt(sp[1]),eh=parseInt(ep[0])*60+parseInt(ep[1]);
       if(eh>sh)hours=Math.round((eh-sh)/60*10)/10;
     }
-    /* FIX #2: notes field */
     var notes=(document.getElementById('planNotes')||{}).value||'';
     notes=notes.trim();
 
@@ -155,8 +214,8 @@ var PLAN=(function(){
       }
     }
 
-    if(!topic&&type!=='lecture'){UI.toast('Enter topic');return}
-    if(type==='lecture'&&!topic) topic='Lecture';
+    /* Topic is always optional — default to "Lecture" or subject name */
+    if(!topic) topic=type==='lecture'?'Lecture':subj;
 
     var plans=getPlans();
     if(!plans[date])plans[date]=[];
@@ -433,7 +492,9 @@ var PLAN=(function(){
     var modal=document.getElementById('planEditModal');
     var pf=p.planFor||'study';
     document.getElementById('pePlanFor').value=pf;
-    document.getElementById('peType').value=p.type;
+    /* Map old types (topic/practice/other) to lecture for simplified dropdown */
+    var editType=(p.type==='lecture'||p.type==='revision')?p.type:'lecture';
+    document.getElementById('peType').value=editType;
     document.getElementById('peTopic').value=p.topic;
     document.getElementById('peSource').value=p.source||'';
     document.getElementById('peHours').value=p.estHours;
@@ -480,11 +541,16 @@ var PLAN=(function(){
 
   function _updateEditTypeOptions(planFor){
     var typeEl=document.getElementById('peType');
-    Array.from(typeEl.options).forEach(function(o){
-      o.style.display=(planFor==='work'&&(o.value==='lecture'||o.value==='revision'))?'none':'';
-    });
-    if(planFor==='work'&&(typeEl.value==='lecture'||typeEl.value==='revision'))typeEl.value='topic';
-    document.getElementById('peLecRow').classList.add('hidden');
+    var typeLabel=document.getElementById('peTypeLabel');
+    if(planFor==='work'){
+      if(typeLabel)typeLabel.style.display='none';
+      typeEl.style.display='none';
+      document.getElementById('peLecRow').classList.add('hidden');
+    } else {
+      if(typeLabel)typeLabel.style.display='';
+      typeEl.style.display='';
+      document.getElementById('peLecRow').classList.add('hidden');
+    }
   }
 
   function onEditPlanForChange(){
@@ -724,7 +790,7 @@ var PLAN=(function(){
     completePlan:completePlan,carryForward:carryForward,copyDayPlans:copyDayPlans,
     renderGoalPresets:renderGoalPresets,toggleGoalPreset:toggleGoalPreset,
     openAddPreset:openAddPreset,openEditPreset:openEditPreset,saveGoalPreset:saveGoalPreset,deleteGoalPreset:deleteGoalPreset,cycleDayChip:cycleDayChip,
-    onSubjChange:onSubjChange,onLecCheckChange:onLecCheckChange,onPlanForChange:onPlanForChange,onEditPlanForChange:onEditPlanForChange,
+    onSubjChange:onSubjChange,onLecCheckChange:onLecCheckChange,onPlanForChange:onPlanForChange,onEditPlanForChange:onEditPlanForChange,onTypeChange:onTypeChange,
     getForDate:getForDate,getTodayPlansForSubject:getTodayPlansForSubject,
     getPlans:getPlans,setPlans:setPlans,
     openEdit:openEdit,saveEdit:saveEdit,closeEdit:closeEdit,

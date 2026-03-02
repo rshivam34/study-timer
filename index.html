@@ -280,19 +280,17 @@
       <span class="df-lbl">Subject <span class="req">*</span></span><select class="cat-sel" id="planSubj" style="flex:1" onchange="PLAN.onSubjChange()"></select>
     </div>
     <div class="df" style="margin-top:6px" id="planTypeRow"><span class="df-lbl">Type</span>
-      <select class="cat-sel" id="planType" style="flex:1">
-        <option value="topic">📝 Topic Study</option>
+      <select class="cat-sel" id="planType" style="flex:1" onchange="PLAN.onTypeChange()">
         <option value="lecture">🎓 Lecture</option>
         <option value="revision">🧠 Revision</option>
-        <option value="practice">✍️ Practice</option>
-        <option value="other">📌 Other</option>
       </select>
     </div>
     <div style="margin-top:6px" id="planLecRow">
       <span class="df-lbl" style="margin-bottom:4px;display:block">Lectures</span>
       <div id="planLecChecklist" style="max-height:120px;overflow-y:auto;background:var(--s2);border:1px solid var(--brd);border-radius:8px;padding:6px 10px"></div>
     </div>
-    <div class="df" style="margin-top:6px"><span class="df-lbl">Topic <span class="req">*</span></span><div class="ac-wrap" style="flex:1;position:relative"><input type="text" class="inp" id="planTopic" placeholder="What to study..." autocomplete="off"></div></div>
+    <div class="df" style="margin-top:6px" id="planRevRow"><span class="df-lbl">Topic</span><select class="cat-sel" id="planRevTopic" style="flex:1"><option value="">Select studied topic...</option></select></div>
+    <div class="df" style="margin-top:6px" id="planTopicRow"><span class="df-lbl">Topic</span><div class="ac-wrap" style="flex:1;position:relative"><input type="text" class="inp" id="planTopic" placeholder="What to study..." autocomplete="off"></div></div>
     <div id="planMultiTopics" style="display:none"></div>
     <div class="df" style="margin-top:6px"><span class="df-lbl">Source</span><input type="text" class="inp" id="planSource" placeholder="Notability, YouTube link, book..." style="flex:1"></div>
     <div class="df" style="margin-top:6px"><span class="df-lbl">Notes</span><textarea class="note-inp" id="planNotes" placeholder="Optional notes..." style="flex:1;min-height:36px"></textarea></div>
@@ -632,16 +630,13 @@
   <select class="cat-sel" id="peSubj" style="width:100%;margin-bottom:8px"></select>
   <div class="sl" style="margin:4px 0 5px;text-align:left" id="peTypeLabel">Type</div>
   <select class="cat-sel" id="peType" style="width:100%;margin-bottom:8px">
-    <option value="topic">📝 Topic Study</option>
     <option value="lecture">🎓 Lecture</option>
     <option value="revision">🧠 Revision</option>
-    <option value="practice">✍️ Practice</option>
-    <option value="other">📌 Other</option>
   </select>
   <div class="df hidden" id="peLecRow" style="margin-bottom:8px">
     <span class="df-lbl">Lecture #</span><select class="cat-sel" id="peLecNum" style="flex:1"></select>
   </div>
-  <div class="sl" style="margin:4px 0 5px;text-align:left">Topic <span class="req">*</span></div>
+  <div class="sl" style="margin:4px 0 5px;text-align:left">Topic</div>
   <input type="text" class="inp" id="peTopic" placeholder="What to study..." style="margin-bottom:8px">
   <div class="sl" style="margin:4px 0 5px;text-align:left">Source</div>
   <input type="text" class="inp" id="peSource" placeholder="Notability, YouTube link, book..." style="margin-bottom:8px">
