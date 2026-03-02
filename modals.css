@@ -1,0 +1,9 @@
+.modal{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .2s}
+.modal-box{background:var(--s1);border:1px solid var(--brd);border-radius:14px;padding:22px;max-width:420px;width:100%;text-align:center;max-height:90vh;overflow-y:auto}
+.modal-box h3{font-size:.9rem;font-weight:700;color:var(--heading);margin-bottom:3px}
+.modal-dur{font-family:'JetBrains Mono',monospace;font-size:1.3rem;font-weight:700;color:var(--grn);margin:5px 0 12px}
+.modal-cat{font-size:.8rem;color:var(--t2);margin-bottom:10px}
+.note-inp{width:100%;padding:9px 11px;background:var(--s2);border:1px solid var(--brd);border-radius:8px;color:var(--t);font-family:'Outfit',sans-serif;font-size:.8rem;outline:none;resize:vertical;min-height:50px;margin-bottom:10px}.note-inp:focus{border-color:var(--acc)}.note-inp::placeholder{color:var(--tf)}
+.diff-sel{display:flex;gap:6px;justify-content:center;margin-bottom:10px}
+.diff-btn{padding:6px 14px;border:1px solid var(--brd);border-radius:6px;background:var(--s2);color:var(--td);cursor:pointer;font-size:.74rem;font-weight:700}.diff-btn.on{border-color:var(--acc);color:var(--acc);background:var(--acc2)}
+.modal-btns{display:flex;gap:7px}.modal-btns .b{flex:1}

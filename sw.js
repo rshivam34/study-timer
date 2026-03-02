@@ -1,5 +1,27 @@
-const CACHE = 'study-timer-v4';
-const ASSETS = ['./index.html', './manifest.json', './icon-192.png', './icon-512.png'];
+const CACHE = 'study-timer-v7';
+const ASSETS = [
+  './',
+  './index.html',
+  './manifest.json',
+  './icon192.png',
+  './icon512.png',
+  './css/base.css',
+  './css/timer.css',
+  './css/features.css',
+  './css/modals.css',
+  './js/data.js',
+  './js/ui.js',
+  './js/timer.js',
+  './js/plan.js',
+  './js/calendar.js',
+  './js/academics.js',
+  './js/reports.js',
+  './js/tasks.js',
+  './js/settings.js',
+  './js/app.js',
+  './js/todo.js',
+  './js/summary.js'
+];
 
 self.addEventListener('install', e => {
   e.waitUntil(
@@ -24,14 +46,12 @@ self.addEventListener('fetch', e => {
   );
 });
 
-// Periodic Background Sync (Android PWA)
 self.addEventListener('periodicsync', e => {
   if (e.tag === 'study-timer-check') {
     e.waitUntil(checkNotifications());
   }
 });
 
-// Also handle regular sync as fallback
 self.addEventListener('sync', e => {
   if (e.tag === 'study-timer-notify') {
     e.waitUntil(checkNotifications());
@@ -40,44 +60,32 @@ self.addEventListener('sync', e => {
 
 async function checkNotifications() {
   try {
-    // Read data from localStorage via client
     const clients = await self.clients.matchAll();
     if (clients.length > 0) {
-      // Ask client to check and notify
       clients[0].postMessage({ type: 'check-notifications' });
       return;
     }
-    // If no clients open, try direct notification for recurring
     const now = new Date();
     const hr = now.getHours();
     const todayKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
-    
-    // Morning reminder at 8 AM
+
     if (hr === 8) {
       await self.registration.showNotification('🔥 Study Timer', {
         body: 'New day, new battle. Your competition started already. Open the app!',
-        icon: 'icon-192.png',
-        badge: 'icon-192.png',
-        vibrate: [200, 100, 200],
-        tag: 'morning-' + todayKey
+        icon: 'icon192.png', badge: 'icon192.png',
+        vibrate: [200, 100, 200], tag: 'morning-' + todayKey
       });
     }
-    // Evening push at 6 PM
     if (hr === 18) {
       await self.registration.showNotification('⚡ Evening Check', {
-        body: 'Hours are slipping away. How much have you studied today? Open and check!',
-        icon: 'icon-192.png',
-        badge: 'icon-192.png',
-        vibrate: [200, 100, 200],
-        tag: 'evening-' + todayKey
+        body: 'Hours are slipping away. How much have you studied today?',
+        icon: 'icon192.png', badge: 'icon192.png',
+        vibrate: [200, 100, 200], tag: 'evening-' + todayKey
       });
     }
-  } catch (e) {
-    console.log('SW notification error:', e);
-  }
+  } catch (e) { console.log('SW notification error:', e); }
 }
 
-// Handle notification clicks
 self.addEventListener('notificationclick', e => {
   e.notification.close();
   e.waitUntil(
