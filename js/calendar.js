@@ -198,30 +198,42 @@ var CAL=(function(){
     var dayName=_dayNames[_dd.getDay()]+', '+UI.fdate(dk);
     var today=D.todayKey();var isToday=dk===today;var nowH=new Date().getHours()+new Date().getMinutes()/60;
 
-    /* Compute day stats */
+    /* Compute day stats — same formula as App.renderTimeBudget() */
+    var effectiveMins=cfg.effectiveMins||50;
+    var effectiveRatio=effectiveMins/60;
+    var awakeH=bedH-wakeH;
+    var sleepH=24-awakeH;
+    var available=awakeH*effectiveRatio;
+
     var totalStudyS=0,totalWorkS=0;
     studySess.forEach(function(s){totalStudyS+=s.dur});
     workSess.forEach(function(s){totalWorkS+=s.dur});
     var totalStudyH=totalStudyS/3600;var totalWorkH=totalWorkS/3600;
-    var totalSessH=totalStudyH+totalWorkH;
 
+    /* Knowledge hours for this day */
+    var knowledgeH=0;
+    try{KNOW.getEntries().forEach(function(e){if(e.date===dk)knowledgeH+=(e.duration||0)/60})}catch(e){}
+
+    var utilized=totalStudyH+totalWorkH+knowledgeH;
+
+    /* Remaining plan hours (not completed/skipped, minus actual progress) */
     var plannedH=0;
     plans.forEach(function(p){if(p.status!=='completed'&&p.status!=='skipped')plannedH+=Math.max(0,p.estHours-(p.actualSecs||0)/3600)});
 
-    var awakeH=bedH-wakeH;
-    var sleepH=24-awakeH;
-    var freeH;
-    if(isToday){
-      /* Today: free = remaining hours until bed minus planned commitments */
-      var remainingH=Math.max(0,bedH-nowH);
-      freeH=Math.max(0,remainingH-plannedH);
-    } else if(dk<today){
-      /* Past day: plans are irrelevant, free = awake minus what was actually done */
-      freeH=Math.max(0,awakeH-totalSessH);
-    } else {
-      /* Future day: free = awake minus planned */
-      freeH=Math.max(0,awakeH-plannedH);
-    }
+    /* Todo estimated hours (only for today) */
+    var todoEstH=0;
+    if(isToday){try{todoEstH=TODO.getTodayEstHours()}catch(e){}}
+    var committed=plannedH+todoEstH;
+
+    /* Wasted: elapsed effective time minus what was actually utilized */
+    var hoursSinceWake;
+    if(isToday)hoursSinceWake=Math.max(0,nowH-wakeH);
+    else if(dk<today)hoursSinceWake=awakeH;
+    else hoursSinceWake=0;
+    var wasted=Math.max(0,hoursSinceWake*effectiveRatio-utilized);
+
+    /* Free = available effective hours minus utilized, committed, wasted */
+    var freeH=Math.max(0,available-utilized-committed-wasted);
     var goalH=D.getGoalForDate(dk);
 
     var h='<div class="hourly-view">';
@@ -235,12 +247,12 @@ var CAL=(function(){
     h+='</div>';
     h+='</div>';
 
-    /* Stats bar */
+    /* Stats bar — matches Time Budget card */
     h+='<div class="hv-stats">';
-    h+='<div class="hv-stat"><span class="hv-stat-val" style="color:var(--acc)">'+totalSessH.toFixed(1)+'h</span><span class="hv-stat-lbl">Done</span></div>';
-    h+='<div class="hv-stat"><span class="hv-stat-val" style="color:var(--pur)">'+plannedH.toFixed(1)+'h</span><span class="hv-stat-lbl">Planned</span></div>';
-    h+='<div class="hv-stat"><span class="hv-stat-val" style="color:var(--grn)">'+freeH.toFixed(1)+'h</span><span class="hv-stat-lbl">Free</span></div>';
-    h+='<div class="hv-stat"><span class="hv-stat-val" style="color:var(--td)">'+sleepH.toFixed(1)+'h</span><span class="hv-stat-lbl">Sleep</span></div>';
+    h+='<div class="hv-stat"><span class="hv-stat-val" style="color:var(--acc)">'+utilized.toFixed(1)+'h</span><span class="hv-stat-lbl">Done</span></div>';
+    h+='<div class="hv-stat"><span class="hv-stat-val" style="color:var(--pur)">'+committed.toFixed(1)+'h</span><span class="hv-stat-lbl">Committed</span></div>';
+    h+='<div class="hv-stat"><span class="hv-stat-val" style="color:'+(freeH>0?'var(--grn)':'var(--red)')+'">'+freeH.toFixed(1)+'h</span><span class="hv-stat-lbl">Free</span></div>';
+    h+='<div class="hv-stat"><span class="hv-stat-val" style="color:var(--red)">'+wasted.toFixed(1)+'h</span><span class="hv-stat-lbl">Wasted</span></div>';
     h+='</div>';
 
     /* Goal progress */
