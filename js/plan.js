@@ -424,6 +424,7 @@ var PLAN=(function(){
     var p=plans[date].find(function(x){return x.id===id});
     if(!p)return;
     editingPlan={date:date,id:id};
+    document.getElementById('peDate').value=date;
 
     var modal=document.getElementById('planEditModal');
     var pf=p.planFor||'study';
@@ -488,11 +489,12 @@ var PLAN=(function(){
   function saveEdit(){
     if(!editingPlan)return;
     var plans=getPlans();
-    var dk=editingPlan.date;
-    if(!plans[dk])return;
-    var p=plans[dk].find(function(x){return x.id===editingPlan.id});
+    var oldDk=editingPlan.date;
+    if(!plans[oldDk])return;
+    var p=plans[oldDk].find(function(x){return x.id===editingPlan.id});
     if(!p)return;
 
+    var newDk=document.getElementById('peDate').value;
     p.planFor=document.getElementById('pePlanFor').value||'study';
     p.subject=document.getElementById('peSubj').value;
     p.type=document.getElementById('peType').value;
@@ -506,10 +508,18 @@ var PLAN=(function(){
     p.endTime=document.getElementById('peEndTime').value||null;
     if(p.type==='lecture')p.lecNum=parseInt(document.getElementById('peLecNum').value)||null;
 
+    /* If date changed, move plan to new date */
+    if(newDk&&newDk!==oldDk){
+      plans[oldDk]=plans[oldDk].filter(function(x){return x.id!==editingPlan.id});
+      if(!plans[oldDk].length)delete plans[oldDk];
+      if(!plans[newDk])plans[newDk]=[];
+      plans[newDk].push(p);
+    }
+
     setPlans(plans);
     closeEdit();
     render();_afterChange();D.push();
-    UI.toast('Plan updated ✓');
+    UI.toast(newDk&&newDk!==oldDk?'Plan moved to '+UI.fdate(newDk):'Plan updated ✓');
   }
 
   function closeEdit(){

@@ -12,7 +12,7 @@
 .sp-nav li{padding:0;margin:0}
 .sp-nav a{display:flex;align-items:center;gap:10px;padding:11px 18px;font-size:.82rem;font-weight:600;color:var(--t2);cursor:pointer;transition:all .12s;border-left:3px solid transparent;text-decoration:none}
 .sp-nav a:hover{background:var(--s2);color:var(--heading)}
-.sp-nav a.active{background:var(--acc2);color:var(--acc);border-left-color:var(--acc);font-weight:700}
+.sp-nav a.active{background:var(--acc2);color:var(--acc);border-left-color:var(--acc);font-weight:700;box-shadow:inset 0 0 12px rgba(255,107,53,.08)}
 .sp-nav a .nav-ico{font-size:1rem;width:22px;text-align:center}
 .sp-nav .nav-divider{height:1px;background:var(--brd);margin:6px 16px}
 /* ========== CALENDAR ========== */
@@ -68,7 +68,8 @@
 .ci-actions{padding:10px 18px 16px;display:flex;gap:8px}
 .ci-actions .b{flex:1;text-align:center;padding:8px 12px;font-size:.72rem;font-weight:700;border-radius:8px}
 /* ========== TO-DO ========== */
-.todo-item{background:linear-gradient(135deg,var(--s1) 0%,var(--s2) 100%);border:1px solid var(--brd);border-radius:10px;margin-bottom:5px;overflow:hidden;transition:box-shadow .2s,border-color .2s,transform .15s}.todo-item:hover{box-shadow:0 4px 16px var(--shadow);border-color:var(--brd2);transform:translateY(-1px)}
+/* 6c. Todo item with hover glow */
+.todo-item{background:linear-gradient(135deg,var(--s1) 0%,var(--s2) 100%);border:1px solid var(--brd);border-radius:10px;margin-bottom:5px;overflow:hidden;transition:box-shadow .2s,border-color .2s,transform .15s}.todo-item:hover{box-shadow:0 4px 16px var(--shadow),0 0 12px rgba(167,139,250,.06);border-color:var(--brd2);transform:translateY(-1px)}
 /* Priority left-border */
 .todo-pri-critical{border-left:3px solid var(--red)}
 .todo-pri-high{border-left:3px solid var(--acc)}
@@ -121,7 +122,8 @@
 .todo-note-body{padding:4px 10px 8px;font-size:.72rem;color:var(--t2);line-height:1.5;background:var(--s2);margin:0 8px 6px;border-radius:6px;white-space:pre-wrap}
 .todo-filter-bar{display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap;align-items:center}
 /* ========== PLANNING ========== */
-.plan-card{background:linear-gradient(135deg,var(--s1),var(--s2));border:1px solid var(--brd);border-radius:8px;padding:10px 12px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;transition:border-color .15s,box-shadow .15s}.plan-card:hover{border-color:var(--brd2);box-shadow:0 2px 12px var(--shadow)}
+/* 6c. Plan card with hover glow */
+.plan-card{background:linear-gradient(135deg,var(--s1),var(--s2));border:1px solid var(--brd);border-radius:8px;padding:10px 12px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;transition:border-color .15s,box-shadow .15s}.plan-card:hover{border-color:var(--brd2);box-shadow:0 2px 12px var(--shadow),0 0 12px rgba(255,107,53,.06)}
 .plan-card.completed{opacity:.5;border-color:var(--grn)}
 .plan-card.in-progress{border-color:var(--acc)}
 .plan-status{font-size:.55rem;font-weight:700;text-transform:uppercase;padding:2px 6px;border-radius:3px}
@@ -131,7 +133,9 @@
 .plan-status.skipped{background:var(--s3);color:var(--td)}
 .plan-status.carried{background:var(--yel2);color:var(--yel)}
 /* ========== SUMMARY & ANALYTICS ========== */
-.summary-card{background:linear-gradient(135deg,var(--s1),var(--s2));border:1px solid var(--brd);border-radius:12px;padding:16px;margin-bottom:8px;transition:transform .15s,box-shadow .15s}.summary-card:hover{transform:translateY(-2px);box-shadow:0 4px 16px var(--shadow)}
+/* 6b. Frosted glass summary card + 6c. Hover glow */
+.summary-card{background:linear-gradient(135deg,rgba(13,13,21,.82),rgba(19,19,32,.86));border:1px solid var(--brd);border-radius:12px;padding:16px;margin-bottom:8px;transition:transform .15s,box-shadow .15s;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}.summary-card:hover{transform:translateY(-2px);box-shadow:0 4px 16px var(--shadow),0 0 16px rgba(255,107,53,.06)}
+[data-theme="light"] .summary-card{background:linear-gradient(135deg,rgba(255,255,255,.88),rgba(238,238,244,.92))}
 .summary-card h4{font-size:.78rem;font-weight:700;color:var(--heading);margin-bottom:8px}
 .sum-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--brd);font-size:.74rem}
 .sum-row:last-child{border:none}
@@ -185,7 +189,9 @@
 .preset-btn{transition:all .15s}
 .preset-btn.preset-active{border-color:var(--acc)!important;color:var(--acc)!important;background:var(--acc2)!important;box-shadow:0 0 10px var(--accg)}
 /* ========== TIME BUDGET CARD ========== */
-.time-budget-card{background:linear-gradient(135deg,var(--s1) 0%,var(--s2) 60%,rgba(167,139,250,.03) 100%);border:1px solid var(--brd);border-radius:14px;padding:16px;margin-bottom:10px;box-shadow:0 2px 16px var(--shadow)}
+/* 6b. Frosted glass time budget card */
+.time-budget-card{background:linear-gradient(135deg,rgba(13,13,21,.82) 0%,rgba(19,19,32,.86) 60%,rgba(167,139,250,.04) 100%);border:1px solid var(--brd);border-radius:14px;padding:16px;margin-bottom:10px;box-shadow:0 2px 16px var(--shadow);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+[data-theme="light"] .time-budget-card{background:linear-gradient(135deg,rgba(255,255,255,.85) 0%,rgba(238,238,244,.9) 60%,rgba(124,58,237,.03) 100%)}
 .tb-stats{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px}
 .tb-stats.tb-stats-6{grid-template-columns:repeat(3,1fr)}
 .tb-stat{text-align:center;padding:6px 4px;background:var(--s2);border-radius:8px;border:1px solid var(--brd)}
@@ -193,7 +199,8 @@
 .tb-lbl{font-size:.48rem;color:var(--td);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
 /* ========== DAY OVERVIEW WIDGET ========== */
 .day-overview{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:10px}
-.do-item{text-align:center;padding:8px 4px;background:linear-gradient(135deg,var(--s1),var(--s2));border:1px solid var(--brd);border-radius:10px}
+/* 6c. Do-item with hover lift */
+.do-item{text-align:center;padding:8px 4px;background:linear-gradient(135deg,var(--s1),var(--s2));border:1px solid var(--brd);border-radius:10px;transition:transform .15s,box-shadow .15s}.do-item:hover{transform:translateY(-2px);box-shadow:0 4px 12px var(--shadow)}
 .do-val{font-family:'JetBrains Mono',monospace;font-size:.9rem;font-weight:700;display:block}
 .do-lbl{font-size:.5rem;color:var(--td);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
 .do-sub{font-family:'JetBrains Mono',monospace;font-size:.48rem;color:var(--cyn);font-weight:600;display:block;margin-top:1px}
@@ -259,3 +266,5 @@
 .knowledge-cat-badge{font-size:.55rem;font-weight:700;color:#fff;padding:2px 8px;border-radius:4px;white-space:nowrap}
 #p-knowledge .empty{text-align:center;padding:24px 12px;color:var(--tf)}
 #p-knowledge .empty-ico{font-size:2rem;margin-bottom:6px}
+/* ========== PLAN START BUTTON ========== */
+.plan-start-btn{white-space:nowrap;flex-shrink:0}

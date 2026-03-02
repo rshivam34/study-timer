@@ -171,29 +171,47 @@ return{connect:connect,skip:skip,tab:tab,syncUI:syncUI,manSync:manSync,reconn:re
     _update();
   }
 
-  /* ========== PLANNED TASKS IN STUDY TAB (#11) ========== */
-  App.renderStudyPlans = function(){
-    var dateInput=document.getElementById('studyPlanDate');
+  /* ========== START TIMER FROM PLAN CARD (#2) ========== */
+  App.startFromPlan = function(type, subject, date, planId){
+    if(TM.isOn()){UI.toast('Timer already running — stop it first');return}
+    /* Set dropdown to the plan's subject */
+    var sel=document.getElementById(type==='study'?'studyCat':'workCat');
+    if(sel)sel.value=subject;
+    /* Mark plan in-progress */
+    PLAN.updateStatus(date, planId, 'in-progress');
+    /* Start timer — TM.start() reads category from dropdown */
+    TM.start(type);
+    /* Scroll timer into view */
+    var timerCard=document.getElementById('tc-'+type);
+    if(timerCard)timerCard.scrollIntoView({behavior:'smooth',block:'center'});
+  };
+
+  /* ========== PLANNED TASKS IN STUDY/WORK TAB (#11) ========== */
+  App.renderPlans = function(type){
+    type=type||'study';
+    var dateInputId=type==='study'?'studyPlanDate':'workPlanDate';
+    var containerId=type==='study'?'studyPlannedTasks':'workPlannedTasks';
+    var dateInput=document.getElementById(dateInputId);
     if(!dateInput)return;
     var dk=dateInput.value||D.todayKey();
-    var plans=PLAN.getForDate(dk);
-    var el=document.getElementById('studyPlannedTasks');
+    var allPlans=PLAN.getForDate(dk);
+    /* Filter plans by type (default 'study' for backward compat) */
+    var plans=allPlans.filter(function(p){return(p.planFor||'study')===type});
+    var el=document.getElementById(containerId);
     if(!el)return;
 
     var today=D.todayKey();
-    var todayDate=new Date(today);
     var priOrder={critical:0,high:1,medium:2,low:3};
 
     /* Also get overdue plans from past dates */
     var allOverdue=[];
     if(dk===today){
-      /* Show overdue from last 7 days */
       for(var oi=1;oi<=7;oi++){
         var od=new Date();od.setDate(od.getDate()-oi);
         var ok=D.todayKey(od);
         var op=PLAN.getForDate(ok);
         op.forEach(function(p){
-          if(p.status==='planned'||p.status==='in-progress'){
+          if((p.planFor||'study')===type&&(p.status==='planned'||p.status==='in-progress')){
             p._overdueDays=oi;p._overdueDate=ok;
             allOverdue.push(p);
           }
@@ -242,6 +260,8 @@ return{connect:connect,skip:skip,tab:tab,syncUI:syncUI,manSync:manSync,reconn:re
         h+='<div class="plan-meta">'+esc(p.subject)+' · '+p.type+' · Est: '+p.estHours+'h · <span style="'+statusCol+';font-weight:600">'+p.status+'</span></div></div>';
         var actualH=(p.actualSecs||0)/3600;
         if(actualH>0)h+='<span class="study-plan-deadline" style="color:var(--grn)">'+actualH.toFixed(1)+'h done</span>';
+        /* Start button for pending plans on today */
+        if(dk===today&&p.status==='planned')h+='<button class="b b-xs b-acc plan-start-btn" onclick="event.stopPropagation();App.startFromPlan(\''+type+'\',\''+esc(p.subject)+'\',\''+dk+'\',\''+p.id+'\')">▶ Start</button>';
         h+='</div>';
       });
     }
@@ -262,6 +282,9 @@ return{connect:connect,skip:skip,tab:tab,syncUI:syncUI,manSync:manSync,reconn:re
     el.innerHTML=h;
   };
 
+  /* Wrapper — renders both study and work planned tasks */
+  App.renderStudyPlans = function(){ App.renderPlans('study'); App.renderPlans('work'); };
+
   // Initialize new modules after DOM ready
   setTimeout(function(){
     PLAN.init();
@@ -273,9 +296,12 @@ return{connect:connect,skip:skip,tab:tab,syncUI:syncUI,manSync:manSync,reconn:re
     try{var knDate=document.getElementById('knAddDate');if(knDate)knDate.value=D.todayKey()}catch(e){}
     _showOnboarding();
     _initOffline();
-    /* Initialize study plan date and render */
+    /* Initialize study/work plan dates and render */
     var spd=document.getElementById('studyPlanDate');
-    if(spd){spd.value=D.todayKey();App.renderStudyPlans()}
+    if(spd){spd.value=D.todayKey()}
+    var wpd=document.getElementById('workPlanDate');
+    if(wpd){wpd.value=D.todayKey()}
+    App.renderStudyPlans();
     /* Attach topic autocomplete to save modal */
     var smNoteEl=document.getElementById('smNote');
     if(smNoteEl)UI.autocomplete(smNoteEl,function(){return document.getElementById('smCat').textContent});
@@ -438,13 +464,11 @@ return{connect:connect,skip:skip,tab:tab,syncUI:syncUI,manSync:manSync,reconn:re
     var todoPending=0;
     var todoEstH=0;
     try{todoEstH=TODO.getTodayEstHours()}catch(e){}
+    /* Count only top-level items (sub-tasks are part of parent work) */
     ['study','work'].forEach(function(g){
-      (function countItems(items){
-        items.forEach(function(t){
-          if(t.status!=='done'&&(!t.due||t.due<=today))todoPending++;
-          if(t.children)countItems(t.children);
-        });
-      })(todos[g]||[]);
+      (todos[g]||[]).forEach(function(t){
+        if(t.status!=='done'&&(!t.due||t.due<=today))todoPending++;
+      });
     });
 
     var h='<div class="day-overview" style="grid-template-columns:repeat(5,1fr)">';

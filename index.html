@@ -185,8 +185,8 @@
   <div class="sl">Planned Tasks</div>
   <div class="df" style="margin-bottom:4px">
     <span class="df-lbl">Date</span>
-    <input type="date" class="inp" id="studyPlanDate" style="flex:1" onchange="App.renderStudyPlans()">
-    <button class="b b-xs" onclick="document.getElementById('studyPlanDate').value=D.todayKey();App.renderStudyPlans()">Today</button>
+    <input type="date" class="inp" id="studyPlanDate" style="flex:1" onchange="App.renderPlans('study')">
+    <button class="b b-xs" onclick="document.getElementById('studyPlanDate').value=D.todayKey();App.renderPlans('study')">Today</button>
   </div>
   <div id="studyPlannedTasks"></div>
   <div class="sl">Today's To-Dos</div>
@@ -214,6 +214,13 @@
     <div class="ctrls" id="ct-work"><button class="b b-cyn" onclick="TM.start('work')">Start</button></div>
   </section>
   <div style="text-align:right;margin-top:6px"><button class="b b-xs" onclick="PAST.open('work')">+ Add past session</button></div>
+  <div class="sl">Planned Tasks</div>
+  <div class="df" style="margin-bottom:4px">
+    <span class="df-lbl">Date</span>
+    <input type="date" class="inp" id="workPlanDate" style="flex:1" onchange="App.renderPlans('work')">
+    <button class="b b-xs" onclick="document.getElementById('workPlanDate').value=D.todayKey();App.renderPlans('work')">Today</button>
+  </div>
+  <div id="workPlannedTasks"></div>
   <div id="timeBudgetWork"></div>
   <div class="sl">Today's To-Dos</div>
   <div id="todoInlineWork"></div>
@@ -569,7 +576,9 @@
 <!-- TODO ADD MODAL -->
 <div class="modal hidden" id="planEditModal"><div class="modal-box">
   <h3>Edit Plan Item</h3>
-  <div class="sl" style="margin:8px 0 5px;text-align:left">Plan For</div>
+  <div class="sl" style="margin:8px 0 5px;text-align:left">Date <span class="req">*</span></div>
+  <input type="date" class="inp" id="peDate" style="margin-bottom:8px">
+  <div class="sl" style="margin:4px 0 5px;text-align:left">Plan For</div>
   <select class="cat-sel" id="pePlanFor" style="width:100%;margin-bottom:8px" onchange="PLAN.onEditPlanForChange()">
     <option value="study">📖 Study</option>
     <option value="work">💼 Work</option>
