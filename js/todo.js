@@ -352,11 +352,13 @@ var TODO=(function(){
     }
   }
 
-  function renderItem(item,group,depth){
+  function renderItem(item,group,depth,parentDue){
     var isDone=item.status==='done';
     var isNote=item.type==='note';
     var hasChildren=item.children&&item.children.length>0;
     var priCls=item.priority||'medium';
+    /* Sub-tasks show on parent's date — use parent due if this is a child (depth>0) */
+    var effectiveDue=depth>0?(parentDue||item.due):item.due;
 
     var h='<div class="todo-item" draggable="true" data-todo-id="'+item.id+'">';
     h+='<div class="todo-header">';
@@ -379,7 +381,7 @@ var TODO=(function(){
 
     h+='<span class="todo-title'+(isDone?' completed':'')+'">'+esc(item.title)+'</span>';
     if(!isNote)h+='<span class="todo-badge '+priCls+'">'+priCls+'</span>';
-    if(item.due)h+='<span class="todo-due'+(item.status!=='done'&&item.due<D.todayKey()?' overdue':'')+'">'+UI.fdate(item.due)+'</span>';
+    if(effectiveDue)h+='<span class="todo-due'+(item.status!=='done'&&effectiveDue<D.todayKey()?' overdue':'')+'">'+UI.fdate(effectiveDue)+'</span>';
     if(item.estMins)h+='<span style="font-size:.5rem;color:var(--cyn);font-weight:700;background:var(--cyn2);padding:1px 5px;border-radius:3px">~'+item.estMins+'m</span>';
     if(item.repeat)h+='<span style="font-size:.45rem;color:var(--cyn);font-weight:700">🔄 '+item.repeat+'</span>';
 
@@ -403,7 +405,9 @@ var TODO=(function(){
 
     if(hasChildren){
       h+='<div class="todo-children">';
-      item.children.forEach(function(child){h+=renderItem(child,group,depth+1)});
+      /* Pass this item's due date down so children show on parent's date */
+      var childDue=item.due||parentDue;
+      item.children.forEach(function(child){h+=renderItem(child,group,depth+1,childDue)});
       h+='</div>';
     }
 
@@ -559,11 +563,36 @@ var TODO=(function(){
       return;
     }
     var h='';
-    items.forEach(function(item){h+=renderItem(item,group,0)});
+    items.forEach(function(item){h+=renderItem(item,group,0,null)});
     el.innerHTML=h;
     _initDrag();
     _initSwipe();
     _renderProgress(todos[group]||[]);
+  }
+
+  function _deadlineHtml(due,today){
+    if(!due)return'';
+    var dueDate=new Date(due);var todayDate=new Date(today);
+    var diffDays=Math.round((dueDate-todayDate)/(1000*60*60*24));
+    if(diffDays<0)return'<span style="font-family:JetBrains Mono,monospace;font-size:.5rem;font-weight:700;color:var(--red)">'+Math.abs(diffDays)+'d overdue</span>';
+    if(diffDays===0)return'<span style="font-family:JetBrains Mono,monospace;font-size:.5rem;font-weight:700;color:var(--acc)">Today</span>';
+    if(diffDays<=3)return'<span style="font-family:JetBrains Mono,monospace;font-size:.5rem;font-weight:700;color:var(--yel)">'+diffDays+'d left</span>';
+    return'<span style="font-family:JetBrains Mono,monospace;font-size:.5rem;font-weight:600;color:var(--td)">'+diffDays+'d</span>';
+  }
+
+  /* Render a single child item row for inline view */
+  function _renderInlineChild(child,group,parentDue,today){
+    var isDone=child.status==='done';
+    /* Sub-tasks use parent date for deadline display */
+    var effectiveDue=parentDue;
+    var dlHtml=_deadlineHtml(effectiveDue,today);
+    var h='<div style="display:flex;align-items:center;gap:5px;padding:3px 0 3px 22px;font-size:.66rem;border-bottom:1px solid var(--brd);opacity:'+(isDone?'.5':'1')+'">';
+    h+='<div class="todo-cb'+(isDone?' done':' p-'+(child.priority||'medium'))+'" onclick="TODO.toggleDone(\''+child.id+'\',\''+group+'\')" style="width:13px;height:13px;font-size:.4rem">'+(isDone?'✓':'')+'</div>';
+    h+='<span style="flex:1;font-weight:500;color:var(--t2);'+(isDone?'text-decoration:line-through':'')+'">'+esc(child.title)+'</span>';
+    if(child.estMins)h+='<span style="font-family:JetBrains Mono,monospace;font-size:.4rem;color:var(--cyn);font-weight:700;background:var(--cyn2);padding:1px 3px;border-radius:3px">~'+child.estMins+'m</span>';
+    if(dlHtml)h+=dlHtml;
+    h+='</div>';
+    return h;
   }
 
   function renderInline(){
@@ -579,34 +608,35 @@ var TODO=(function(){
       if(!items.length){el.innerHTML='<div style="font-size:.72rem;color:var(--tf);padding:6px 0">No pending to-dos</div>';return}
       var h='';
       items.forEach(function(item){
-        /* Calculate deadline info */
-        var deadlineHtml='';
-        if(item.due){
-          var dueDate=new Date(item.due);
-          var todayDate=new Date(today);
-          var diffDays=Math.round((dueDate-todayDate)/(1000*60*60*24));
-          if(diffDays<0){
-            deadlineHtml='<span style="font-family:JetBrains Mono,monospace;font-size:.5rem;font-weight:700;color:var(--red)">'+Math.abs(diffDays)+'d overdue</span>';
-          } else if(diffDays===0){
-            deadlineHtml='<span style="font-family:JetBrains Mono,monospace;font-size:.5rem;font-weight:700;color:var(--acc)">Today</span>';
-          } else if(diffDays<=3){
-            deadlineHtml='<span style="font-family:JetBrains Mono,monospace;font-size:.5rem;font-weight:700;color:var(--yel)">'+diffDays+'d left</span>';
-          } else {
-            deadlineHtml='<span style="font-family:JetBrains Mono,monospace;font-size:.5rem;font-weight:600;color:var(--td)">'+diffDays+'d</span>';
-          }
-        }
+        var dlHtml=_deadlineHtml(item.due,today);
         var hasChildren=item.children&&item.children.length>0;
         var childCount=hasChildren?item.children.length:0;
         var childDone=hasChildren?item.children.filter(function(c){return c.status==='done'}).length:0;
+        var inlineId='inl_'+item.id;
 
-        h+='<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--brd);font-size:.73rem">';
+        h+='<div style="border-bottom:1px solid var(--brd)">';
+        h+='<div style="display:flex;align-items:center;gap:6px;padding:5px 0;font-size:.73rem">';
+        /* Expand arrow for items with children */
+        if(hasChildren){
+          h+='<span class="inl-toggle" onclick="this.classList.toggle(\'open\');document.getElementById(\''+inlineId+'\').classList.toggle(\'hidden\')" style="cursor:pointer;font-size:.6rem;color:var(--acc);font-weight:700;width:12px;text-align:center;transition:transform .15s;display:inline-block">▶</span>';
+        }
         h+='<div class="todo-cb p-'+item.priority+'" onclick="TODO.toggleDone(\''+item.id+'\',\''+group+'\')" style="width:16px;height:16px;font-size:.5rem"></div>';
         h+='<span style="flex:1;font-weight:600;color:var(--heading)">'+esc(item.title);
         if(hasChildren)h+=' <span style="font-size:.5rem;color:var(--td);font-weight:500">('+childDone+'/'+childCount+')</span>';
         h+='</span>';
         h+='<span class="todo-badge '+item.priority+'" style="font-size:.45rem">'+item.priority+'</span>';
         if(item.estMins)h+='<span style="font-family:JetBrains Mono,monospace;font-size:.45rem;color:var(--cyn);font-weight:700;background:var(--cyn2);padding:1px 4px;border-radius:3px">~'+item.estMins+'m</span>';
-        if(deadlineHtml)h+=deadlineHtml;
+        if(dlHtml)h+=dlHtml;
+        h+='</div>';
+
+        /* Collapsible children list — hidden by default */
+        if(hasChildren){
+          h+='<div id="'+inlineId+'" class="hidden" style="border-top:1px dashed var(--brd)">';
+          item.children.forEach(function(child){
+            h+=_renderInlineChild(child,group,item.due,today);
+          });
+          h+='</div>';
+        }
         h+='</div>';
       });
       el.innerHTML=h;

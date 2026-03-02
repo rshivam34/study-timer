@@ -162,10 +162,10 @@ var PLAN=(function(){
 
   /* ========== GOAL PRESETS (Rule-based daily goals) ========== */
   var _defaultPresets=[
-    {id:'gp_office',name:'Office Day',hours:3,days:[1,2,3,4,5],weekPattern:'all',active:true},
-    {id:'gp_wfh',name:'WFH',hours:5.5,days:[],weekPattern:'all',active:false},
-    {id:'gp_evensat',name:'Even Saturday',hours:7,days:[6],weekPattern:'even',active:true},
-    {id:'gp_fullday',name:'Full Day',hours:13,days:[0],weekPattern:'all',active:true}
+    {id:'gp_office',name:'Office Day',hours:3,dayRules:[{day:1,pattern:'all'},{day:2,pattern:'all'},{day:3,pattern:'all'},{day:4,pattern:'all'},{day:5,pattern:'all'}],active:true},
+    {id:'gp_wfh',name:'WFH',hours:5.5,dayRules:[],active:false},
+    {id:'gp_evensat',name:'Even Saturday',hours:7,dayRules:[{day:6,pattern:'even'}],active:true},
+    {id:'gp_fullday',name:'Full Day',hours:13,dayRules:[{day:0,pattern:'all'},{day:6,pattern:'odd'}],active:true}
   ];
   var _dayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
@@ -175,9 +175,40 @@ var PLAN=(function(){
       cfg.goalPresets=JSON.parse(JSON.stringify(_defaultPresets));
       D.setCfg(cfg);
     }
+    /* Migrate old days[]+weekPattern format to new dayRules[] format */
+    var migrated=false;
+    cfg.goalPresets.forEach(function(p){
+      if(p.days&&!p.dayRules){
+        p.dayRules=p.days.map(function(d){return{day:d,pattern:p.weekPattern||'all'}});
+        delete p.days;delete p.weekPattern;
+        migrated=true;
+      }
+    });
+    if(migrated)D.setCfg(cfg);
     return cfg.goalPresets;
   }
   function _setPresets(presets){var cfg=D.getCfg();cfg.goalPresets=presets;D.setCfg(cfg);D.push()}
+
+  /* Cycle: off → all → even → odd → off */
+  var _patternCycle=['','all','even','odd'];
+  var _patternLabels={'':'','all':'','even':'2/4','odd':'1/3/5'};
+  function cycleDayChip(el){
+    var cur=el.getAttribute('data-pattern')||'';
+    var idx=_patternCycle.indexOf(cur);
+    var next=_patternCycle[(idx+1)%_patternCycle.length];
+    if(next){
+      el.classList.add('on');
+      el.setAttribute('data-pattern',next);
+    } else {
+      el.classList.remove('on');
+      el.setAttribute('data-pattern','');
+    }
+    _updateChipLabel(el,next);
+  }
+  function _updateChipLabel(el,pattern){
+    var ind=el.querySelector('.dc-pat');
+    if(ind)ind.textContent=_patternLabels[pattern||'']||'';
+  }
 
   function renderGoalPresets(){
     var el=document.getElementById('goalPresetList');
@@ -186,35 +217,47 @@ var PLAN=(function(){
     var today=D.todayKey();
     var todayGoal=D.getGoalForDate(today);
     /* Find which preset is active today */
-    var todayDow=new Date().getDay();
+    var todayDow=new Date().getDay();var nth=Math.ceil(new Date().getDate()/7);
     var activePresetId=null;
     var cfg=D.getCfg();
     var hasManual=cfg.dailyGoals&&cfg.dailyGoals[today]!==undefined;
     if(!hasManual){
       for(var i=0;i<presets.length;i++){
         var p=presets[i];if(!p.active)continue;
-        if(p.days.indexOf(todayDow)===-1)continue;
-        if(p.weekPattern&&p.weekPattern!=='all'){
-          var nth=Math.ceil(new Date().getDate()/7);
-          if(p.weekPattern==='even'&&nth%2!==0)continue;
-          if(p.weekPattern==='odd'&&nth%2!==1)continue;
+        var rules=p.dayRules||[];
+        for(var j=0;j<rules.length;j++){
+          var r=rules[j];if(r.day!==todayDow)continue;
+          if(r.pattern&&r.pattern!=='all'){
+            if(r.pattern==='even'&&nth%2!==0)continue;
+            if(r.pattern==='odd'&&nth%2!==1)continue;
+          }
+          activePresetId=p.id;break;
         }
-        activePresetId=p.id;
       }
     }
 
     var h='<div style="font-size:.62rem;color:var(--grn);font-weight:700;margin-bottom:6px">Today\'s goal: '+todayGoal+'h'+(hasManual?' (manual override)':activePresetId?' (from preset)':' (default)')+'</div>';
     presets.forEach(function(p){
       var isToday=p.id===activePresetId;
-      var dayStr=p.days.length?p.days.map(function(d){return _dayNames[d]}).join(', '):'<span style="color:var(--tf)">No days set</span>';
-      var patternStr=p.weekPattern==='even'?' · 2nd/4th only':p.weekPattern==='odd'?' · 1st/3rd/5th only':'';
+      var rules=p.dayRules||[];
+      var dayStr='';
+      if(rules.length){
+        dayStr=rules.map(function(r){
+          var s=_dayNames[r.day];
+          if(r.pattern==='even')s+=' <span style="color:var(--acc);font-size:.5rem">(2/4)</span>';
+          if(r.pattern==='odd')s+=' <span style="color:var(--acc);font-size:.5rem">(1/3/5)</span>';
+          return s;
+        }).join(', ');
+      } else {
+        dayStr='<span style="color:var(--tf)">No days set</span>';
+      }
 
       h+='<div class="gp-card'+(isToday?' gp-active':'')+'">';
       h+='<div style="display:flex;align-items:center;gap:8px">';
       h+='<button class="gp-toggle'+(p.active?' on':'')+'" onclick="PLAN.toggleGoalPreset(\''+p.id+'\')">'+(p.active?'ON':'OFF')+'</button>';
       h+='<div style="flex:1;min-width:0">';
       h+='<div style="font-size:.78rem;font-weight:700;color:var(--heading)">'+esc(p.name)+' — <span style="color:var(--acc)">'+p.hours+'h</span></div>';
-      h+='<div style="font-size:.6rem;color:var(--td)">'+dayStr+patternStr+'</div>';
+      h+='<div style="font-size:.6rem;color:var(--td)">'+dayStr+'</div>';
       h+='</div>';
       h+='<button class="b b-xs" onclick="PLAN.openEditPreset(\''+p.id+'\')">✏️</button>';
       h+='<button class="b b-xs b-danger" onclick="PLAN.deleteGoalPreset(\''+p.id+'\')">✕</button>';
@@ -234,9 +277,11 @@ var PLAN=(function(){
     document.getElementById('gpModalTitle').textContent='Add Goal Rule';
     document.getElementById('gpName').value='';
     document.getElementById('gpHours').value='';
-    document.getElementById('gpWeekPattern').value='all';
     document.getElementById('gpEditId').value='';
-    document.querySelectorAll('#gpDayChips .day-chip').forEach(function(c){c.classList.remove('on')});
+    document.querySelectorAll('#gpDayChips .day-chip').forEach(function(c){
+      c.classList.remove('on');c.setAttribute('data-pattern','');
+      _updateChipLabel(c,'');
+    });
     document.getElementById('goalPresetModal').classList.remove('hidden');
   }
 
@@ -247,11 +292,20 @@ var PLAN=(function(){
     document.getElementById('gpModalTitle').textContent='Edit Goal Rule';
     document.getElementById('gpName').value=p.name;
     document.getElementById('gpHours').value=p.hours;
-    document.getElementById('gpWeekPattern').value=p.weekPattern||'all';
     document.getElementById('gpEditId').value=p.id;
+    var rules=p.dayRules||[];
     document.querySelectorAll('#gpDayChips .day-chip').forEach(function(c){
       var day=parseInt(c.getAttribute('data-day'));
-      c.classList.toggle('on',p.days.indexOf(day)!==-1);
+      var rule=rules.find(function(r){return r.day===day});
+      if(rule){
+        c.classList.add('on');
+        c.setAttribute('data-pattern',rule.pattern||'all');
+        _updateChipLabel(c,rule.pattern||'all');
+      } else {
+        c.classList.remove('on');
+        c.setAttribute('data-pattern','');
+        _updateChipLabel(c,'');
+      }
     });
     document.getElementById('goalPresetModal').classList.remove('hidden');
   }
@@ -260,21 +314,19 @@ var PLAN=(function(){
     var name=document.getElementById('gpName').value.trim();
     var hours=parseFloat(document.getElementById('gpHours').value);
     if(!name||isNaN(hours)){UI.toast('Fill name and hours');return}
-    var days=[];
+    var dayRules=[];
     document.querySelectorAll('#gpDayChips .day-chip.on').forEach(function(c){
-      days.push(parseInt(c.getAttribute('data-day')));
+      dayRules.push({day:parseInt(c.getAttribute('data-day')),pattern:c.getAttribute('data-pattern')||'all'});
     });
-    var weekPattern=document.getElementById('gpWeekPattern').value;
     var editId=document.getElementById('gpEditId').value;
     var presets=_getPresets();
 
     if(editId){
       var p=presets.find(function(x){return x.id===editId});
-      if(p){p.name=name;p.hours=hours;p.days=days;p.weekPattern=weekPattern}
+      if(p){p.name=name;p.hours=hours;p.dayRules=dayRules;delete p.days;delete p.weekPattern}
     } else {
       presets.push({
-        id:'gp_'+Date.now(),name:name,hours:hours,days:days,
-        weekPattern:weekPattern,active:true
+        id:'gp_'+Date.now(),name:name,hours:hours,dayRules:dayRules,active:true
       });
     }
     _setPresets(presets);
@@ -537,7 +589,7 @@ var PLAN=(function(){
     init:init,add:add,render:render,updateStatus:updateStatus,remove:remove,
     completePlan:completePlan,carryForward:carryForward,copyDayPlans:copyDayPlans,
     renderGoalPresets:renderGoalPresets,toggleGoalPreset:toggleGoalPreset,
-    openAddPreset:openAddPreset,openEditPreset:openEditPreset,saveGoalPreset:saveGoalPreset,deleteGoalPreset:deleteGoalPreset,
+    openAddPreset:openAddPreset,openEditPreset:openEditPreset,saveGoalPreset:saveGoalPreset,deleteGoalPreset:deleteGoalPreset,cycleDayChip:cycleDayChip,
     onSubjChange:onSubjChange,getForDate:getForDate,getTodayPlansForSubject:getTodayPlansForSubject,
     getPlans:getPlans,setPlans:setPlans,
     openEdit:openEdit,saveEdit:saveEdit,closeEdit:closeEdit,

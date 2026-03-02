@@ -66,3 +66,33 @@ Scripts load synchronously in index.html in this exact order. Dependencies flow 
 - All state is stored in `localStorage` with optional GitHub Gist sync
 - Keep files working without a server (file:// protocol) where possible
 - Test on mobile — this is a mobile-first PWA
+
+## Goal System
+
+- `D.getGoalForDate(dateKey)` is the **centralized goal lookup** — always use this, never inline the lookup
+- 3-tier priority: manual override (`cfg.dailyGoals[date]`) → preset rules (`cfg.goalPresets`) → default fallback
+- Presets use `dayRules: [{day, pattern}]` format — each day can have its own week pattern
+- `pattern` values: `'all'` (every week), `'even'` (2nd/4th of month), `'odd'` (1st/3rd/5th of month)
+- Week occurrence is calculated as `Math.ceil(date.getDate() / 7)`
+
+## Data Model Extras (in config)
+
+- `goalPresets[]` — rule-based daily goals with per-day week patterns
+- `todos{study:[], work:[]}` — nested to-do lists with unlimited children
+- `plans{dateKey:[]}` — daily study plans with subject, topic, estimated/actual hours
+- `journal{dateKey:{}}` — daily journal entries (rating, mood, notes)
+- `recurring[]` + `recurringDone{}` — recurring tasks with completion tracking
+
+## Service Worker Caching
+
+- Fetch handler uses `cache: 'no-cache'` for same-origin assets (bypasses browser HTTP cache)
+- Registration uses `updateViaCache: 'none'` to ensure SW file itself is always fresh
+- **Always bump the `CACHE` version string on ANY code change**
+- After deploying a SW update, one hard refresh (Ctrl+Shift+R) activates it; normal reloads work after that
+
+## Todo Sub-task Rules
+
+- Sub-tasks inherit their parent's due date for display (both full and inline views)
+- `renderItem()` passes `parentDue` down through nesting levels
+- Inline view (study/work section) has expandable dropdown (▶) for tasks with children
+- Sub-task completion can be toggled independently from parent

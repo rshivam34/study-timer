@@ -158,7 +158,7 @@
 .rc-today-card.done{opacity:.4;text-decoration:line-through}
 .rc-today-title{font-size:.78rem;font-weight:600;color:var(--heading)}.rc-today-type{font-size:.6rem;color:var(--td)}
 .rc-today-actions{display:flex;gap:4px}
-.day-chips{display:flex;gap:3px;flex-wrap:wrap}.day-chip{width:30px;height:26px;border-radius:6px;border:1px solid var(--brd);background:var(--s2);color:var(--td);font-size:.6rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center}.day-chip.on{background:var(--acc2);border-color:var(--acc);color:var(--acc)}
+.day-chips{display:flex;gap:3px;flex-wrap:wrap}.day-chip{min-width:30px;padding:2px 5px;height:30px;border-radius:6px;border:1px solid var(--brd);background:var(--s2);color:var(--td);font-size:.6rem;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;user-select:none}.day-chip.on{background:var(--acc2);border-color:var(--acc);color:var(--acc)}.dc-pat{font-size:.45rem;color:var(--grn);font-weight:700;min-height:.5em}
 /* Reset modal */
 .reset-checks{text-align:left;margin:10px 0}.reset-checks label{display:flex;align-items:center;gap:6px;font-size:.76rem;color:var(--t2);padding:5px 0;font-weight:500}
 @media(max-width:480px){.tdisp{font-size:2.8rem}.tc{padding:22px 12px 20px}.focus-timer{font-size:3.2rem}}

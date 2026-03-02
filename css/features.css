@@ -145,6 +145,8 @@
 .gp-card.gp-active{border-color:var(--acc);box-shadow:0 0 8px var(--accg)}
 .gp-toggle{width:36px;height:20px;border-radius:10px;border:none;cursor:pointer;font-size:.5rem;font-weight:700;color:#fff;transition:all .15s;flex-shrink:0;background:var(--s3);color:var(--tf)}
 .gp-toggle.on{background:var(--grn);color:#fff}
+/* ========== INLINE TODO DROPDOWN ========== */
+.inl-toggle.open{transform:rotate(90deg)}
 /* ========== OVERDUE TODO BADGE ========== */
 .overdue-badge{font-family:'JetBrains Mono',monospace;font-size:.6rem;font-weight:700;color:var(--red);background:var(--red2);padding:2px 8px;border-radius:4px}
 .todo-due.overdue{color:var(--red)!important;font-weight:700}

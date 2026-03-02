@@ -3,7 +3,7 @@
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 var QUOTES=["Work the hardest, be the smartest.","Keep working hard — results will show.","Give it your all. Every single day.","Be happy. You deserve it. 😊","Discipline is choosing between what you want now and what you want most.","The pain of discipline weighs ounces; the pain of regret weighs tons.","You didn't come this far to only come this far.","Small daily improvements lead to stunning results.","Don't stop when you're tired. Stop when you're done.","Your future self will thank you for the work you put in today.","Consistency beats talent when talent doesn't work hard.","Stay hungry. Stay foolish. Stay kind.","Remember to breathe and be happy — you're doing great. 🌟"];
 
-var D=(function(){var SK='st3_d',GK='st3_g',TK='st3_t',GF='study_timer_v3.json';var DEF={config:{studySubjects:['Polity','History','Geography','Economics','Science','Math','English','Current Affairs','GK','Reasoning','Other'],workCategories:['Room Cleaning','Cooking','Exercise','Office Work','Errands','Personal Project','Reading','Grocery','Laundry','Other'],theme:'dark',dailyGoals:{'default':6},bedtime:22.5,effectiveMins:50,wakeTime:6,recurringTypes:['Birthdays','Anniversaries','Habits','Bills','Custom'],goalPresets:[{id:'gp_office',name:'Office Day',hours:3,days:[1,2,3,4,5],weekPattern:'all',active:true},{id:'gp_wfh',name:'WFH',hours:5.5,days:[],weekPattern:'all',active:false},{id:'gp_evensat',name:'Even Saturday',hours:7,days:[6],weekPattern:'even',active:true},{id:'gp_fullday',name:'Full Day',hours:13,days:[0],weekPattern:'all',active:true}]},deadlines:[],study:{},work:{},syllabus:{},revisions:[],recurring:[],recurringDone:{}};function gl(){try{var d=JSON.parse(localStorage.getItem(SK));if(!d||!d.config)return cp(DEF);if(!d.revisions)d.revisions=[];return d}catch(e){return cp(DEF)}}function sl(d){localStorage.setItem(SK,JSON.stringify(d))}function cp(o){return JSON.parse(JSON.stringify(o))}function gid(){return localStorage.getItem(GK)||''}function sgid(v){localStorage.setItem(GK,v)}function tok(){return localStorage.getItem(TK)||''}function stok(v){localStorage.setItem(TK,v)}function cloud(){return !!(tok()&&gid())}function tk(d){d=d||new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}function getSess(t,dk){var d=gl();return(d[t]&&d[t][dk])||[]}function todayS(t){return getSess(t,tk())}function addS(type,dk,s){var d=gl();if(!d[type])d[type]={};if(!d[type][dk])d[type][dk]=[];d[type][dk].push(s);sl(d)}function delS(type,i){var d=gl(),k=tk();if(d[type]&&d[type][k]){d[type][k].splice(i,1);if(!d[type][k].length)delete d[type][k];sl(d)}}function getCfg(){return gl().config||cp(DEF.config)}function setCfg(c){var d=gl();d.config=c;sl(d)}function getDL(){return gl().deadlines||[]}function setDL(a){var d=gl();d.deadlines=a;sl(d)}function getSyl(){return gl().syllabus||{}}function setSyl(s){var d=gl();d.syllabus=s;sl(d)}function getRevs(){return gl().revisions||[]}function setRevs(r){var d=gl();d.revisions=r;sl(d)}function addRev(r){var d=gl();if(!d.revisions)d.revisions=[];d.revisions.push(r);sl(d)}
+var D=(function(){var SK='st3_d',GK='st3_g',TK='st3_t',GF='study_timer_v3.json';var DEF={config:{studySubjects:['Polity','History','Geography','Economics','Science','Math','English','Current Affairs','GK','Reasoning','Other'],workCategories:['Room Cleaning','Cooking','Exercise','Office Work','Errands','Personal Project','Reading','Grocery','Laundry','Other'],theme:'dark',dailyGoals:{'default':6},bedtime:22.5,effectiveMins:50,wakeTime:6,recurringTypes:['Birthdays','Anniversaries','Habits','Bills','Custom'],goalPresets:[{id:'gp_office',name:'Office Day',hours:3,dayRules:[{day:1,pattern:'all'},{day:2,pattern:'all'},{day:3,pattern:'all'},{day:4,pattern:'all'},{day:5,pattern:'all'}],active:true},{id:'gp_wfh',name:'WFH',hours:5.5,dayRules:[],active:false},{id:'gp_evensat',name:'Even Saturday',hours:7,dayRules:[{day:6,pattern:'even'}],active:true},{id:'gp_fullday',name:'Full Day',hours:13,dayRules:[{day:0,pattern:'all'},{day:6,pattern:'odd'}],active:true}]},deadlines:[],study:{},work:{},syllabus:{},revisions:[],recurring:[],recurringDone:{}};function gl(){try{var d=JSON.parse(localStorage.getItem(SK));if(!d||!d.config)return cp(DEF);if(!d.revisions)d.revisions=[];return d}catch(e){return cp(DEF)}}function sl(d){localStorage.setItem(SK,JSON.stringify(d))}function cp(o){return JSON.parse(JSON.stringify(o))}function gid(){return localStorage.getItem(GK)||''}function sgid(v){localStorage.setItem(GK,v)}function tok(){return localStorage.getItem(TK)||''}function stok(v){localStorage.setItem(TK,v)}function cloud(){return !!(tok()&&gid())}function tk(d){d=d||new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}function getSess(t,dk){var d=gl();return(d[t]&&d[t][dk])||[]}function todayS(t){return getSess(t,tk())}function addS(type,dk,s){var d=gl();if(!d[type])d[type]={};if(!d[type][dk])d[type][dk]=[];d[type][dk].push(s);sl(d)}function delS(type,i){var d=gl(),k=tk();if(d[type]&&d[type][k]){d[type][k].splice(i,1);if(!d[type][k].length)delete d[type][k];sl(d)}}function getCfg(){return gl().config||cp(DEF.config)}function setCfg(c){var d=gl();d.config=c;sl(d)}function getDL(){return gl().deadlines||[]}function setDL(a){var d=gl();d.deadlines=a;sl(d)}function getSyl(){return gl().syllabus||{}}function setSyl(s){var d=gl();d.syllabus=s;sl(d)}function getRevs(){return gl().revisions||[]}function setRevs(r){var d=gl();d.revisions=r;sl(d)}function addRev(r){var d=gl();if(!d.revisions)d.revisions=[];d.revisions.push(r);sl(d)}
 function getRC(){return gl().recurring||[]}function setRC(r){var d=gl();d.recurring=r;sl(d)}function addRC(r){var d=gl();if(!d.recurring)d.recurring=[];d.recurring.push(r);sl(d)}
 function getRCDone(){return gl().recurringDone||{}}function setRCDone(x){var d=gl();d.recurringDone=x;sl(d)}function markRCDone(id){var d=gl(),today=tk();if(!d.recurringDone)d.recurringDone={};if(!d.recurringDone[today])d.recurringDone[today]=[];if(d.recurringDone[today].indexOf(id)===-1)d.recurringDone[today].push(id);sl(d)}
 /* Recursive todo list merge — deduplicates by id, merges children recursively */
@@ -24,18 +24,26 @@ var cfg=gl().config||{};
 /* 1. Manual override for specific date */
 if(cfg.dailyGoals&&cfg.dailyGoals[dk]!==undefined)return cfg.dailyGoals[dk];
 /* 2. Preset rules — last match wins (more specific presets go later) */
-var d=new Date(dk+'T12:00:00');var dow=d.getDay();
+var d=new Date(dk+'T12:00:00');var dow=d.getDay();var nth=Math.ceil(d.getDate()/7);
 var presets=cfg.goalPresets||[];var match=null;
 for(var i=0;i<presets.length;i++){
 var p=presets[i];if(!p.active)continue;
-if(p.days.indexOf(dow)===-1)continue;
-/* weekPattern: 'all'=every, 'even'=2nd/4th of month, 'odd'=1st/3rd/5th */
-if(p.weekPattern&&p.weekPattern!=='all'){
-var nth=Math.ceil(d.getDate()/7);
-if(p.weekPattern==='even'&&nth%2!==0)continue;
-if(p.weekPattern==='odd'&&nth%2!==1)continue;
+/* New format: dayRules [{day,pattern}] — each day has its own week pattern */
+var rules=p.dayRules||[];
+/* Backward compat: old format had days[] + weekPattern */
+if(!rules.length&&p.days&&p.days.length){
+rules=p.days.map(function(d2){return{day:d2,pattern:p.weekPattern||'all'}});
 }
-match=p.hours;
+var matched=false;
+for(var j=0;j<rules.length;j++){
+var r=rules[j];if(r.day!==dow)continue;
+if(r.pattern&&r.pattern!=='all'){
+if(r.pattern==='even'&&nth%2!==0)continue;
+if(r.pattern==='odd'&&nth%2!==1)continue;
+}
+matched=true;break;
+}
+if(matched)match=p.hours;
 }
 if(match!==null)return match;
 /* 3. Default fallback */

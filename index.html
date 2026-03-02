@@ -588,23 +588,16 @@
   <h3 id="gpModalTitle">Add Goal Rule</h3>
   <div class="df" style="margin-top:10px"><span class="df-lbl">Name</span><input type="text" class="inp" id="gpName" placeholder="e.g. Office Day" style="flex:1"></div>
   <div class="df" style="margin-top:6px"><span class="df-lbl">Hours</span><input type="number" class="inp" id="gpHours" min="0.5" max="24" step="0.5" placeholder="3" style="width:70px"></div>
-  <div style="margin-top:8px"><span class="df-lbl" style="display:block;margin-bottom:4px">Active Days</span>
+  <div style="margin-top:8px"><span class="df-lbl" style="display:block;margin-bottom:4px">Active Days <span style="font-weight:400;color:var(--tf);font-size:.55rem">(click to cycle: off → every → 2/4 → 1/3/5)</span></span>
     <div class="day-chips" id="gpDayChips">
-      <div class="day-chip" data-day="1" onclick="this.classList.toggle('on')">Mon</div>
-      <div class="day-chip" data-day="2" onclick="this.classList.toggle('on')">Tue</div>
-      <div class="day-chip" data-day="3" onclick="this.classList.toggle('on')">Wed</div>
-      <div class="day-chip" data-day="4" onclick="this.classList.toggle('on')">Thu</div>
-      <div class="day-chip" data-day="5" onclick="this.classList.toggle('on')">Fri</div>
-      <div class="day-chip" data-day="6" onclick="this.classList.toggle('on')">Sat</div>
-      <div class="day-chip" data-day="0" onclick="this.classList.toggle('on')">Sun</div>
+      <div class="day-chip" data-day="1" data-pattern="" onclick="PLAN.cycleDayChip(this)">Mon<span class="dc-pat"></span></div>
+      <div class="day-chip" data-day="2" data-pattern="" onclick="PLAN.cycleDayChip(this)">Tue<span class="dc-pat"></span></div>
+      <div class="day-chip" data-day="3" data-pattern="" onclick="PLAN.cycleDayChip(this)">Wed<span class="dc-pat"></span></div>
+      <div class="day-chip" data-day="4" data-pattern="" onclick="PLAN.cycleDayChip(this)">Thu<span class="dc-pat"></span></div>
+      <div class="day-chip" data-day="5" data-pattern="" onclick="PLAN.cycleDayChip(this)">Fri<span class="dc-pat"></span></div>
+      <div class="day-chip" data-day="6" data-pattern="" onclick="PLAN.cycleDayChip(this)">Sat<span class="dc-pat"></span></div>
+      <div class="day-chip" data-day="0" data-pattern="" onclick="PLAN.cycleDayChip(this)">Sun<span class="dc-pat"></span></div>
     </div>
-  </div>
-  <div class="df" style="margin-top:8px"><span class="df-lbl">Week Pattern</span>
-    <select class="cat-sel" id="gpWeekPattern" style="flex:1">
-      <option value="all">Every week</option>
-      <option value="even">Even only (2nd, 4th of month)</option>
-      <option value="odd">Odd only (1st, 3rd, 5th of month)</option>
-    </select>
   </div>
   <input type="hidden" id="gpEditId" value="">
   <div class="modal-btns" style="margin-top:12px"><button class="b b-acc" onclick="PLAN.saveGoalPreset()">Save</button><button class="b" onclick="document.getElementById('goalPresetModal').classList.add('hidden')">Cancel</button></div>
