@@ -104,4 +104,15 @@ if(match!==null)return match;
 /* 3. Default fallback */
 return(cfg.dailyGoals&&cfg.dailyGoals['default'])||6;
 }
-return{getLocal:gl,saveLocal:sl,todayKey:tk,getSess:getSess,todayS:todayS,addSession:addS,deleteSession:delS,getCfg:getCfg,setCfg:setCfg,getDL:getDL,setDL:setDL,getSyl:getSyl,setSyl:setSyl,getRevs:getRevs,setRevs:setRevs,addRev:addRev,getRC:getRC,setRC:setRC,addRC:addRC,getRCDone:getRCDone,setRCDone:setRCDone,markRCDone:markRCDone,getGistId:gid,setGistId:sgid,setToken:stok,getToken:tok,isCloud:cloud,autoConn:autoConn,sync:sync,push:push,validate:validate,makeG:makeG,exportJSON:exportJSON,trigImp:trigImp,doImp:doImp,clearAll:clearAll,disc:disc,getGoalForDate:getGoalForDate,getExams:getExams,setExams:setExams,getAllSubjects:getAllSubjects,getExamForSubject:getExamForSubject,addExam:addExam,removeExam:removeExam,addSubjectToExam:addSubjectToExam,removeSubjectFromExam:removeSubjectFromExam}})();
+/* Per-day wake/bed time: manual override → default */
+function getWakeForDate(dk){
+  var cfg=gl().config||{};
+  if(cfg.dailyWake&&cfg.dailyWake[dk]!==undefined)return cfg.dailyWake[dk];
+  return cfg.wakeTime||6;
+}
+function getBedForDate(dk){
+  var cfg=gl().config||{};
+  if(cfg.dailyBed&&cfg.dailyBed[dk]!==undefined)return cfg.dailyBed[dk];
+  return cfg.bedtime||22.5;
+}
+return{getLocal:gl,saveLocal:sl,todayKey:tk,getSess:getSess,todayS:todayS,addSession:addS,deleteSession:delS,getCfg:getCfg,setCfg:setCfg,getDL:getDL,setDL:setDL,getSyl:getSyl,setSyl:setSyl,getRevs:getRevs,setRevs:setRevs,addRev:addRev,getRC:getRC,setRC:setRC,addRC:addRC,getRCDone:getRCDone,setRCDone:setRCDone,markRCDone:markRCDone,getGistId:gid,setGistId:sgid,setToken:stok,getToken:tok,isCloud:cloud,autoConn:autoConn,sync:sync,push:push,validate:validate,makeG:makeG,exportJSON:exportJSON,trigImp:trigImp,doImp:doImp,clearAll:clearAll,disc:disc,getGoalForDate:getGoalForDate,getWakeForDate:getWakeForDate,getBedForDate:getBedForDate,getExams:getExams,setExams:setExams,getAllSubjects:getAllSubjects,getExamForSubject:getExamForSubject,addExam:addExam,removeExam:removeExam,addSubjectToExam:addSubjectToExam,removeSubjectFromExam:removeSubjectFromExam}})();

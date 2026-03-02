@@ -241,6 +241,7 @@
 .multi-topic-row{display:flex;align-items:center;gap:6px;margin-top:4px}
 .multi-topic-row .lec-label{font-size:.7rem;font-weight:600;color:var(--td);white-space:nowrap;min-width:45px}
 .multi-topic-row input{flex:1}
+.multi-topic-row .hv-lec-hours{flex-shrink:0}
 /* ========== HOURLY DAY VIEW (Google Calendar style) ========== */
 .hourly-view{background:var(--s1);border:1px solid var(--brd);border-radius:12px;overflow:hidden;margin-top:8px}
 .hv-header{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--brd)}
@@ -268,6 +269,7 @@
 .hv-now-dot{position:absolute;left:44px;width:10px;height:10px;border-radius:50%;background:var(--red);z-index:6;transform:translateY(-4px);pointer-events:none}
 .hv-add-hint{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:.55rem;color:var(--tf);font-weight:600;opacity:0;transition:opacity .15s;pointer-events:none}
 .hv-row:hover .hv-add-hint{opacity:1}
+.hv-row.drag-over{background:var(--acc2);border-color:var(--acc)}
 /* Quick add form for time slot */
 .hv-quick-add{background:var(--s2);border:1px solid var(--acc);border-radius:8px;padding:10px;margin:4px 0;animation:fadeUp .15s ease}
 .hv-quick-add .df{gap:4px;margin-bottom:4px}

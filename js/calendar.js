@@ -190,7 +190,7 @@ var CAL=(function(){
   function renderDayDetail(dk){
     var el=document.getElementById('calDayDetail');
     var cfg=D.getCfg();
-    var wakeH=cfg.wakeTime||6;var bedH=cfg.bedtime||22.5;
+    var wakeH=D.getWakeForDate(dk);var bedH=D.getBedForDate(dk);
     var studySess=D.getSess('study',dk);var workSess=D.getSess('work',dk);
     var plans=PLAN.getForDate(dk);
     var _dayNames=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -265,6 +265,15 @@ var CAL=(function(){
     h+='<span style="font-family:JetBrains Mono,monospace;font-size:.62rem;font-weight:700;color:'+(goalPct>=100?'var(--grn)':'var(--acc)')+'">'+goalStudyH.toFixed(1)+'/'+goalH+'h study ('+goalPct+'%)</span>';
     h+='</div>';
 
+    /* Wake/Bed time override */
+    h+='<div style="padding:4px 14px;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:6px;font-size:.6rem">';
+    h+='<span style="color:var(--td)">\u23F0</span>';
+    h+='<span style="color:var(--td)">Wake</span><input type="time" class="inp" id="hvWake" value="'+_fmtTimeVal(wakeH)+'" onchange="CAL.setDayWake(\''+dk+'\')" style="width:72px;font-size:.6rem;padding:3px 5px">';
+    h+='<span style="color:var(--td)">Bed</span><input type="time" class="inp" id="hvBed" value="'+_fmtTimeVal(bedH)+'" onchange="CAL.setDayBed(\''+dk+'\')" style="width:72px;font-size:.6rem;padding:3px 5px">';
+    var hasOverride=(cfg.dailyWake&&cfg.dailyWake[dk]!==undefined)||(cfg.dailyBed&&cfg.dailyBed[dk]!==undefined);
+    if(hasOverride)h+='<button class="b b-xs" onclick="CAL.resetDayTimes(\''+dk+'\')" style="font-size:.5rem">Reset</button>';
+    h+='</div>';
+
     /* Unscheduled plans — rich cards */
     var unscheduled=plans.filter(function(p){return !p.startTime});
     if(unscheduled.length){
@@ -272,7 +281,7 @@ var CAL=(function(){
       h+='<div style="font-size:.6rem;font-weight:700;color:var(--pur);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Unscheduled Plans ('+unscheduled.length+')</div>';
       unscheduled.forEach(function(p){
         var priIco=_priIco(p.priority);
-        h+='<div class="usp-card" onclick="CAL.openPlanDetail(\''+dk+'\',\''+p.id+'\')">';
+        h+='<div class="usp-card" draggable="true" ondragstart="CAL.onPlanDragStart(event,\''+p.id+'\')" data-est="'+p.estHours+'" ontouchstart="CAL._onPlanTouchStart(event,\''+p.id+'\',\''+dk+'\')" ontouchmove="CAL._onPlanTouchMove(event)" ontouchend="CAL._onPlanTouchEnd(event)" onclick="CAL.openPlanDetail(\''+dk+'\',\''+p.id+'\')">';
         h+='<span style="font-size:.8rem">'+priIco+'</span>';
         h+='<div class="usp-info">';
         h+='<div class="usp-title">'+esc(p.subject)+': '+esc(p.topic)+'</div>';
@@ -338,7 +347,7 @@ var CAL=(function(){
     for(var hr=startHour;hr<endHour;hr++){
       var isPast=isToday&&hr<Math.floor(nowH);
       var timeLabel=String(hr).padStart(2,'0')+':00';
-      h+='<div class="hv-row'+(isPast?' past-hour':'')+'" data-hour="'+hr+'" onclick="CAL.onHourClick(\''+dk+'\','+hr+')">';
+      h+='<div class="hv-row'+(isPast?' past-hour':'')+'" data-hour="'+hr+'" onclick="CAL.onHourClick(\''+dk+'\','+hr+')" ondragover="event.preventDefault();this.classList.add(\'drag-over\')" ondragleave="this.classList.remove(\'drag-over\')" ondrop="CAL.onPlanDrop(event,\''+dk+'\','+hr+')">';
       h+='<div class="hv-time">'+timeLabel+'</div>';
       h+='<div class="hv-slot"><span class="hv-add-hint">+ tap to plan</span></div>';
       h+='</div>';
@@ -471,6 +480,7 @@ var CAL=(function(){
     var ah='<button class="b" onclick="CAL.closeCIModal()">Close</button>';
     if(kind==='plan'){
       ah+='<button class="b b-acc" onclick="CAL.closeCIModal();PLAN.openEdit(\''+b.planDk+'\',\''+b.planId+'\')">Edit Plan</button>';
+      ah+='<button class="b" style="color:var(--red)" onclick="CAL.deletePlan(\''+b.planDk+'\',\''+b.planId+'\')">Delete</button>';
     } else if(kind==='session'){
       ah+='<button class="b b-acc" onclick="CAL.editSession(\''+el._dk+'\',\''+b.type+'\','+b.sessIdx+')">Edit</button>';
       ah+='<button class="b" style="color:var(--red)" onclick="CAL.deleteSession(\''+el._dk+'\',\''+b.type+'\','+b.sessIdx+')">Delete</button>';
@@ -518,6 +528,7 @@ var CAL=(function(){
     /* Actions */
     var ah='<button class="b" onclick="CAL.closeCIModal()">Close</button>';
     ah+='<button class="b b-acc" onclick="CAL.closeCIModal();PLAN.openEdit(\''+dk+'\',\''+planId+'\')">Edit Plan</button>';
+    ah+='<button class="b" style="color:var(--red)" onclick="CAL.deletePlan(\''+dk+'\',\''+planId+'\')">Delete</button>';
     actEl.innerHTML=ah;
     modal.classList.remove('hidden');
   }
@@ -550,23 +561,33 @@ var CAL=(function(){
     var endT=String(hour+1).padStart(2,'0')+':00';
     var h='<div class="hv-quick-add">';
     h+='<div style="font-size:.72rem;font-weight:700;color:var(--heading);margin-bottom:6px">Quick Add for '+startT+' \u2014 '+endT+'</div>';
-    /* Type selector */
-    h+='<div class="df"><span class="df-lbl" style="font-size:.65rem">Type</span>';
-    h+='<select class="cat-sel" id="hvType" style="flex:1;font-size:.72rem" onchange="CAL.updateQuickAddFields()">';
-    h+='<option value="study">\u{1F4D6} Study</option>';
-    h+='<option value="work">\u{1F4BC} Work</option>';
-    h+='<option value="knowledge">\u{1F4A1} Knowledge</option>';
-    h+='</select></div>';
+    /* Type toggle pills */
+    _quickType='study';
+    h+='<div style="display:flex;gap:5px;margin-bottom:6px">';
+    h+='<button class="cd-chip on" id="hvTypeStudy" onclick="CAL.setQuickType(\'study\')" style="font-family:inherit;font-size:.65rem">\u{1F4D6} Study</button>';
+    h+='<button class="cd-chip" id="hvTypeWork" onclick="CAL.setQuickType(\'work\')" style="font-family:inherit;font-size:.65rem">\u{1F4BC} Work</button>';
+    h+='<button class="cd-chip" id="hvTypeKnow" onclick="CAL.setQuickType(\'knowledge\')" style="font-family:inherit;font-size:.65rem">\u{1F4A1} Know</button>';
+    h+='</div>';
     /* Subject/Category dropdown — populated dynamically */
     h+='<div class="df" style="margin-top:4px"><span class="df-lbl" id="hvSubjLbl" style="font-size:.65rem">Subject</span><select class="cat-sel" id="hvSubj" style="flex:1;font-size:.72rem">';
     h+=UI.examSubjectOptions(null,false);
     h+='</select></div>';
-    /* Topic input */
-    h+='<div class="df" style="margin-top:4px"><span class="df-lbl" style="font-size:.65rem">Topic</span>';
+    /* Topic input (hidden when lecture mode active) */
+    h+='<div id="hvTopicRow" class="df" style="margin-top:4px"><span class="df-lbl" style="font-size:.65rem">Topic</span>';
     h+='<div class="ac-wrap" style="flex:1;position:relative"><input type="text" class="inp" id="hvTopic" placeholder="What to study..." style="font-size:.72rem;padding:6px 10px" autocomplete="off"></div></div>';
+    /* Lecture section (only for study type) */
+    h+='<div id="hvLecSection" style="margin-top:4px">';
+    h+='<div class="df" style="gap:6px"><span class="df-lbl" style="font-size:.65rem">From Lec #</span>';
+    h+='<input type="number" class="inp" id="hvLecStart" value="1" min="1" step="1" onchange="CAL._onLecCountChange()" style="width:56px;font-size:.72rem;padding:6px 8px">';
+    h+='<span class="df-lbl" style="font-size:.65rem">Count</span>';
+    h+='<input type="number" class="inp" id="hvLecCount" value="0" min="0" max="20" step="1" onchange="CAL._onLecCountChange()" oninput="CAL._onLecCountChange()" style="width:56px;font-size:.72rem;padding:6px 8px">';
+    h+='</div>';
+    h+='<div id="hvLecRows"></div>';
+    h+='<div id="hvLecTotal" style="font-family:\'JetBrains Mono\',monospace;font-size:.65rem;font-weight:700;color:var(--acc);margin-top:4px;display:none"></div>';
+    h+='</div>';
     /* Time range */
     h+='<div class="df" style="margin-top:4px">';
-    h+='<span class="df-lbl" style="font-size:.65rem">Start</span><input type="time" class="inp" id="hvStart" value="'+startT+'" style="width:80px;font-size:.72rem;padding:6px 8px">';
+    h+='<span class="df-lbl" style="font-size:.65rem">Start</span><input type="time" class="inp" id="hvStart" value="'+startT+'" style="width:80px;font-size:.72rem;padding:6px 8px" onchange="CAL._recalcLecTotal()">';
     h+='<span class="df-lbl" style="font-size:.65rem">End</span><input type="time" class="inp" id="hvEnd" value="'+endT+'" style="width:80px;font-size:.72rem;padding:6px 8px">';
     h+='</div>';
     h+='<div style="display:flex;gap:6px;margin-top:6px;justify-content:flex-end">';
@@ -582,7 +603,7 @@ var CAL=(function(){
 
   /* Update subject/category dropdown when type changes */
   function updateQuickAddFields(){
-    var type=(document.getElementById('hvType')||{}).value||'study';
+    var type=_quickType||'study';
     var subjEl=document.getElementById('hvSubj');
     var lblEl=document.getElementById('hvSubjLbl');
     var topicEl=document.getElementById('hvTopic');
@@ -606,15 +627,108 @@ var CAL=(function(){
       subjEl.innerHTML=opts;
       if(topicEl)topicEl.placeholder='What did you learn?';
     }
+    /* Show/hide lecture section based on type */
+    var lecSec=document.getElementById('hvLecSection');
+    if(lecSec){
+      if(type==='study'){
+        lecSec.style.display='';
+      } else {
+        /* Hide lecture section and reset for non-study types */
+        lecSec.style.display='none';
+        var countEl=document.getElementById('hvLecCount');
+        if(countEl)countEl.value='0';
+        var rowsEl=document.getElementById('hvLecRows');
+        if(rowsEl)rowsEl.innerHTML='';
+        var totalEl=document.getElementById('hvLecTotal');
+        if(totalEl){totalEl.style.display='none';totalEl.textContent=''}
+        var topicRow=document.getElementById('hvTopicRow');
+        if(topicRow)topicRow.style.display='';
+      }
+    }
+  }
+
+  /* ==================== LECTURE QUICK-ADD HELPERS ==================== */
+
+  /* Called when lecture count input changes — show/hide topic row, render lecture rows */
+  function _onLecCountChange(){
+    var countEl=document.getElementById('hvLecCount');
+    var topicRow=document.getElementById('hvTopicRow');
+    var rowsEl=document.getElementById('hvLecRows');
+    var totalEl=document.getElementById('hvLecTotal');
+    if(!countEl||!topicRow||!rowsEl)return;
+    var count=parseInt(countEl.value)||0;
+    if(count>0){
+      topicRow.style.display='none';
+      _renderLecRows();
+      if(totalEl)totalEl.style.display='block';
+    } else {
+      topicRow.style.display='';
+      rowsEl.innerHTML='';
+      if(totalEl){totalEl.style.display='none';totalEl.textContent=''}
+    }
+  }
+
+  /* Render per-lecture rows with topic + hours inputs */
+  function _renderLecRows(){
+    var startN=parseInt(document.getElementById('hvLecStart').value)||1;
+    var count=parseInt(document.getElementById('hvLecCount').value)||0;
+    var rowsEl=document.getElementById('hvLecRows');
+    if(!rowsEl)return;
+    var h='';
+    for(var i=0;i<count;i++){
+      var lecN=startN+i;
+      h+='<div class="multi-topic-row">';
+      h+='<span class="lec-label">Lec '+lecN+'</span>';
+      h+='<div class="ac-wrap" style="flex:1;position:relative"><input type="text" class="inp hv-lec-topic" data-lec="'+lecN+'" placeholder="Lecture '+lecN+'..." autocomplete="off" style="font-size:.72rem;padding:6px 10px"></div>';
+      h+='<input type="number" class="inp hv-lec-hours" value="1" min="0.5" max="8" step="0.5" onchange="CAL._recalcLecTotal()" oninput="CAL._recalcLecTotal()" style="width:52px;font-size:.72rem;padding:6px 6px;text-align:center">';
+      h+='<span style="font-size:.6rem;color:var(--td);font-weight:600">h</span>';
+      h+='</div>';
+    }
+    rowsEl.innerHTML=h;
+    /* Attach autocomplete to each lecture topic input */
+    var inputs=rowsEl.querySelectorAll('.hv-lec-topic');
+    for(var j=0;j<inputs.length;j++){
+      UI.autocomplete(inputs[j],function(){return document.getElementById('hvSubj').value});
+    }
+    _recalcLecTotal();
+  }
+
+  /* Sum all lecture hours, update total display and end time */
+  function _recalcLecTotal(){
+    var hrs=document.querySelectorAll('.hv-lec-hours');
+    var total=0;
+    for(var i=0;i<hrs.length;i++) total+=parseFloat(hrs[i].value)||0;
+    var totalEl=document.getElementById('hvLecTotal');
+    if(totalEl&&hrs.length>0) totalEl.textContent='Total: '+total+'h';
+    /* Auto-update end time from start + total */
+    var startEl=document.getElementById('hvStart');
+    var endEl=document.getElementById('hvEnd');
+    if(startEl&&endEl&&hrs.length>0){
+      var sp=startEl.value.split(':');
+      var startMin=parseInt(sp[0])*60+parseInt(sp[1]);
+      var endMin=startMin+Math.round(total*60);
+      var eH=Math.floor(endMin/60),eM=endMin%60;
+      if(eH>23){eH=23;eM=59}
+      endEl.value=String(eH).padStart(2,'0')+':'+String(eM).padStart(2,'0');
+    }
   }
 
   function quickAddPlan(dk){
-    var type=(document.getElementById('hvType')||{}).value||'study';
+    var type=_quickType||'study';
     var subj=document.getElementById('hvSubj').value;
     var topic=document.getElementById('hvTopic').value.trim();
     var startTime=document.getElementById('hvStart').value;
     var endTime=document.getElementById('hvEnd').value;
-    if(!subj||!topic){UI.toast('Fill '+(type==='study'?'subject':'category')+' & topic');return}
+    if(!subj){UI.toast('Select '+(type==='study'?'subject':'category'));return}
+
+    /* Lecture count (only meaningful for study type) */
+    var lecCount=(type==='study')?(parseInt(document.getElementById('hvLecCount').value)||0):0;
+
+    /* Validate: study + no lectures requires topic */
+    if(type==='study'&&lecCount===0&&!topic){UI.toast('Enter a topic');return}
+    /* For work/knowledge, default topic to category name */
+    if(!topic&&lecCount===0)topic=subj;
+
     var sp=startTime.split(':'),ep=endTime.split(':');
     var sh=parseInt(sp[0])*60+parseInt(sp[1]),eh=parseInt(ep[0])*60+parseInt(ep[1]);
     var hours=eh>sh?Math.round((eh-sh)/60*10)/10:1;
@@ -640,7 +754,40 @@ var CAL=(function(){
       return;
     }
 
-    /* Study or Work — save as plan */
+    /* ---- Lecture mode: create one plan per lecture with back-to-back times ---- */
+    if(type==='study'&&lecCount>0){
+      var lecStart=parseInt(document.getElementById('hvLecStart').value)||1;
+      var topicInputs=document.querySelectorAll('.hv-lec-topic');
+      var hoursInputs=document.querySelectorAll('.hv-lec-hours');
+      var plans=PLAN.getPlans();
+      if(!plans[dk])plans[dk]=[];
+      var curMin=sh; /* running start in minutes */
+      for(var i=0;i<lecCount;i++){
+        var lecN=lecStart+i;
+        var lecTopic=(topicInputs[i]?topicInputs[i].value.trim():'')||('Lecture '+lecN);
+        var lecH=parseFloat(hoursInputs[i]?hoursInputs[i].value:1)||1;
+        var lecEndMin=curMin+Math.round(lecH*60);
+        var sT=String(Math.floor(curMin/60)).padStart(2,'0')+':'+String(curMin%60).padStart(2,'0');
+        var eT=String(Math.floor(lecEndMin/60)).padStart(2,'0')+':'+String(lecEndMin%60).padStart(2,'0');
+        plans[dk].push({
+          id:'pl_'+Date.now()+'_'+Math.random().toString(36).slice(2,5)+'_'+i,
+          subject:subj,planFor:'study',type:'lecture',topic:lecTopic,estHours:lecH,priority:'medium',
+          lecNum:lecN,status:'planned',notes:'',actualSecs:0,
+          startTime:sT,endTime:eT,
+          createdAt:new Date().toISOString()
+        });
+        curMin=lecEndMin;
+      }
+      PLAN.setPlans(plans);
+      document.getElementById('hvQuickAdd').classList.add('hidden');
+      renderDayDetail(dk);
+      try{PLAN.render()}catch(e){}
+      D.push();
+      UI.toast(lecCount+' lecture'+(lecCount>1?'s':'')+' added \u2713');
+      return;
+    }
+
+    /* ---- Single plan mode (study topic / work) ---- */
     var plans=PLAN.getPlans();
     if(!plans[dk])plans[dk]=[];
     plans[dk].push({
@@ -830,6 +977,127 @@ var CAL=(function(){
     UI.toast('Session deleted');
   }
 
+  /* ==================== DELETE PLAN ==================== */
+  function deletePlan(dk,planId){
+    if(!confirm('Delete this plan?'))return;
+    var plans=PLAN.getPlans();
+    if(!plans[dk])return;
+    plans[dk]=plans[dk].filter(function(x){return x.id!==planId});
+    if(!plans[dk].length)delete plans[dk];
+    PLAN.setPlans(plans);
+    closeCIModal();
+    renderDayDetail(dk);render();
+    try{PLAN.render()}catch(e){}
+    D.push();UI.toast('Plan deleted');
+  }
+
+  /* ==================== DRAG UNSCHEDULED → HOUR SLOT ==================== */
+  var _dragPlanId=null;
+  function onPlanDragStart(e,planId){
+    _dragPlanId=planId;
+    e.dataTransfer.effectAllowed='move';
+    e.dataTransfer.setData('text/plain',planId);
+  }
+  function onPlanDrop(e,dk,hour){
+    e.preventDefault();
+    e.currentTarget.classList.remove('drag-over');
+    if(!_dragPlanId)return;
+    var plans=PLAN.getPlans();
+    if(!plans[dk])return;
+    var p=plans[dk].find(function(x){return x.id===_dragPlanId});
+    if(!p)return;
+    var startH=hour;
+    var endH=startH+p.estHours;
+    p.startTime=String(Math.floor(startH)).padStart(2,'0')+':'+String(Math.round((startH%1)*60)).padStart(2,'0');
+    p.endTime=String(Math.floor(endH)).padStart(2,'0')+':'+String(Math.round((endH%1)*60)).padStart(2,'0');
+    PLAN.setPlans(plans);
+    _dragPlanId=null;
+    renderDayDetail(dk);
+    try{PLAN.render()}catch(e2){}
+    D.push();UI.toast('Plan scheduled \u2713');
+  }
+
+  /* Touch drag fallback for mobile */
+  var _touchGhost=null,_touchDk=null;
+  function _onPlanTouchStart(e,planId,dk){
+    var touch=e.touches[0];
+    _dragPlanId=planId;_touchDk=dk;
+    var card=e.currentTarget;
+    var rect=card.getBoundingClientRect();
+    _touchGhost=card.cloneNode(true);
+    _touchGhost.style.cssText='position:fixed;z-index:999;opacity:.85;pointer-events:none;width:'+rect.width+'px;box-shadow:0 8px 24px rgba(0,0,0,.3);border-radius:8px;left:'+(touch.clientX-30)+'px;top:'+(touch.clientY-20)+'px';
+    document.body.appendChild(_touchGhost);
+    e.preventDefault();
+  }
+  function _onPlanTouchMove(e){
+    if(!_touchGhost)return;
+    var touch=e.touches[0];
+    _touchGhost.style.left=(touch.clientX-30)+'px';
+    _touchGhost.style.top=(touch.clientY-20)+'px';
+    /* Highlight hovered row */
+    var el=document.elementFromPoint(touch.clientX,touch.clientY);
+    document.querySelectorAll('.hv-row.drag-over').forEach(function(r){r.classList.remove('drag-over')});
+    if(el){
+      var row=el.closest('.hv-row');
+      if(row)row.classList.add('drag-over');
+    }
+    e.preventDefault();
+  }
+  function _onPlanTouchEnd(e){
+    if(!_touchGhost){_dragPlanId=null;return}
+    var touch=e.changedTouches[0];
+    document.querySelectorAll('.hv-row.drag-over').forEach(function(r){r.classList.remove('drag-over')});
+    if(_touchGhost.parentNode)_touchGhost.parentNode.removeChild(_touchGhost);
+    _touchGhost=null;
+    var el=document.elementFromPoint(touch.clientX,touch.clientY);
+    if(el){
+      var row=el.closest('.hv-row');
+      if(row&&_dragPlanId&&_touchDk){
+        var hour=parseInt(row.getAttribute('data-hour'));
+        if(!isNaN(hour))onPlanDrop({preventDefault:function(){},currentTarget:row},_touchDk,hour);
+      }
+    }
+    _dragPlanId=null;_touchDk=null;
+  }
+
+  /* ==================== TYPE TOGGLE (PILL CHIPS) ==================== */
+  var _quickType='study';
+  function setQuickType(type){
+    _quickType=type;
+    ['hvTypeStudy','hvTypeWork','hvTypeKnow'].forEach(function(id){
+      var el=document.getElementById(id);
+      if(el)el.classList.remove('on');
+    });
+    var activeId=type==='study'?'hvTypeStudy':type==='work'?'hvTypeWork':'hvTypeKnow';
+    var el=document.getElementById(activeId);
+    if(el)el.classList.add('on');
+    updateQuickAddFields();
+  }
+
+  /* ==================== PER-DAY WAKE/BED TIME ==================== */
+  function _fmtTimeVal(h){
+    var hh=Math.floor(h),mm=Math.round((h-hh)*60);
+    return String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0');
+  }
+  function setDayWake(dk){
+    var el=document.getElementById('hvWake');if(!el)return;
+    var parts=el.value.split(':');var h=parseInt(parts[0])+parseInt(parts[1])/60;
+    var cfg=D.getCfg();if(!cfg.dailyWake)cfg.dailyWake={};
+    cfg.dailyWake[dk]=h;D.setCfg(cfg);renderDayDetail(dk);D.push();
+  }
+  function setDayBed(dk){
+    var el=document.getElementById('hvBed');if(!el)return;
+    var parts=el.value.split(':');var h=parseInt(parts[0])+parseInt(parts[1])/60;
+    var cfg=D.getCfg();if(!cfg.dailyBed)cfg.dailyBed={};
+    cfg.dailyBed[dk]=h;D.setCfg(cfg);renderDayDetail(dk);D.push();
+  }
+  function resetDayTimes(dk){
+    var cfg=D.getCfg();
+    if(cfg.dailyWake)delete cfg.dailyWake[dk];
+    if(cfg.dailyBed)delete cfg.dailyBed[dk];
+    D.setCfg(cfg);renderDayDetail(dk);D.push();UI.toast('Reset to default');
+  }
+
   return{
     init:init,prev:prev,next:next,render:render,selectDay:selectDay,
     addPlanForDay:addPlanForDay,addSessionForDay:addSessionForDay,
@@ -838,6 +1106,11 @@ var CAL=(function(){
     onHourClick:onHourClick,quickAddPlan:quickAddPlan,updateQuickAddFields:updateQuickAddFields,
     showItemDetail:showItemDetail,openPlanDetail:openPlanDetail,
     closeCIModal:closeCIModal,setPlanStatus:setPlanStatus,
-    editSession:editSession,deleteSession:deleteSession
+    editSession:editSession,deleteSession:deleteSession,
+    deletePlan:deletePlan,onPlanDragStart:onPlanDragStart,onPlanDrop:onPlanDrop,
+    _onPlanTouchStart:_onPlanTouchStart,_onPlanTouchMove:_onPlanTouchMove,_onPlanTouchEnd:_onPlanTouchEnd,
+    setQuickType:setQuickType,
+    _onLecCountChange:_onLecCountChange,_renderLecRows:_renderLecRows,_recalcLecTotal:_recalcLecTotal,
+    setDayWake:setDayWake,setDayBed:setDayBed,resetDayTimes:resetDayTimes
   };
 })();

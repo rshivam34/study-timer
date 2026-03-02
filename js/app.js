@@ -405,8 +405,9 @@ App.rmSubjectFromExam=function(examId,subject){if(!confirm('Remove "'+subject+'"
   /* ========== TIME BUDGET CARD (#6) ========== */
   App.renderTimeBudget = function(){
     var cfg=D.getCfg();
-    var wakeTime=cfg.wakeTime||6;
-    var bedtime=cfg.bedtime||22.5;
+    var today=D.todayKey();
+    var wakeTime=D.getWakeForDate(today);
+    var bedtime=D.getBedForDate(today);
     var effectiveMins=cfg.effectiveMins||50;
     var effectiveRatio=effectiveMins/60;
     /* Awake hours × effective ratio = productive hours in the day */
@@ -575,8 +576,8 @@ App.rmSubjectFromExam=function(examId,subject){if(!confirm('Remove "'+subject+'"
     /* Time/feasibility calculations */
     var now=new Date();
     var hr=now.getHours();
-    var wakeTime=cfg.wakeTime||6;
-    var bedtime=cfg.bedtime||22.5;
+    var wakeTime=D.getWakeForDate(D.todayKey());
+    var bedtime=D.getBedForDate(D.todayKey());
     var effectiveMins=cfg.effectiveMins||50;
     var effectiveRatio=effectiveMins/60;
     var endOfDay=new Date(now);
