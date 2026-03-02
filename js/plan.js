@@ -102,6 +102,29 @@ var PLAN=(function(){
     render();D.push();UI.toast(pending.length+' items carried forward');
   }
 
+  /* Copy Day's Plans — clone all plans from source date to target date */
+  function copyDayPlans(){
+    var targetDate=document.getElementById('planCopyDate').value;
+    var sourceDate=document.getElementById('planViewDate').value;
+    if(!targetDate){UI.toast('Select a target date');return}
+    if(!sourceDate){UI.toast('Select a source date');return}
+    if(targetDate===sourceDate){UI.toast('Target and source dates are the same');return}
+    var sourcePlans=getForDate(sourceDate);
+    if(!sourcePlans.length){UI.toast('No plans to copy from '+sourceDate);return}
+    var allPlans=getPlans();
+    if(!allPlans[targetDate])allPlans[targetDate]=[];
+    sourcePlans.forEach(function(p){
+      var np=JSON.parse(JSON.stringify(p));
+      np.id='pl_'+Date.now()+'_'+Math.random().toString(36).slice(2,5);
+      np.status='planned';
+      np.actualSecs=0;
+      allPlans[targetDate].push(np);
+    });
+    setPlans(allPlans);
+    document.getElementById('planViewDate').value=targetDate;
+    render();D.push();UI.toast(sourcePlans.length+' plans copied ✓');
+  }
+
   function applyTemplate(type){
     var date=document.getElementById('planDate').value;
     if(!date){UI.toast('Select date first');return}
@@ -181,6 +204,14 @@ var PLAN=(function(){
     document.getElementById('planEditModal').classList.add('hidden');
   }
 
+  /* Color Coding — hash subject name to a palette color */
+  var _colorPalette=['var(--acc)','var(--cyn)','var(--pur)','var(--grn)','var(--yel)','var(--blu)','var(--red)','#ec4899'];
+  function _hashColor(str){
+    var hash=0;
+    for(var i=0;i<str.length;i++) hash+=str.charCodeAt(i);
+    return _colorPalette[hash%_colorPalette.length];
+  }
+
   function render(){
     var viewDate=document.getElementById('planViewDate').value||D.todayKey();
     var plans=getForDate(viewDate);
@@ -206,7 +237,8 @@ var PLAN=(function(){
       var typeIco={topic:'📝',lecture:'🎓',revision:'🧠',practice:'✍️',other:'📌'}[p.type]||'📌';
       var statusCls=p.status==='completed'?' completed':p.status==='in-progress'?' in-progress':'';
 
-      h+='<div class="plan-card'+statusCls+'" draggable="true" data-plan-id="'+p.id+'" data-plan-idx="'+idx+'">';
+      var subjColor=_hashColor(p.subject);
+      h+='<div class="plan-card'+statusCls+'" draggable="true" data-plan-id="'+p.id+'" data-plan-idx="'+idx+'" data-color="'+subjColor+'" style="border-left:3px solid '+subjColor+'">';
       h+='<div class="drag-handle" title="Drag to reorder">⠿</div>';
       h+='<div style="flex:1;min-width:0">';
       h+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">';
@@ -350,7 +382,7 @@ var PLAN=(function(){
 
   return{
     init:init,add:add,render:render,updateStatus:updateStatus,remove:remove,
-    completePlan:completePlan,carryForward:carryForward,applyTemplate:applyTemplate,
+    completePlan:completePlan,carryForward:carryForward,copyDayPlans:copyDayPlans,applyTemplate:applyTemplate,
     onSubjChange:onSubjChange,getForDate:getForDate,getTodayPlansForSubject:getTodayPlansForSubject,
     getPlans:getPlans,setPlans:setPlans,
     openEdit:openEdit,saveEdit:saveEdit,closeEdit:closeEdit,

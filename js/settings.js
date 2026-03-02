@@ -33,6 +33,19 @@ if(hr===9&&min<5&&!sent.overdue){
   var oc=TODO.getOverdueCount();
   if(oc>0){fire('⚠️ '+oc+' Overdue To-Do'+(oc>1?'s':''),'Open your to-do list and clear the backlog!');sent.overdue=1}
 }
+// [#35] Todo due date reminders at 8 AM — tasks due today (not just overdue)
+if(hr===8&&min<5&&!sent.todoDue){
+  var _todos=D.getLocal().todos||{};var _dueToday=0;
+  ['study','work'].forEach(function(g){(_todos[g]||[]).forEach(function(t){if(t.status!=='done'&&t.due===today)_dueToday++})});
+  if(_dueToday>0){fire('📋 '+_dueToday+' To-Do'+((_dueToday>1)?'s':'')+' due today','Check your to-do list!');sent.todoDue=1}
+}
+// [#36] Plan reminder at configurable hour — unfinished plans today
+var _planRemHr=parseInt((D.getCfg().planRemindHour)||0);
+if(_planRemHr>0&&hr===_planRemHr&&min<5&&!sent.planRem){
+  var _plans=PLAN.getForDate(today);
+  var _unfinished=_plans.filter(function(p){return p.status!=='completed'&&p.status!=='skipped'}).length;
+  if(_unfinished>0){fire('🎯 '+_unfinished+' unfinished plan'+((_unfinished>1)?'s':'')+' today','Open Planning to review!');sent.planRem=1}
+}
 localStorage.setItem(lastKey,JSON.stringify(sent))}
 function fire(title,body){try{if('serviceWorker' in navigator&&navigator.serviceWorker.controller){navigator.serviceWorker.ready.then(function(reg){reg.showNotification(title,{body:body,icon:'icon192.png',badge:'icon192.png',vibrate:[200,100,200]})})}else{new Notification(title,{body:body,icon:'icon192.png'})}}catch(e){new Notification(title,{body:body})}}
 return{requestPerm:requestPerm,updateStatus:updateStatus,scheduleChecks:scheduleChecks,checkAndNotify:checkAndNotify}})();

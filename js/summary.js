@@ -98,8 +98,64 @@ var SUM=(function(){
       h+='<span class="jtag'+(on?' on':'')+'" onclick="SUM.toggleTag(\''+t+'\')">'+t+'</span>';
     });
     h+='</div>';
+
+    /* [#38] Journal Streak — consecutive days with rating or mood */
+    h+=_journalStreak(journal);
+
+    /* [#39] Mood Trend Sparkline — 7-day mini bar chart */
+    h+=_moodSparkline(journal);
+
     h+='</div>';
     document.getElementById('sumJournal').innerHTML=h;
+  }
+
+  /* ---- [#38] Journal Streak ---- */
+  function _journalStreak(journal){
+    var jStreak=0;var jd=new Date();jd.setDate(jd.getDate()-1);
+    for(var i=0;i<365;i++){
+      var jk=D.todayKey(jd);
+      var je=journal[jk];
+      if(je&&(je.rating||je.mood))jStreak++;else break;
+      jd.setDate(jd.getDate()-1);
+    }
+    /* Check today too */
+    var todayEntry=journal[D.todayKey()];
+    if(todayEntry&&(todayEntry.rating||todayEntry.mood))jStreak++;
+    return'<div style="margin-top:8px;padding:8px;background:var(--s3);border-radius:8px;display:flex;align-items:center;gap:8px"><span style="font-size:1.1rem">📝</span><div><div style="font-size:.65rem;font-weight:700;color:var(--heading)">Journal Streak</div><div style="font-size:.85rem;font-weight:800;color:var(--acc)">'+jStreak+' day'+(jStreak!==1?'s':'')+'</div></div></div>';
+  }
+
+  /* ---- [#39] Mood Trend Sparkline ---- */
+  function _moodSparkline(journal){
+    var MOOD_MAP={'\uD83D\uDE24':1,'\uD83D\uDE1E':2,'\uD83D\uDE10':3,'\uD83D\uDE0A':4,'\uD83E\uDD29':5};
+    var days=[];
+    for(var i=6;i>=0;i--){
+      var md=new Date();md.setDate(md.getDate()-i);
+      var mk=D.todayKey(md);
+      var me=journal[mk]||{};
+      var mVal=me.mood?MOOD_MAP[me.mood]||0:0;
+      var dayLabel=['Su','Mo','Tu','We','Th','Fr','Sa'][md.getDay()];
+      days.push({label:dayLabel,val:mVal,mood:me.mood||''});
+    }
+    var hasAny=days.some(function(d){return d.val>0});
+    if(!hasAny)return'';
+
+    var h='<div style="margin-top:8px"><div style="font-size:.6rem;font-weight:600;color:var(--td);margin-bottom:4px">Mood Trend (7 days)</div>';
+    h+='<div style="display:flex;align-items:flex-end;gap:4px;height:40px">';
+    days.forEach(function(d){
+      var barH=d.val?Math.round(d.val/5*100):4;
+      var col=d.val>=4?'var(--grn)':d.val===3?'var(--yel)':d.val>=1?'var(--red)':'var(--s3)';
+      h+='<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:1px">';
+      if(d.mood)h+='<span style="font-size:.55rem">'+d.mood+'</span>';
+      h+='<div style="width:100%;height:'+barH+'%;background:'+col+';border-radius:3px;min-height:2px"></div>';
+      h+='</div>';
+    });
+    h+='</div>';
+    h+='<div style="display:flex;gap:4px;margin-top:2px">';
+    days.forEach(function(d){
+      h+='<div style="flex:1;text-align:center;font-size:.42rem;color:var(--tf)">'+d.label+'</div>';
+    });
+    h+='</div></div>';
+    return h;
   }
   function setRating(r){var dk=document.getElementById('sumDate').value;var j=getJournal();if(!j[dk])j[dk]={};j[dk].rating=r;setJournal(j);renderJournal(dk);D.push()}
   function setMood(m){var dk=document.getElementById('sumDate').value;var j=getJournal();if(!j[dk])j[dk]={};j[dk].mood=m;setJournal(j);renderJournal(dk);D.push()}
@@ -370,6 +426,10 @@ var SUM=(function(){
       d2.setDate(d2.getDate()-1);
     }
 
+    /* [#27] Track longest streak ever */
+    var longestStreak=cfg.longestStreak||0;
+    if(streak>longestStreak){longestStreak=streak;cfg.longestStreak=streak;D.setCfg(cfg)}
+
     /* --- Hour buckets --- */
     var hourBuckets=new Array(24).fill(0);
     if(data.study){Object.values(data.study).forEach(function(sess){
@@ -402,6 +462,64 @@ var SUM=(function(){
 
     var h='<div class="summary-card"><h4>📈 Analytics Overview</h4>';
     h+=sumRow('🔥 Study Streak',streak+'d');
+    h+=sumRow('🏅 Longest Streak',longestStreak+'d');
+
+    /* [#27] Streak Calendar — 4-week × 7-day mini grid */
+    h+='<div style="margin-top:8px;font-size:.65rem;color:var(--td);font-weight:600;margin-bottom:4px">Streak Calendar (4 weeks)</div>';
+    h+='<div style="display:flex;gap:1px;font-size:.4rem;color:var(--tf);margin-bottom:2px">';
+    ['S','M','T','W','T','F','S'].forEach(function(dl){h+='<div style="width:calc((100% - 6px)/7);text-align:center">'+dl+'</div>'});
+    h+='</div>';
+    var streakWeeks=[];
+    for(var sw=3;sw>=0;sw--){
+      var weekRow=[];
+      for(var sd=0;sd<7;sd++){
+        /* Align to Sunday of current week, then offset by week and day */
+        var sdd=new Date();
+        var todayDow=sdd.getDay();
+        sdd.setDate(sdd.getDate()-todayDow-sw*7+sd);
+        var sdk=D.todayKey(sdd);
+        var sdSess=D.getSess('study',sdk);var sdTotal=0;
+        sdSess.forEach(function(s){sdTotal+=s.dur});
+        var sdGoal=(cfg.dailyGoals[sdk]||cfg.dailyGoals['default']||6)*3600;
+        var sdStatus='none';
+        if(sdTotal>=sdGoal)sdStatus='met';
+        else if(sdTotal>=sdGoal*0.5)sdStatus='partial';
+        else if(sdTotal>0)sdStatus='miss';
+        weekRow.push(sdStatus);
+      }
+      streakWeeks.push(weekRow);
+    }
+    streakWeeks.forEach(function(week){
+      h+='<div style="display:flex;gap:1px;margin-bottom:1px">';
+      week.forEach(function(st){
+        var col=st==='met'?'var(--grn)':st==='partial'?'var(--yel)':st==='miss'?'var(--red)':'var(--s3)';
+        h+='<div style="width:calc((100% - 6px)/7);aspect-ratio:1;background:'+col+';border-radius:3px"></div>';
+      });
+      h+='</div>';
+    });
+    h+='<div style="display:flex;gap:8px;margin-top:4px;font-size:.48rem;color:var(--tf)">';
+    h+='<span><span style="display:inline-block;width:8px;height:8px;background:var(--grn);border-radius:2px"></span> Met</span>';
+    h+='<span><span style="display:inline-block;width:8px;height:8px;background:var(--yel);border-radius:2px"></span> Partial</span>';
+    h+='<span><span style="display:inline-block;width:8px;height:8px;background:var(--red);border-radius:2px"></span> Miss</span>';
+    h+='<span><span style="display:inline-block;width:8px;height:8px;background:var(--s3);border-radius:2px"></span> None</span>';
+    h+='</div>';
+
+    /* [#27] Weekly streak breakdown — last 4 weeks */
+    h+='<div style="margin-top:8px;font-size:.65rem;color:var(--td);font-weight:600;margin-bottom:4px">Weekly Streak Breakdown</div>';
+    for(var wb=3;wb>=0;wb--){
+      var wbMet=0,wbPartial=0,wbMiss=0;
+      streakWeeks[3-wb].forEach(function(st){
+        if(st==='met')wbMet++;else if(st==='partial')wbPartial++;else if(st==='miss')wbMiss++;
+      });
+      var wbLabel=wb===0?'This week':wb===1?'Last week':wb+' weeks ago';
+      var wbPct=Math.round(wbMet/7*100);
+      h+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;font-size:.58rem">';
+      h+='<span style="width:72px;color:var(--tf)">'+wbLabel+'</span>';
+      h+='<div style="flex:1;height:8px;background:var(--s3);border-radius:4px;overflow:hidden"><div style="height:100%;width:'+wbPct+'%;background:var(--grn);border-radius:4px"></div></div>';
+      h+='<span style="width:32px;text-align:right;font-weight:600;color:var(--heading)">'+wbMet+'/7</span>';
+      h+='</div>';
+    }
+
     h+=sumRow('⏰ Peak Study Hour',peakHour+':00 — '+(peakHour+1)+':00');
     h+=sumRow('🎯 Goal Achievement',goalDays?Math.round(achievedDays/goalDays*100)+'% ('+achievedDays+'/'+goalDays+')':'No data');
 
@@ -523,29 +641,195 @@ var SUM=(function(){
       h+='</div>';
     }
 
+    /* [#28] Goal Achievement Calendar — mini month grid */
+    h+=_goalCalendar(cfg);
+
+    /* [#29] Focus Score — composite 0-100 */
+    h+=_focusScore(last90,cfg,goalDays,achievedDays);
+
+    /* [#30] Plan Completion Trend — 4-week bar chart */
+    h+=_planTrend();
+
+    /* [#31] Estimation Accuracy — estimated vs actual */
+    h+=_estimationAccuracy();
+
     document.getElementById('sumAnalytics').innerHTML=h;
   }
 
-  function exportSummary(){
-    var dk=document.getElementById('sumDate').value||D.todayKey();
-    var cards=document.querySelectorAll('#sumDailyCard, #sumJournal, #sumWeekly, #sumMonthly, #sumAnalytics');
-    var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Study Timer Summary — '+dk+'</title>';
-    html+='<style>body{font-family:system-ui,sans-serif;max-width:700px;margin:20px auto;padding:20px;background:#0d0d14;color:#e2e8f0}';
-    html+='.summary-card{background:#141420;border:1px solid #2d2d3f;border-radius:12px;padding:16px;margin-bottom:12px}';
-    html+='h4{font-size:14px;font-weight:700;margin-bottom:8px}';
-    html+='.sum-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #2d2d3f;font-size:13px}';
-    html+='.sum-label{color:#94a3b8}.sum-value{font-weight:700;color:#e2e8f0}';
-    html+='</style></head><body><h1 style="text-align:center;font-size:18px">📊 Study Timer Summary — '+dk+'</h1>';
-    cards.forEach(function(c){html+=c.innerHTML});
-    html+='<p style="text-align:center;color:#64748b;font-size:11px;margin-top:20px">Generated by Study Timer V3</p></body></html>';
+  /* ---- [#28] Goal Achievement Calendar ---- */
+  function _goalCalendar(cfg){
+    var now=new Date();var year=now.getFullYear(),month=now.getMonth();
+    var daysInMonth=new Date(year,month+1,0).getDate();
+    var firstDow=new Date(year,month,1).getDay();
+    var monthNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var h='<div class="summary-card"><h4>🗓️ Goal Calendar — '+monthNames[month]+' '+year+'</h4>';
+    /* Day-of-week headers */
+    h+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;font-size:.45rem;color:var(--tf);text-align:center;margin-bottom:2px">';
+    ['S','M','T','W','T','F','S'].forEach(function(dl){h+='<div>'+dl+'</div>'});
+    h+='</div>';
+    h+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px">';
+    /* Empty cells for offset */
+    for(var e=0;e<firstDow;e++) h+='<div></div>';
+    for(var day=1;day<=daysInMonth;day++){
+      var gk=year+'-'+String(month+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+      var gSess=D.getSess('study',gk);var gTotal=0;
+      gSess.forEach(function(s){gTotal+=s.dur});
+      var gGoal=(cfg.dailyGoals[gk]||cfg.dailyGoals['default']||6)*3600;
+      var gCol='var(--s3)'; /* no data = gray */
+      if(gTotal>0){gCol=gTotal>=gGoal?'var(--grn)':'var(--red)'}
+      var todayMark=gk===D.todayKey()?' outline:2px solid var(--acc);outline-offset:-2px;':'';
+      h+='<div style="aspect-ratio:1;background:'+gCol+';border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:.42rem;color:var(--heading);font-weight:600;'+todayMark+'" title="'+gk+': '+UI.fd(gTotal)+'">'+day+'</div>';
+    }
+    h+='</div>';
+    /* Legend */
+    h+='<div style="display:flex;gap:10px;margin-top:6px;font-size:.5rem;color:var(--tf)">';
+    h+='<span><span style="display:inline-block;width:8px;height:8px;background:var(--grn);border-radius:2px"></span> Goal Met</span>';
+    h+='<span><span style="display:inline-block;width:8px;height:8px;background:var(--red);border-radius:2px"></span> Missed</span>';
+    h+='<span><span style="display:inline-block;width:8px;height:8px;background:var(--s3);border-radius:2px"></span> No Data</span>';
+    h+='</div></div>';
+    return h;
+  }
 
-    var blob=new Blob([html],{type:'text/html'});
-    var url=URL.createObjectURL(blob);
-    var a=document.createElement('a');
-    a.href=url;a.download='summary-'+dk+'.html';
-    document.body.appendChild(a);a.click();document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    UI.toast('Summary exported ✓');
+  /* ---- [#29] Focus Score ---- */
+  function _focusScore(last90,cfg,goalDays,achievedDays){
+    var last30=last90.slice(-30);
+    /* Component 1: Avg session length (25%) — target 50 min = 3000s for 100 */
+    var totalSessLen=0,sessCount=0;
+    last30.forEach(function(d){
+      if(d.sessions>0){totalSessLen+=d.avgSess*d.sessions;sessCount+=d.sessions}
+    });
+    var avgSessLen=sessCount?totalSessLen/sessCount:0;
+    var sessScore=Math.min(100,Math.round(avgSessLen/3000*100));
+    /* Component 2: Consistency (25%) — % of last 30 days with any study */
+    var activeDays=last30.filter(function(d){return d.study>0}).length;
+    var consistScore=Math.round(activeDays/30*100);
+    /* Component 3: Goal % (25%) */
+    var goalScore=goalDays?Math.round(achievedDays/goalDays*100):0;
+    goalScore=Math.min(100,goalScore);
+    /* Component 4: Plan completion % (25%) */
+    var planTotal=0,planDone=0;
+    last30.forEach(function(d){
+      var plans=PLAN.getForDate(d.dk);
+      planTotal+=plans.length;
+      planDone+=plans.filter(function(p){return p.status==='completed'}).length;
+    });
+    var planScore=planTotal?Math.round(planDone/planTotal*100):0;
+
+    var focusTotal=Math.round((sessScore+consistScore+goalScore+planScore)/4);
+
+    /* SVG ring */
+    var ringR=38,ringC=2*Math.PI*ringR;
+    var ringOffset=ringC-(focusTotal/100)*ringC;
+    var ringColor=focusTotal>=75?'var(--grn)':focusTotal>=50?'var(--yel)':focusTotal>=25?'var(--acc)':'var(--red)';
+
+    var h='<div class="summary-card"><h4>🎯 Focus Score</h4>';
+    h+='<div style="display:flex;align-items:center;gap:16px">';
+    h+='<div class="focus-ring" style="position:relative;width:90px;height:90px">';
+    h+='<svg width="90" height="90" viewBox="0 0 90 90">';
+    h+='<circle cx="45" cy="45" r="'+ringR+'" fill="none" stroke="var(--s3)" stroke-width="8"/>';
+    h+='<circle cx="45" cy="45" r="'+ringR+'" fill="none" stroke="'+ringColor+'" stroke-width="8" stroke-linecap="round" stroke-dasharray="'+ringC.toFixed(1)+'" stroke-dashoffset="'+ringOffset.toFixed(1)+'" transform="rotate(-90 45 45)"/>';
+    h+='</svg>';
+    h+='<div class="focus-ring-num" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:1.3rem;font-weight:800;color:'+ringColor+'">'+focusTotal+'</div>';
+    h+='</div>';
+    h+='<div style="flex:1">';
+    /* 4 mini progress bars */
+    var components=[
+      {label:'Avg Session',score:sessScore},
+      {label:'Consistency',score:consistScore},
+      {label:'Goal %',score:goalScore},
+      {label:'Plan Done',score:planScore}
+    ];
+    components.forEach(function(c){
+      var cCol=c.score>=75?'var(--grn)':c.score>=50?'var(--yel)':c.score>=25?'var(--acc)':'var(--red)';
+      h+='<div style="margin-bottom:4px"><div style="display:flex;justify-content:space-between;font-size:.55rem;color:var(--tf);margin-bottom:1px"><span>'+c.label+'</span><span style="font-weight:700;color:var(--heading)">'+c.score+'</span></div>';
+      h+='<div class="mini-pbar" style="height:6px;background:var(--s3);border-radius:3px;overflow:hidden"><div class="mini-pbar-fg" style="height:100%;width:'+c.score+'%;background:'+cCol+';border-radius:3px"></div></div></div>';
+    });
+    h+='</div></div></div>';
+    return h;
+  }
+
+  /* ---- [#30] Plan Completion Trend — 4-week bar chart ---- */
+  function _planTrend(){
+    var weeks=[];
+    for(var w=3;w>=0;w--){
+      var wTotal=0,wDone=0;
+      for(var d=0;d<7;d++){
+        var dd=new Date();dd.setDate(dd.getDate()-w*7-dd.getDay()+d);
+        var dk=D.todayKey(dd);
+        var plans=PLAN.getForDate(dk);
+        wTotal+=plans.length;
+        wDone+=plans.filter(function(p){return p.status==='completed'}).length;
+      }
+      var pct=wTotal?Math.round(wDone/wTotal*100):0;
+      weeks.push({label:w===0?'This wk':w===1?'Last wk':w+'wk ago',pct:pct,done:wDone,total:wTotal});
+    }
+    var hasData=weeks.some(function(w){return w.total>0});
+    if(!hasData)return'';
+
+    var h='<div class="summary-card"><h4>📋 Plan Completion Trend</h4>';
+    h+='<div style="display:flex;align-items:flex-end;gap:6px;height:60px;margin:8px 0">';
+    weeks.forEach(function(w){
+      var barH=Math.max(4,w.pct);
+      var col=w.pct>=75?'var(--grn)':w.pct>=50?'var(--yel)':w.pct>=25?'var(--acc)':'var(--red)';
+      h+='<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">';
+      h+='<span style="font-size:.5rem;font-weight:700;color:var(--heading)">'+w.pct+'%</span>';
+      h+='<div style="width:100%;height:'+barH+'%;background:'+col+';border-radius:4px" title="'+w.done+'/'+w.total+'"></div>';
+      h+='</div>';
+    });
+    h+='</div>';
+    h+='<div style="display:flex;gap:6px">';
+    weeks.forEach(function(w){
+      h+='<div style="flex:1;text-align:center;font-size:.48rem;color:var(--tf)">'+w.label+'</div>';
+    });
+    h+='</div></div>';
+    return h;
+  }
+
+  /* ---- [#31] Estimation Accuracy ---- */
+  function _estimationAccuracy(){
+    /* Aggregate estimated vs actual across all plans for the last 30 days */
+    var totalEst=0,totalActual=0,planCount=0;
+    for(var i=29;i>=0;i--){
+      var dd=new Date();dd.setDate(dd.getDate()-i);
+      var dk=D.todayKey(dd);
+      var plans=PLAN.getForDate(dk);
+      plans.forEach(function(p){
+        if(p.estHours&&p.estHours>0){
+          totalEst+=p.estHours;
+          /* Actual hours: convert actualSecs to hours, or estimate from sessions */
+          var actual=(p.actualSecs||0)/3600;
+          if(!actual&&p.status==='completed'){
+            var sess=D.getSess('study',dk);
+            sess.forEach(function(s){
+              if(s.cat===p.subject||s.planId===p.id)actual+=s.dur/3600;
+            });
+          }
+          if(actual>0){totalActual+=actual;planCount++}
+        }
+      });
+    }
+    if(planCount<1)return'';
+
+    var diff=totalActual-totalEst;
+    var diffPct=totalEst?Math.round(Math.abs(diff)/totalEst*100):0;
+    var msg,msgCol;
+    if(diff>0){msg='You underestimate by '+diffPct+'%';msgCol='var(--yel)'}
+    else if(diff<0){msg='You overestimate by '+diffPct+'%';msgCol='var(--cyn)'}
+    else{msg='Your estimates are spot on!';msgCol='var(--grn)'}
+
+    var h='<div class="summary-card"><h4>🎯 Estimation Accuracy</h4>';
+    h+='<div style="font-size:.55rem;color:var(--tf);margin-bottom:6px">Last 30 days · '+planCount+' plans with estimates</div>';
+    h+=sumRow('Estimated Total',totalEst.toFixed(1)+'h');
+    h+=sumRow('Actual Total',totalActual.toFixed(1)+'h');
+    h+='<div style="margin-top:8px;padding:8px;background:var(--s3);border-radius:8px;text-align:center">';
+    h+='<div style="font-size:.85rem;font-weight:700;color:'+msgCol+'">'+msg+'</div>';
+    h+='</div></div>';
+    return h;
+  }
+
+  /* [#53] Export as PDF — uses browser print dialog with @media print CSS */
+  function exportSummary(){
+    window.print();
   }
 
   return{init:init,today:today,render:render,setRating:setRating,setMood:setMood,saveJournal:saveJournal,toggleTag:toggleTag,exportSummary:exportSummary};

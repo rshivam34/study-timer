@@ -51,6 +51,63 @@
 .drag-handle:active{cursor:grabbing}
 .plan-card.dragging{opacity:.4}
 .plan-card.drag-over{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc2)}
+/* V3 — Streak Calendar */
+.streak-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin:6px 0}
+.streak-dot{width:100%;aspect-ratio:1;border-radius:3px;background:var(--s3);font-size:0}
+.streak-dot.met{background:var(--grn)}
+.streak-dot.partial{background:var(--yel)}
+.streak-dot.miss{background:var(--s3)}
+.streak-dot.none{background:var(--s2)}
+/* V3 — Goal Achievement Calendar */
+.goal-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin:6px 0}
+.gcal-cell{width:100%;aspect-ratio:1;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:.4rem;font-weight:700;color:var(--heading)}
+.gcal-met{background:rgba(52,211,153,.25);color:var(--grn)}
+.gcal-miss{background:rgba(248,113,113,.2);color:var(--red)}
+.gcal-none{background:var(--s2);color:var(--tf)}
+/* V3 — Focus Score Ring */
+.focus-ring{position:relative;width:80px;height:80px;flex-shrink:0}
+.focus-ring svg{width:80px;height:80px;transform:rotate(-90deg)}
+.focus-ring-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:900;color:var(--heading)}
+/* V3 — Todo Progress Bar */
+.todo-pbar-bg{height:6px;background:var(--s3);border-radius:3px;margin:6px 0;overflow:hidden}
+.todo-pbar-fg{height:100%;background:var(--grn);border-radius:3px;transition:width .3s}
+/* V3 — Todo Bulk Actions */
+.todo-bulk-bar{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--s2);border:1px solid var(--brd);border-radius:8px;margin:6px 0}
+.todo-bulk{display:inline-flex;align-items:center}
+/* V3 — Todo Drag States */
+.todo-item.dragging{opacity:.4}
+.todo-item.drag-over{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc2)}
+.todo-drag-handle{cursor:grab;font-size:.7rem;color:var(--tf);padding:0 3px;user-select:none}
+.todo-drag-handle:active{cursor:grabbing}
+/* V3 — Calendar Dot Variants */
+.cal-dot-hollow{width:5px;height:5px;border-radius:50%;border:1.5px solid var(--pur);background:transparent;display:inline-block}
+.cal-dot-filled{width:5px;height:5px;border-radius:50%;background:var(--grn);display:inline-block}
+/* V3 — Onboarding Hints */
+.onboard-hint{background:var(--acc2);border:1px solid var(--acc);border-radius:10px;padding:10px 14px;margin:8px 0;font-size:.72rem;color:var(--t2);display:flex;align-items:center;gap:8px}
+.onboard-hint button{margin-left:auto;background:none;border:none;color:var(--acc);font-weight:700;cursor:pointer;font-size:.72rem;white-space:nowrap}
+/* V3 — Offline Banner */
+.offline-banner{background:var(--yel2);border:1px solid var(--yel);border-radius:8px;padding:8px 14px;margin-bottom:8px;font-size:.72rem;font-weight:600;color:var(--yel);text-align:center}
+/* V3 — Plan Color Coding Border */
+.plan-card[data-color]{border-left:3px solid var(--acc)}
+/* V3 — Mini progress bars for focus score */
+.mini-pbar{height:4px;background:var(--s3);border-radius:2px;overflow:hidden;flex:1}
+.mini-pbar-fg{height:100%;border-radius:2px}
+/* V3 — Print / PDF Export */
+@media print{
+  body{background:#fff!important;color:#000!important}
+  .app{padding:0!important;max-width:100%!important}
+  #mainApp>div:first-child,.hdr,.quote-bar,.quote-panel,.nav-hamburger,.sync,.theme-toggle,.sp-nav,
+  .side-panel,.side-overlay,.focus-overlay,.modal,.toast,
+  #p-study,#p-work,#p-plan,#p-calendar,#p-todo,#p-report,#p-syl,#p-rev,#p-remind,#p-recur,#p-sett,
+  .b,.b-xs,.b-sm,button,.manage-add,.df .b{display:none!important}
+  #p-summary{display:block!important;opacity:1!important}
+  #p-summary .tp{display:block!important}
+  .summary-card{border:1px solid #ddd!important;background:#fff!important;break-inside:avoid;page-break-inside:avoid}
+  .summary-card h4{color:#000!important}
+  .sum-row{border-bottom:1px solid #eee!important}
+  .sum-label{color:#666!important}.sum-value{color:#000!important}
+  #offlineBanner,#onboardContainer,.onboard-hint{display:none!important}
+}
 </style>
 </head>
 <body>
@@ -85,6 +142,7 @@
 
 
 <div class="app hidden" id="mainApp">
+<div class="offline-banner hidden" id="offlineBanner">⚡ You're offline — changes saved locally</div>
 <!-- Top Bar: Hamburger + Sync + Actions -->
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
   <div style="display:flex;align-items:center;gap:8px">
@@ -103,6 +161,7 @@
   <div class="quote-list" id="quoteList"></div>
   <div class="manage-add"><input type="text" class="inp" id="addQuote" placeholder="Add your own motivation..." style="flex:1"><button class="b b-sm b-acc" onclick="App.addQuote()">Add</button></div>
 </div>
+<div id="onboardContainer"></div>
 
 
 <!-- STUDY TAB -->
@@ -206,6 +265,10 @@
     <span class="df-lbl">Viewing</span><input type="date" class="inp" id="planViewDate" style="flex:1" onchange="PLAN.render()">
     <button class="b b-xs" onclick="PLAN.carryForward()">📋 Carry Forward</button>
   </div>
+  <div class="df" style="margin-bottom:6px">
+    <span class="df-lbl">Copy to</span><input type="date" class="inp" id="planCopyDate" style="flex:1">
+    <button class="b b-xs b-acc" onclick="PLAN.copyDayPlans()">📋 Copy Plans</button>
+  </div>
   <div class="sl">Today's Plan</div>
   <div id="planList"></div>
 </div>
@@ -218,6 +281,7 @@
     <span class="cal-nav-title" id="calTitle"></span>
     <button onclick="CAL.next()">▶</button>
     <button class="b b-xs" id="calViewToggle" onclick="CAL.toggleView()" style="margin-left:6px">Week</button>
+    <button class="b b-xs" onclick="CAL.exportICS()" style="margin-left:4px">📅 .ics</button>
   </div>
   <div class="cal-grid" id="calGrid"></div>
   <div id="calDayDetail"></div>
@@ -244,6 +308,13 @@
   </div>
   <input type="text" class="inp" id="todoSearch" placeholder="🔍 Search to-dos..." oninput="TODO.render()" style="margin:6px 0;font-size:.75rem">
   <span class="overdue-badge hidden" id="todoOverdueBadge"></span>
+  <div id="todoProgressBar"></div>
+  <div class="todo-bulk-bar hidden" id="todoBulkActions">
+    <label class="todo-bulk" style="font-size:.7rem;font-weight:600;display:flex;align-items:center;gap:4px"><input type="checkbox" id="todoSelectAll" onchange="TODO.toggleSelectAll()"> Select All</label>
+    <button class="b b-xs b-grn" onclick="TODO.markSelectedDone()">✓ Complete</button>
+    <button class="b b-xs b-danger" onclick="TODO.removeSelected()">✕ Delete</button>
+    <span class="todo-bulk" id="todoBulkCount" style="font-size:.6rem;color:var(--td)"></span>
+  </div>
   <div id="todoFullList"></div>
   <div style="margin-top:8px"><button class="b b-sm b-acc" onclick="TODO.openAddModal()">+ Add To-Do</button></div>
 </div>
@@ -302,8 +373,9 @@
 <div class="tp" id="p-sett"><div class="sl">Study Subjects (hold ☰ to drag)</div><div id="mngStudy"></div><div class="manage-add" style="margin-bottom:12px"><input type="text" class="inp" id="addStudy" placeholder="New subject..." style="flex:1"><button class="b b-sm" onclick="App.addCat('study')">Add</button></div><div class="sl">Work Categories (hold ☰ to drag)</div><div id="mngWork"></div><div class="manage-add" style="margin-bottom:12px"><input type="text" class="inp" id="addWork" placeholder="New category..." style="flex:1"><button class="b b-sm" onclick="App.addCat('work')">Add</button></div>
 <div class="sl">Urgency Settings</div><div class="srow" style="flex-direction:column;gap:6px;align-items:stretch"><div class="df"><span class="df-lbl">Bedtime</span><select class="cat-sel" id="cfgBedtime" onchange="App.saveCfgExtra()" style="flex:1"><option value="22">10 PM</option><option value="23" selected>11 PM</option><option value="24">12 AM</option><option value="25">1 AM</option></select></div><div class="df"><span class="df-lbl">Effective min/hr</span><input type="number" class="inp" id="cfgEffective" value="45" min="30" max="60" style="width:60px" onchange="App.saveCfgExtra()"><span class="df-lbl">min</span></div></div>
 <div class="sl">Notifications</div><div class="srow"><div><strong id="notifStatus">Notifications: Not set</strong><p class="srow-d">Deadline, revision & recurring reminders</p></div><button class="b b-sm" onclick="NOTIFY.requestPerm()">Enable</button></div>
+<div class="srow"><div><strong>Plan Reminder</strong><p class="srow-d">Daily reminder for unfinished plans</p></div><select class="cat-sel" id="cfgPlanRemindHour" onchange="App.saveCfgExtra()" style="min-width:90px"><option value="0">Off</option><option value="6">6 AM</option><option value="7">7 AM</option><option value="8">8 AM</option><option value="9">9 AM</option><option value="10">10 AM</option></select></div>
 <div class="sl">Install as App</div><div class="srow" style="flex-direction:column;gap:8px;align-items:stretch"><div style="display:flex;justify-content:space-between;align-items:center"><div><strong>Install on Device</strong><p class="srow-d" id="pwaStatus">Tap Install to add to home screen</p></div><button class="b b-sm b-acc" id="pwaInstallBtn" onclick="App.installPWA()">📲 Install</button></div><div id="pwaManual" class="hidden" style="background:var(--s2);border-radius:8px;padding:10px 12px;font-size:.72rem;color:var(--t2);line-height:1.7"><b>Android Chrome:</b> Tap ⋮ menu → <b>Add to Home Screen</b><br><b>iOS Safari:</b> Tap Share □↑ → <b>Add to Home Screen</b></div></div>
-<div class="sl">Shortcuts</div><div class="srow"><div><strong>Keyboard</strong><p class="srow-d"><span class="kbd">Space</span> Start/Pause <span class="kbd">S</span> Save <span class="kbd">D</span> Discard <span class="kbd">F</span> Focus <span class="kbd">T</span> Theme</p></div></div>
+<div class="sl">Shortcuts</div><div class="srow"><div><strong>Keyboard</strong><p class="srow-d"><span class="kbd">Space</span> Start/Pause <span class="kbd">S</span> Save <span class="kbd">Shift+D</span> Discard <span class="kbd">F</span> Focus <span class="kbd">T</span> Theme <span class="kbd">P</span> Planning <span class="kbd">C</span> Calendar <span class="kbd">D</span> To-Do <span class="kbd">U</span> Summary</p></div></div>
 <div class="sl">Sync</div><div class="srow"><div><strong>GitHub Gist</strong><p class="srow-d" id="gInfo">Not connected</p></div><button class="b b-sm" id="gBtn" onclick="App.reconn()">Connect</button></div>
 <div class="sl">Data Management</div><div class="srow"><div><strong>Export</strong><p class="srow-d">JSON backup</p></div><button class="b b-sm" onclick="D.exportJSON()">Export</button></div><div class="srow"><div><strong>Import</strong><p class="srow-d">Merge from file</p></div><button class="b b-sm" onclick="D.trigImp()">Import</button></div>
 <div class="sl">Reset Data</div><div class="srow"><div><strong>Selective Clear</strong><p class="srow-d">Clear sessions in a date range</p></div><button class="b b-sm b-danger" onclick="RESET.openSelective()">Select & Clear</button></div><div class="srow"><div><strong>Fresh Start</strong><p class="srow-d">Delete all data, keep subjects & settings</p></div><button class="b b-sm b-danger" onclick="RESET.freshStart()">Start Fresh</button></div><div class="srow"><div><strong>Clear Cache</strong><p class="srow-d">Fix PWA/offline issues</p></div><button class="b b-sm" onclick="RESET.clearCache()">Clear Cache</button></div></div>

@@ -16,15 +16,15 @@ function rmQuote(idx){var cfg=D.getCfg();if(!cfg.customQuotes)return;cfg.customQ
 function init(){document.getElementById('todayD').textContent=new Date().toLocaleDateString([],{weekday:'long',year:'numeric',month:'long',day:'numeric'});document.getElementById('goalDate').value=D.todayKey();var cfg=D.getCfg();document.documentElement.setAttribute('data-theme',cfg.theme||'dark');rotateQuote();quoteIv=setInterval(rotateQuote,30000);
 var cats=cfg.studySubjects,wCats=cfg.workCategories;document.getElementById('studyCat').innerHTML=cats.map(function(s){return'<option>'+s+'</option>'}).join('');document.getElementById('workCat').innerHTML=wCats.map(function(s){return'<option>'+s+'</option>'}).join('');
 document.getElementById('sylSubj').innerHTML='<option value="">Select...</option>'+cats.map(function(s){return'<option>'+s+'</option>'}).join('');
-if(D.isCloud()){show('main');syncUI('busy');D.sync().then(function(){UI.renderAll();RP.renderHeatmap();DL.startTick();syncUI('on');gInfo();TM.recoverState()}).catch(function(){UI.renderAll();RP.renderHeatmap();DL.startTick();syncUI('err');gInfo();TM.recoverState()})}else if(D.getToken()){show('main');syncUI('busy');D.autoConn().then(function(){UI.renderAll();RP.renderHeatmap();DL.startTick();syncUI('on');gInfo();TM.recoverState()}).catch(function(){UI.renderAll();RP.renderHeatmap();DL.startTick();syncUI('err');gInfo();TM.recoverState()})}else{show('setup')}}
-document.addEventListener('keydown',function(e){if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT')return;if(e.key===' '||e.code==='Space'){e.preventDefault();var at=TM.activeType();if(at){var s=TM.getState(at);s.pau?TM.resume(at):TM.pause(at)}else{var ct=document.querySelector('.tp.on').id.replace('p-','');if(ct==='study')TM.start('study');else if(ct==='work')TM.start('work')}}if(e.key==='s'){var a=TM.activeType();if(a)TM.stop(a)}if(e.key==='d'){var a2=TM.activeType();if(a2)TM.discard(a2)}if(e.key==='f')enterFocus();if(e.key==='t')toggleTheme();if(e.key==='Escape')exitFocus();if(e.key>='1'&&e.key<='8'){var tabs=['study','work','report','syl','rev','remind','recur','sett'];tab(tabs[parseInt(e.key)-1])}});
+if(D.isCloud()){show('main');syncUI('busy');D.sync().then(function(){UI.renderAll();RP.renderHeatmap();DL.startTick();syncUI('on');gInfo();TM.recoverState()}).catch(function(){UI.renderAll();RP.renderHeatmap();DL.startTick();syncUI('err');gInfo();TM.recoverState()})}else if(D.getToken()){show('main');syncUI('busy');D.autoConn().then(function(){UI.renderAll();RP.renderHeatmap();DL.startTick();syncUI('on');gInfo();TM.recoverState()}).catch(function(){UI.renderAll();RP.renderHeatmap();DL.startTick();syncUI('err');gInfo();TM.recoverState()})}else{show('setup')}
+document.addEventListener('keydown',function(e){if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT')return;if(e.key===' '||e.code==='Space'){e.preventDefault();var at=TM.activeType();if(at){var s=TM.getState(at);s.pau?TM.resume(at):TM.pause(at)}else{var ct=document.querySelector('.tp.on').id.replace('p-','');if(ct==='study')TM.start('study');else if(ct==='work')TM.start('work')}}if(e.key==='s'){var a=TM.activeType();if(a)TM.stop(a)}if(e.key==='D'&&e.shiftKey){var a2=TM.activeType();if(a2)TM.discard(a2)}if(e.key==='f')enterFocus();if(e.key==='t')toggleTheme();if(e.key==='Escape')exitFocus();if(e.key==='p')App.navTo('plan');if(e.key==='c')App.navTo('calendar');if(e.key==='d'&&!e.shiftKey)App.navTo('todo');if(e.key==='u')App.navTo('summary');if(e.key>='1'&&e.key<='8'){var tabs=['study','work','report','syl','rev','remind','recur','sett'];tab(tabs[parseInt(e.key)-1])}});
 document.querySelectorAll('input[type="date"],input[type="datetime-local"]').forEach(function(inp){inp.addEventListener('mouseenter',function(){try{this.showPicker()}catch(e){}})});
 if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').then(function(reg){
 if('periodicSync' in reg){reg.periodicSync.register('study-timer-check',{minInterval:4*60*60*1000}).catch(function(){})}
 navigator.serviceWorker.addEventListener('message',function(e){if(e.data&&e.data.type==='check-notifications')NOTIFY.checkAndNotify()})
 }).catch(function(e){console.log('SW:',e)})}
 NOTIFY.updateStatus();if(Notification.permission==='granted')NOTIFY.scheduleChecks();
-var xCfg=D.getCfg();if(xCfg.bedtime)document.getElementById('cfgBedtime').value=xCfg.bedtime;if(xCfg.effectiveMins)document.getElementById('cfgEffective').value=xCfg.effectiveMins;
+var xCfg=D.getCfg();if(xCfg.bedtime)document.getElementById('cfgBedtime').value=xCfg.bedtime;if(xCfg.effectiveMins)document.getElementById('cfgEffective').value=xCfg.effectiveMins;var prEl2=document.getElementById('cfgPlanRemindHour');if(prEl2&&xCfg.planRemindHour)prEl2.value=xCfg.planRemindHour;
 setInterval(function(){if(document.getElementById('p-remind').classList.contains('on'))REM.render()},60000);
 window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();deferredPrompt=e;document.getElementById('pwaStatus').textContent='Ready to install!'})}
 function show(w){document.getElementById('setup').classList.toggle('hidden',w!=='setup');document.getElementById('mainApp').classList.toggle('hidden',w!=='main')}
@@ -38,7 +38,7 @@ function reconn(){show('setup')}
 function addCat(type){var inp=document.getElementById(type==='study'?'addStudy':'addWork');var val=inp.value.trim();if(!val)return;var cfg=D.getCfg();var list=type==='study'?cfg.studySubjects:cfg.workCategories;if(list.indexOf(val)===-1)list.push(val);D.setCfg(cfg);inp.value='';UI.renderAll();D.push();UI.toast('Added')}
 function rmCat(type,name){if(!confirm('Remove "'+name+'"?'))return;var cfg=D.getCfg();if(type==='study')cfg.studySubjects=cfg.studySubjects.filter(function(s){return s!==name});else cfg.workCategories=cfg.workCategories.filter(function(s){return s!==name});D.setCfg(cfg);UI.renderAll();D.push()}
 function toggleTheme(){var cfg=D.getCfg();cfg.theme=cfg.theme==='dark'?'light':'dark';D.setCfg(cfg);document.documentElement.setAttribute('data-theme',cfg.theme);D.push()}
-function saveCfgExtra(){var cfg=D.getCfg();cfg.bedtime=parseInt(document.getElementById('cfgBedtime').value)||23;cfg.effectiveMins=parseInt(document.getElementById('cfgEffective').value)||45;D.setCfg(cfg);D.push();UI.toast('Settings saved')}
+function saveCfgExtra(){var cfg=D.getCfg();cfg.bedtime=parseInt(document.getElementById('cfgBedtime').value)||23;cfg.effectiveMins=parseInt(document.getElementById('cfgEffective').value)||45;var prEl=document.getElementById('cfgPlanRemindHour');if(prEl)cfg.planRemindHour=parseInt(prEl.value)||0;D.setCfg(cfg);D.push();UI.toast('Settings saved')}
 function enterFocus(){if(!TM.isOn()){UI.toast('Start timer first');return}document.getElementById('focusMode').classList.remove('hidden');var at=TM.activeType();document.getElementById('focusSub').textContent=at==='study'?'Studying':'Working';document.getElementById('focusCat').textContent=document.getElementById(at==='study'?'studyCat':'workCat').value;updateFocusBtns();moveFocusTimer();focusMoveIv=setInterval(moveFocusTimer,8000)}
 function exitFocus(){document.getElementById('focusMode').classList.add('hidden');if(focusMoveIv){clearInterval(focusMoveIv);focusMoveIv=null}}
 function moveFocusTimer(){var el=document.getElementById('focusInner');el.style.left=Math.max(20,Math.random()*(window.innerWidth-300))+'px';el.style.top=Math.max(20,Math.random()*(window.innerHeight-200))+'px'}
@@ -123,6 +123,44 @@ return{connect:connect,skip:skip,tab:tab,syncUI:syncUI,manSync:manSync,reconn:re
   var saveModalEl = document.getElementById('saveModal');
   if(saveModalEl) _mObserver.observe(saveModalEl, {attributes:true,attributeFilter:['class']});
 
+  // [#55] Onboarding hints — show on first launch
+  function _showOnboarding(){
+    if(localStorage.getItem('st3_onboarded'))return;
+    var hints=[
+      {key:'plan',text:'🎯 <b>Planning</b> — Plan your study day, set targets, and track progress. Press <b>P</b> to open.'},
+      {key:'calendar',text:'📅 <b>Calendar</b> — View your study history day-by-day with heatmap intensity. Press <b>C</b>.'},
+      {key:'todo',text:'✅ <b>To-Do</b> — Manage nested tasks with priorities, due dates, and drag-to-reorder. Press <b>D</b>.'},
+      {key:'summary',text:'📊 <b>Summary</b> — Analytics dashboard with focus score, streaks, and mood trends. Press <b>U</b>.'}
+    ];
+    var h='';
+    hints.forEach(function(ht){
+      h+='<div class="onboard-hint" id="onboard-'+ht.key+'">'+ht.text+'<button onclick="App.dismissHint(\''+ht.key+'\')">Got it</button></div>';
+    });
+    var el=document.getElementById('onboardContainer');
+    if(el)el.innerHTML=h;
+  }
+  App.dismissHint=function(key){
+    var el=document.getElementById('onboard-'+key);
+    if(el)el.remove();
+    var container=document.getElementById('onboardContainer');
+    if(container&&!container.children.length){
+      localStorage.setItem('st3_onboarded','1');
+    }
+  };
+
+  // [#58] Offline indicator
+  function _initOffline(){
+    var banner=document.getElementById('offlineBanner');
+    if(!banner)return;
+    function _update(){
+      if(navigator.onLine){banner.classList.add('hidden')}
+      else{banner.classList.remove('hidden')}
+    }
+    window.addEventListener('online',_update);
+    window.addEventListener('offline',_update);
+    _update();
+  }
+
   // Initialize new modules after DOM ready
   setTimeout(function(){
     PLAN.init();
@@ -131,6 +169,8 @@ return{connect:connect,skip:skip,tab:tab,syncUI:syncUI,manSync:manSync,reconn:re
     TODO.render();
     TODO.renderInline();
     SUM.init();
+    _showOnboarding();
+    _initOffline();
   }, 100);
 
   // Patch renderAll to include new modules

@@ -205,14 +205,144 @@ var TODO=(function(){
     return _countOverdue(todos.study||[])+_countOverdue(todos.work||[]);
   }
 
+  /* Drag-to-Reorder (#44) */
+  var _dragId=null;
+
+  function _initDrag(){
+    var el=document.getElementById('todoFullList');
+    el.addEventListener('dragstart',function(e){
+      var card=e.target.closest('.todo-item');
+      if(!card)return;
+      _dragId=card.getAttribute('data-todo-id');
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed='move';
+    });
+    el.addEventListener('dragover',function(e){
+      e.preventDefault();
+      var card=e.target.closest('.todo-item');
+      if(card&&!card.classList.contains('dragging'))card.classList.add('drag-over');
+    });
+    el.addEventListener('dragleave',function(e){
+      var card=e.target.closest('.todo-item');
+      if(card)card.classList.remove('drag-over');
+    });
+    el.addEventListener('drop',function(e){
+      e.preventDefault();
+      var target=e.target.closest('.todo-item');
+      if(!target||!_dragId)return;
+      var targetId=target.getAttribute('data-todo-id');
+      if(targetId===_dragId){_dragId=null;return}
+      var group=document.getElementById('todoTypeFilter').value;
+      _reorder(group,_dragId,targetId);
+      _dragId=null;
+    });
+    el.addEventListener('dragend',function(){
+      _dragId=null;
+      el.querySelectorAll('.todo-item').forEach(function(c){c.classList.remove('dragging','drag-over')});
+    });
+  }
+
+  function _reorder(group,fromId,toId){
+    var todos=getTodos();
+    if(!todos[group])return;
+    var fromInfo=findParentAndIndex(todos[group],fromId,null);
+    var toInfo=findParentAndIndex(todos[group],toId,null);
+    if(!fromInfo||!toInfo)return;
+    /* Only reorder within the same parent level */
+    if(fromInfo.parent!==toInfo.parent)return;
+    var item=fromInfo.arr.splice(fromInfo.index,1)[0];
+    /* Recalculate toIndex after removal (index may have shifted) */
+    var toIdx=toInfo.arr.indexOf(toInfo.arr.filter(function(i){return i.id===toId})[0]);
+    if(toIdx<0)toIdx=toInfo.arr.length;
+    toInfo.arr.splice(toIdx,0,item);
+    setTodos(todos);render();renderInline();D.push();
+  }
+
+  /* Bulk Actions (#47) */
+  var _selected={};
+
+  function _collectIds(items,out){
+    items.forEach(function(i){
+      out.push(i.id);
+      if(i.children)_collectIds(i.children,out);
+    });
+  }
+
+  function toggleSelect(id){
+    if(_selected[id])delete _selected[id];
+    else _selected[id]=true;
+    _updateBulkBar();
+  }
+
+  function toggleSelectAll(){
+    var group=document.getElementById('todoTypeFilter').value;
+    var todos=getTodos();
+    var allIds=[];
+    _collectIds(todos[group]||[],allIds);
+    /* If all are selected, deselect all; otherwise select all */
+    var allSelected=allIds.length>0&&allIds.every(function(id){return _selected[id]});
+    if(allSelected){
+      _selected={};
+    } else {
+      allIds.forEach(function(id){_selected[id]=true});
+    }
+    _updateBulkBar();
+    render();
+  }
+
+  function markSelectedDone(){
+    var ids=Object.keys(_selected);
+    if(!ids.length)return;
+    var group=document.getElementById('todoTypeFilter').value;
+    var todos=getTodos();
+    ids.forEach(function(id){
+      var item=findItem(todos[group]||[],id);
+      if(item&&item.status!=='done'){
+        item.status='done';
+        item.completedAt=new Date().toISOString();
+      }
+    });
+    setTodos(todos);_selected={};_updateBulkBar();render();renderInline();D.push();
+    UI.toast(ids.length+' items marked done');
+  }
+
+  function removeSelected(){
+    var ids=Object.keys(_selected);
+    if(!ids.length)return;
+    if(!confirm('Delete '+ids.length+' selected items and all their children?'))return;
+    var group=document.getElementById('todoTypeFilter').value;
+    var todos=getTodos();
+    ids.forEach(function(id){
+      var info=findParentAndIndex(todos[group]||[],id,null);
+      if(info)info.arr.splice(info.index,1);
+    });
+    setTodos(todos);_selected={};_updateBulkBar();render();renderInline();D.push();
+    UI.toast(ids.length+' items deleted');
+  }
+
+  function _updateBulkBar(){
+    var count=Object.keys(_selected).length;
+    var bar=document.getElementById('todoBulkActions');
+    var countEl=document.getElementById('todoBulkCount');
+    if(bar){
+      if(count>0){bar.classList.remove('hidden')}
+      else{bar.classList.add('hidden')}
+    }
+    if(countEl){
+      countEl.textContent=count+' selected';
+    }
+  }
+
   function renderItem(item,group,depth){
     var isDone=item.status==='done';
     var isNote=item.type==='note';
     var hasChildren=item.children&&item.children.length>0;
     var priCls=item.priority||'medium';
 
-    var h='<div class="todo-item">';
+    var h='<div class="todo-item" draggable="true" data-todo-id="'+item.id+'">';
     h+='<div class="todo-header">';
+    h+='<div class="todo-drag-handle" title="Drag to reorder">⠿</div>';
+    h+='<input type="checkbox" class="todo-select-cb" '+(_selected[item.id]?'checked':'')+' onclick="event.stopPropagation();TODO.toggleSelect(\''+item.id+'\')" title="Select" style="width:14px;height:14px;cursor:pointer;accent-color:var(--acc)">';
 
     if(!isNote){
       h+='<div class="todo-cb'+(isDone?' done':' p-'+priCls)+'" onclick="event.stopPropagation();TODO.toggleDone(\''+item.id+'\',\''+group+'\')">'+(isDone?'✓':'')+'</div>';
@@ -254,6 +384,39 @@ var TODO=(function(){
     return h;
   }
 
+  /* Progress Bar (#48) */
+  function _countAll(items){
+    var c=0;
+    items.forEach(function(i){
+      c++;
+      if(i.children)c+=_countAll(i.children);
+    });
+    return c;
+  }
+
+  function _countDone(items){
+    var c=0;
+    items.forEach(function(i){
+      if(i.status==='done')c++;
+      if(i.children)c+=_countDone(i.children);
+    });
+    return c;
+  }
+
+  function _renderProgress(groupItems){
+    var bar=document.getElementById('todoProgressBar');
+    if(!bar)return;
+    var total=_countAll(groupItems);
+    var done=_countDone(groupItems);
+    var pct=total>0?Math.round((done/total)*100):0;
+    bar.innerHTML='<div style="display:flex;align-items:center;gap:8px;font-size:.72rem;color:var(--t2);font-weight:600">'
+      +'<div class="todo-pbar-bg" style="flex:1;height:8px;border-radius:4px;background:var(--brd);overflow:hidden">'
+      +'<div class="todo-pbar-fg" style="width:'+pct+'%;height:100%;border-radius:4px;background:var(--grn);transition:width .3s ease"></div>'
+      +'</div>'
+      +'<span>'+done+'/'+total+' done ('+pct+'%)</span>'
+      +'</div>';
+  }
+
   function render(){
     var group=document.getElementById('todoTypeFilter').value;
     var sortMode=document.getElementById('todoSortMode').value;
@@ -284,11 +447,14 @@ var TODO=(function(){
     var el=document.getElementById('todoFullList');
     if(!items.length){
       el.innerHTML='<div class="empty"><div class="empty-ico">✅</div><p>'+(query?'No matches for "'+esc(query)+'"':'No to-dos yet')+'</p></div>';
+      _renderProgress(todos[group]||[]);
       return;
     }
     var h='';
     items.forEach(function(item){h+=renderItem(item,group,0)});
     el.innerHTML=h;
+    _initDrag();
+    _renderProgress(todos[group]||[]);
   }
 
   function renderInline(){
@@ -316,5 +482,7 @@ var TODO=(function(){
   return{quickAdd:quickAdd,openAddModal:openAddModal,addChild:addChild,editItem:editItem,
     onTypeChange:onTypeChange,closeModal:closeModal,saveFromModal:saveFromModal,
     toggleDone:toggleDone,deleteItem:deleteItem,render:render,renderInline:renderInline,
-    getOverdueCount:getOverdueCount};
+    getOverdueCount:getOverdueCount,
+    toggleSelect:toggleSelect,toggleSelectAll:toggleSelectAll,
+    markSelectedDone:markSelectedDone,removeSelected:removeSelected};
 })();

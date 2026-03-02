@@ -92,9 +92,12 @@ var CAL=(function(){
       h+='<div class="'+cls+'" style="'+heatStyle+'" onclick="CAL.selectDay(\''+dk+'\')" data-dk="'+dk+'">';
       h+='<span class="cal-day-num">'+d+'</span>';
 
-      // Dots
+      // Dots — FIX #41: plan status colors (filled green = all done, hollow purple = pending)
       var dots='';
-      if(plans.length)dots+='<span class="cal-dot" style="background:var(--pur)"></span>';
+      if(plans.length){
+        var allDone=plans.filter(function(p){return p.status==='completed'}).length===plans.length;
+        dots+=allDone?'<span class="cal-dot cal-dot-filled"></span>':'<span class="cal-dot cal-dot-hollow"></span>';
+      }
       if(totalStudy>0)dots+='<span class="cal-dot" style="background:var(--acc)"></span>';
       if(totalWork>0)dots+='<span class="cal-dot" style="background:var(--cyn)"></span>';
       if(dots)h+='<div class="cal-dots">'+dots+'</div>';
@@ -144,7 +147,10 @@ var CAL=(function(){
     var h='<div class="day-detail">';
     h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">';
     h+='<span style="font-size:.85rem;font-weight:700;color:var(--heading)">'+dayName+'</span>';
+    h+='<div style="display:flex;gap:6px">';
     h+='<button class="b b-xs" onclick="CAL.addPlanForDay(\''+dk+'\')">+ Plan</button>';
+    h+='<button class="b b-xs" onclick="CAL.addSessionForDay(\''+dk+'\')">+ Session</button>';
+    h+='</div>';
     h+='</div>';
 
     // Plans section
@@ -201,6 +207,12 @@ var CAL=(function(){
     App.navTo('plan');
   }
 
+  /* FIX #42: Quick-add session from calendar day detail */
+  function addSessionForDay(dk){
+    PAST.open('study');
+    document.getElementById('pastDate').value=dk;
+  }
+
   function _updateViewToggle(){
     var btn=document.getElementById('calViewToggle');
     if(btn)btn.textContent=viewMode==='month'?'Week':'Month';
@@ -253,7 +265,12 @@ var CAL=(function(){
         h+='</div>';
       }
 
-      if(plans.length)h+='<div style="font-size:.42rem;color:var(--pur);font-weight:600">'+plans.length+' plan'+(plans.length>1?'s':'')+'</div>';
+      /* FIX #41: plan status colors in week view */
+      if(plans.length){
+        var allDoneW=plans.filter(function(p){return p.status==='completed'}).length===plans.length;
+        var dotW=allDoneW?'<span class="cal-dot cal-dot-filled" style="display:inline-block;vertical-align:middle;margin-right:3px"></span>':'<span class="cal-dot cal-dot-hollow" style="display:inline-block;vertical-align:middle;margin-right:3px"></span>';
+        h+='<div style="font-size:.42rem;color:var(--pur);font-weight:600">'+dotW+plans.length+' plan'+(plans.length>1?'s':'')+'</div>';
+      }
       if(totalH>0)h+='<div class="cal-hrs">'+totalH.toFixed(1)+'h</div>';
       h+='</div>';
     }
@@ -262,5 +279,57 @@ var CAL=(function(){
     if(selectedDate)renderDayDetail(selectedDate);
   }
 
-  return{init:init,prev:prev,next:next,render:render,selectDay:selectDay,addPlanForDay:addPlanForDay,toggleView:toggleView};
+  /* FIX #43: Export current month's sessions as .ics calendar file */
+  function exportICS(){
+    var daysInMonth=new Date(viewYear,viewMonth+1,0).getDate();
+    var events=[];
+
+    for(var d=1;d<=daysInMonth;d++){
+      var dk=viewYear+'-'+String(viewMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+      var studySess=D.getSess('study',dk);
+      var workSess=D.getSess('work',dk);
+
+      studySess.forEach(function(s){events.push({type:'Study',cat:s.cat,note:s.note||'',start:s.start,end:s.end})});
+      workSess.forEach(function(s){events.push({type:'Work',cat:s.cat,note:s.note||'',start:s.start,end:s.end})});
+    }
+
+    if(!events.length){UI.toast('No sessions to export this month');return}
+
+    /* Convert Date to ICS UTC format: YYYYMMDDTHHmmssZ */
+    function _icsDate(dateStr){
+      var dt=new Date(dateStr);
+      return dt.getUTCFullYear()+
+        String(dt.getUTCMonth()+1).padStart(2,'0')+
+        String(dt.getUTCDate()).padStart(2,'0')+'T'+
+        String(dt.getUTCHours()).padStart(2,'0')+
+        String(dt.getUTCMinutes()).padStart(2,'0')+
+        String(dt.getUTCSeconds()).padStart(2,'0')+'Z';
+    }
+
+    var cal='BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//StudyTimer//EN\r\n';
+    events.forEach(function(e,idx){
+      cal+='BEGIN:VEVENT\r\n';
+      cal+='UID:studytimer-'+viewYear+viewMonth+'-'+idx+'@local\r\n';
+      cal+='DTSTART:'+_icsDate(e.start)+'\r\n';
+      cal+='DTEND:'+_icsDate(e.end)+'\r\n';
+      cal+='SUMMARY:'+e.type+': '+(e.cat||'General')+'\r\n';
+      if(e.note)cal+='DESCRIPTION:'+e.note.replace(/\n/g,'\\n')+'\r\n';
+      cal+='END:VEVENT\r\n';
+    });
+    cal+='END:VCALENDAR\r\n';
+
+    /* Trigger download */
+    var blob=new Blob([cal],{type:'text/calendar;charset=utf-8'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url;
+    a.download='study-timer-'+viewYear+'-'+String(viewMonth+1).padStart(2,'0')+'.ics';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    UI.toast('Exported '+events.length+' sessions to .ics');
+  }
+
+  return{init:init,prev:prev,next:next,render:render,selectDay:selectDay,addPlanForDay:addPlanForDay,addSessionForDay:addSessionForDay,toggleView:toggleView,exportICS:exportICS};
 })();
