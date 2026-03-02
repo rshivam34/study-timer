@@ -266,8 +266,11 @@ var TM=(function(){
 /* ========== PAST SESSION MODULE ========== */
 var PAST=(function(){
   var pastType='study',pastDiff='hard';
+  /* Edit context: when set, save() updates existing session instead of adding */
+  var _editCtx=null; // {dk, type, idx}
 
   function open(type){
+    _editCtx=null; // clear edit mode
     pastType=type;pastDiff='hard';
     document.getElementById('pastTitle').textContent='Add Past '+(type==='study'?'Study':'Work');
     document.getElementById('pastDate').value=D.todayKey();
@@ -282,7 +285,32 @@ var PAST=(function(){
     document.getElementById('pastModal').classList.remove('hidden');
   }
 
-  function close(){document.getElementById('pastModal').classList.add('hidden')}
+  /* Open in edit mode — pre-fill with existing session data */
+  function openEdit(dk,type,idx,sess){
+    _editCtx={dk:dk,type:type,idx:idx};
+    pastType=type;pastDiff=sess.diff||'hard';
+    document.getElementById('pastTitle').textContent='Edit '+(type==='study'?'Study':'Work')+' Session';
+    document.getElementById('pastDate').value=dk;
+    /* Pre-fill start time from session */
+    var sd=new Date(sess.start);
+    document.getElementById('pastStart').value=String(sd.getHours()).padStart(2,'0')+':'+String(sd.getMinutes()).padStart(2,'0');
+    /* Pre-fill duration */
+    var totalMins=Math.round(sess.dur/60);
+    document.getElementById('pastHrs').value=Math.floor(totalMins/60)||'';
+    document.getElementById('pastMins').value=totalMins%60||'';
+    document.getElementById('pastNote').value=sess.note||'';
+    /* Populate category dropdown and select the right one */
+    var cfg=D.getCfg(),list=type==='study'?cfg.studySubjects:cfg.workCategories;
+    document.getElementById('pastCat').innerHTML=list.map(function(s){return'<option'+(s===sess.cat?' selected':'')+'>'+esc(s)+'</option>'}).join('');
+    /* Set difficulty button */
+    document.querySelectorAll('#pastDiffSel .diff-btn').forEach(function(b){
+      b.classList.remove('on');
+      if(b.textContent.toLowerCase().indexOf(pastDiff)>=0)b.classList.add('on');
+    });
+    document.getElementById('pastModal').classList.remove('hidden');
+  }
+
+  function close(){_editCtx=null;document.getElementById('pastModal').classList.add('hidden')}
 
   function setDiff(d){
     pastDiff=d;
@@ -301,10 +329,32 @@ var PAST=(function(){
     if(pastType==='study'&&!note){UI.toast('Topic required for study!');return}
     var startDt=startTime?new Date(date+'T'+startTime+':00'):new Date(date+'T09:00:00');
     var endDt=new Date(startDt.getTime()+dur*1000);
-    D.addSession(pastType,date,{cat:cat,dur:dur,start:startDt.toISOString(),end:endDt.toISOString(),note:note,diff:pastDiff});
-    if(pastType==='study'&&note)TM.createRevision(cat,note,pastDiff);
-    UI.toast('Saved ✓');close();UI.renderAll();D.push();
+    var sessObj={cat:cat,dur:dur,start:startDt.toISOString(),end:endDt.toISOString(),note:note,diff:pastDiff};
+
+    if(_editCtx){
+      /* Edit mode — update session in-place */
+      var d=D.getLocal();
+      var oldDk=_editCtx.dk,oldType=_editCtx.type,oldIdx=_editCtx.idx;
+      /* Remove old session */
+      if(d[oldType]&&d[oldType][oldDk]){
+        d[oldType][oldDk].splice(oldIdx,1);
+        if(!d[oldType][oldDk].length)delete d[oldType][oldDk];
+      }
+      /* Add updated session (may be different date/type) */
+      if(!d[pastType])d[pastType]={};
+      if(!d[pastType][date])d[pastType][date]=[];
+      d[pastType][date].push(sessObj);
+      D.saveLocal(d);
+      _editCtx=null;
+      UI.toast('Session updated \u2713');
+    } else {
+      /* Add mode */
+      D.addSession(pastType,date,sessObj);
+      if(pastType==='study'&&note)TM.createRevision(cat,note,pastDiff);
+      UI.toast('Saved \u2713');
+    }
+    close();UI.renderAll();D.push();
   }
 
-  return{open:open,close:close,setDiff:setDiff,save:save};
+  return{open:open,openEdit:openEdit,close:close,setDiff:setDiff,save:save};
 })();

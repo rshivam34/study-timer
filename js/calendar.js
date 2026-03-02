@@ -45,28 +45,36 @@ var CAL=(function(){
      ===================================================== */
   function _layoutBlocks(blocks){
     if(!blocks.length)return;
+    /* Minimum visual span — 24px min-height at 48px/row = 0.5 hours.
+       Short sessions (1 sec, 1 min) render at this height, so overlap
+       detection must use visual bounds, not actual time bounds. */
+    var MIN_VIS_H=24/48; // 0.5 hours
+
     /* Sort by start time, then by longer duration first */
     blocks.sort(function(a,b){return a.startH-b.startH||(b.endH-b.startH)-(a.endH-a.startH)});
 
-    /* Greedy column assignment — place each block in the first column where it doesn't overlap */
-    var colEnds=[]; // colEnds[i] = end hour of last block placed in column i
+    /* Compute visual end height for each block */
+    blocks.forEach(function(b){b._visEndH=Math.max(b.endH,b.startH+MIN_VIS_H)});
+
+    /* Greedy column assignment — use _visEndH so short blocks don't stack */
+    var colEnds=[]; // colEnds[i] = visual end hour of last block in column i
     blocks.forEach(function(b){
       var placed=false;
       for(var c=0;c<colEnds.length;c++){
         if(b.startH>=colEnds[c]-0.01){ // small epsilon for floating point
-          b._col=c;colEnds[c]=b.endH;placed=true;break;
+          b._col=c;colEnds[c]=b._visEndH;placed=true;break;
         }
       }
-      if(!placed){b._col=colEnds.length;colEnds.push(b.endH)}
+      if(!placed){b._col=colEnds.length;colEnds.push(b._visEndH)}
     });
 
-    /* Find connected overlap groups and assign maxCols per group */
+    /* Find connected overlap groups using visual bounds */
     var groupEnd=-Infinity,group=[];
     var groups=[];
     blocks.forEach(function(b){
       if(b.startH>=groupEnd-0.01&&group.length){groups.push(group);group=[];groupEnd=-Infinity}
       group.push(b);
-      if(b.endH>groupEnd)groupEnd=b.endH;
+      if(b._visEndH>groupEnd)groupEnd=b._visEndH;
     });
     if(group.length)groups.push(group);
 
@@ -260,8 +268,8 @@ var CAL=(function(){
     /* Build blocks data for sessions + scheduled plans */
     var blocks=[];
     var allSess=[];
-    studySess.forEach(function(s){allSess.push({type:'study',start:s.start,end:s.end,dur:s.dur,cat:s.cat,note:s.note||'',diff:s.difficulty||''})});
-    workSess.forEach(function(s){allSess.push({type:'work',start:s.start,end:s.end,dur:s.dur,cat:s.cat,note:s.note||'',diff:s.difficulty||''})});
+    studySess.forEach(function(s,i){allSess.push({type:'study',sessIdx:i,start:s.start,end:s.end,dur:s.dur,cat:s.cat,note:s.note||'',diff:s.diff||''})});
+    workSess.forEach(function(s,i){allSess.push({type:'work',sessIdx:i,start:s.start,end:s.end,dur:s.dur,cat:s.cat,note:s.note||'',diff:s.diff||''})});
     allSess.forEach(function(s){
       var sd=new Date(s.start),ed=new Date(s.end);
       var sH=sd.getHours()+sd.getMinutes()/60;
@@ -269,8 +277,8 @@ var CAL=(function(){
       /* Handle sessions that cross midnight or have 0 end (same time) */
       if(eH<=sH)eH=sH+s.dur/3600;
       blocks.push({
-        kind:'session',type:s.type,startH:sH,endH:eH,
-        title:s.cat||s.type,sub:s.note,dur:s.dur,
+        kind:'session',type:s.type,sessIdx:s.sessIdx,startH:sH,endH:eH,
+        title:s.cat||s.type,sub:s.note,dur:s.dur,cat:s.cat,
         startISO:s.start,endISO:s.end,diff:s.diff
       });
     });
@@ -438,6 +446,9 @@ var CAL=(function(){
     var ah='<button class="b" onclick="CAL.closeCIModal()">Close</button>';
     if(kind==='plan'){
       ah+='<button class="b b-acc" onclick="CAL.closeCIModal();PLAN.openEdit(\''+b.planDk+'\',\''+b.planId+'\')">Edit Plan</button>';
+    } else if(kind==='session'){
+      ah+='<button class="b b-acc" onclick="CAL.editSession(\''+el._dk+'\',\''+b.type+'\','+b.sessIdx+')">Edit</button>';
+      ah+='<button class="b" style="color:var(--red)" onclick="CAL.deleteSession(\''+el._dk+'\',\''+b.type+'\','+b.sessIdx+')">Delete</button>';
     }
     actEl.innerHTML=ah;
     modal.classList.remove('hidden');
@@ -690,12 +701,40 @@ var CAL=(function(){
     UI.toast('Exported '+events.length+' sessions to .ics');
   }
 
+  /* ==================== SESSION EDIT / DELETE ==================== */
+
+  /* Edit a session — opens PAST modal pre-filled with session data */
+  function editSession(dk,type,idx){
+    closeCIModal();
+    var sessions=D.getSess(type,dk);
+    var s=sessions[idx];
+    if(!s){UI.toast('Session not found');return}
+    PAST.openEdit(dk,type,idx,s);
+  }
+
+  /* Delete a session from any date */
+  function deleteSession(dk,type,idx){
+    if(!confirm('Delete this session?'))return;
+    var d=D.getLocal();
+    if(!d[type]||!d[type][dk]||!d[type][dk][idx]){UI.toast('Session not found');return}
+    d[type][dk].splice(idx,1);
+    if(!d[type][dk].length)delete d[type][dk];
+    D.saveLocal(d);
+    closeCIModal();
+    renderDayDetail(dk);
+    renderMonth();
+    UI.renderAll();
+    D.push();
+    UI.toast('Session deleted');
+  }
+
   return{
     init:init,prev:prev,next:next,render:render,selectDay:selectDay,
     addPlanForDay:addPlanForDay,addSessionForDay:addSessionForDay,
     toggleView:toggleView,exportICS:exportICS,
     onHourClick:onHourClick,quickAddPlan:quickAddPlan,
     showItemDetail:showItemDetail,openPlanDetail:openPlanDetail,
-    closeCIModal:closeCIModal,setPlanStatus:setPlanStatus
+    closeCIModal:closeCIModal,setPlanStatus:setPlanStatus,
+    editSession:editSession,deleteSession:deleteSession
   };
 })();
