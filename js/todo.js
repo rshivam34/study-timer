@@ -18,6 +18,29 @@ var TODO=(function(){
     }return null;
   }
 
+  /* Validation helper: find any child with due date after given dueDate */
+  function _findChildAfterDue(children,dueDate){
+    for(var i=0;i<children.length;i++){
+      if(children[i].due&&children[i].due>dueDate)return children[i];
+      if(children[i].children){var f=_findChildAfterDue(children[i].children,dueDate);if(f)return f}
+    }
+    return null;
+  }
+
+  /* Validation helper: sum estMins of children, optionally excluding one id */
+  function _sumChildrenEst(children,excludeId){
+    var total=0;
+    children.forEach(function(c){if(c.id!==excludeId)total+=(c.estMins||0)});
+    return total;
+  }
+
+  /* DRY helper: re-render + refresh time budget + day overview after any mutation */
+  function _afterMutation(){
+    render();renderInline();
+    try{App.renderTimeBudget()}catch(e){}
+    try{App.renderDayOverview()}catch(e){}
+  }
+
   function quickAdd(group){
     document.getElementById('todoInpTitle').value='';
     document.getElementById('todoInpType').value='todo';
@@ -103,9 +126,48 @@ var TODO=(function(){
       return;
     }
 
+    /* ── Sub-task date validation ── */
+    if(parentId&&!editId){
+      /* Adding a sub-task: check due date doesn't exceed parent */
+      var parentItem=findItem(todos[group],parentId);
+      if(parentItem&&parentItem.due&&due&&due>parentItem.due){
+        UI.toast('Sub-task due date cannot be after parent ('+UI.fdate(parentItem.due)+')');return;
+      }
+      /* Adding sub-task: check estMins doesn't exceed parent budget */
+      if(parentItem&&parentItem.estMins&&estMins){
+        var siblingSum=_sumChildrenEst(parentItem.children||[],'');
+        var avail=parentItem.estMins-siblingSum;
+        if(estMins>avail){UI.toast('Max available: '+avail+'min (parent: '+parentItem.estMins+'m)');return}
+      }
+    }
+
     if(editId){
       var item=findItem(todos[group],editId);
       if(item){
+        /* Editing parent: check new due isn't before any child's due */
+        if(item.children&&item.children.length&&due){
+          var childAfter=_findChildAfterDue(item.children,due);
+          if(childAfter){UI.toast('Child "'+childAfter.title+'" has a later due date');return}
+        }
+        /* Editing parent: check new estMins isn't below children total */
+        if(item.children&&item.children.length&&estMins){
+          var childrenTotal=_sumChildrenEst(item.children,'');
+          if(estMins<childrenTotal){UI.toast('Cannot reduce below children total ('+childrenTotal+'min)');return}
+        }
+        /* Editing a child: check constraints against actual parent */
+        var pInfo=findParentAndIndex(todos[group],editId,null);
+        if(pInfo&&pInfo.parent){
+          /* Date constraint: child due can't exceed parent due */
+          if(pInfo.parent.due&&due&&due>pInfo.parent.due){
+            UI.toast('Due date cannot be after parent ('+UI.fdate(pInfo.parent.due)+')');return;
+          }
+          /* EstMins constraint: sibling sum + this can't exceed parent estMins */
+          if(pInfo.parent.estMins&&estMins){
+            var sibSum=_sumChildrenEst(pInfo.parent.children||[],editId);
+            var maxAvail=pInfo.parent.estMins-sibSum;
+            if(estMins>maxAvail){UI.toast('Max available: '+maxAvail+'min (parent: '+pInfo.parent.estMins+'m)');return}
+          }
+        }
         item.title=title;item.type=type;item.priority=priority;item.due=due;item.content=content;
         item.repeat=repeat;item.estMins=estMins||undefined;
       }
@@ -124,7 +186,7 @@ var TODO=(function(){
       }
     }
 
-    setTodos(todos);closeModal();render();renderInline();D.push();UI.toast('Saved ✓');
+    setTodos(todos);closeModal();_afterMutation();D.push();UI.toast('Saved ✓');
   }
 
   /* FIX #4: Completion timestamps + Recurring To-Do re-creation */
@@ -152,7 +214,7 @@ var TODO=(function(){
         }
       }
     }
-    setTodos(todos);render();renderInline();D.push();
+    setTodos(todos);_afterMutation();D.push();
   }
 
   function _nextRepeatDate(due,repeat){
@@ -168,7 +230,7 @@ var TODO=(function(){
     var todos=getTodos();
     var info=findParentAndIndex(todos[group]||[],id,null);
     if(info)info.arr.splice(info.index,1);
-    setTodos(todos);render();renderInline();D.push();UI.toast('Deleted');
+    setTodos(todos);_afterMutation();D.push();UI.toast('Deleted');
   }
 
   function sortItems(items,mode){
@@ -268,7 +330,7 @@ var TODO=(function(){
     var toIdx=toInfo.arr.indexOf(toInfo.arr.filter(function(i){return i.id===toId})[0]);
     if(toIdx<0)toIdx=toInfo.arr.length;
     toInfo.arr.splice(toIdx,0,item);
-    setTodos(todos);render();renderInline();D.push();
+    setTodos(todos);_afterMutation();D.push();
   }
 
   /* Bulk Actions (#47) */
@@ -315,7 +377,7 @@ var TODO=(function(){
         item.completedAt=new Date().toISOString();
       }
     });
-    setTodos(todos);_selected={};_updateBulkBar();render();renderInline();D.push();
+    setTodos(todos);_selected={};_updateBulkBar();_afterMutation();D.push();
     UI.toast(ids.length+' items marked done');
   }
 
@@ -329,7 +391,7 @@ var TODO=(function(){
       var info=findParentAndIndex(todos[group]||[],id,null);
       if(info)info.arr.splice(info.index,1);
     });
-    setTodos(todos);_selected={};_updateBulkBar();render();renderInline();D.push();
+    setTodos(todos);_selected={};_updateBulkBar();_afterMutation();D.push();
     UI.toast(ids.length+' items deleted');
   }
 
@@ -382,7 +444,7 @@ var TODO=(function(){
     h+='<span class="todo-title'+(isDone?' completed':'')+'">'+esc(item.title)+'</span>';
     if(!isNote)h+='<span class="todo-badge '+priCls+'">'+priCls+'</span>';
     if(effectiveDue)h+='<span class="todo-due'+(item.status!=='done'&&effectiveDue<D.todayKey()?' overdue':'')+'">'+UI.fdate(effectiveDue)+'</span>';
-    if(item.estMins)h+='<span style="font-size:.5rem;color:var(--cyn);font-weight:700;background:var(--cyn2);padding:1px 5px;border-radius:3px">~'+item.estMins+'m</span>';
+    if(item.estMins)h+='<span class="todo-est-badge">~'+item.estMins+'m</span>';
     if(item.repeat)h+='<span style="font-size:.45rem;color:var(--cyn);font-weight:700">🔄 '+item.repeat+'</span>';
 
     /* FIX #4: Show completion timestamp */
@@ -391,17 +453,18 @@ var TODO=(function(){
       h+='<span style="font-size:.5rem;color:var(--grn);font-weight:600">✓ '+UI.fdate(D.todayKey(cAt))+'</span>';
     }
 
+    /* Compact inline action icons */
+    h+='<div class="todo-actions">';
+    h+='<button class="todo-act-btn" onclick="event.stopPropagation();TODO.addChild(\''+item.id+'\',\''+group+'\')" title="Add sub-task">+</button>';
+    h+='<button class="todo-act-btn" onclick="event.stopPropagation();TODO.editItem(\''+item.id+'\',\''+group+'\')" title="Edit">✎</button>';
+    h+='<button class="todo-act-btn todo-act-del" onclick="event.stopPropagation();TODO.deleteItem(\''+item.id+'\',\''+group+'\')" title="Delete">✕</button>';
+    h+='</div>';
+
     h+='</div>';
 
     if(isNote&&item.content){
       h+='<div class="todo-note-body">'+esc(item.content)+'</div>';
     }
-
-    h+='<div class="todo-actions-bar">';
-    h+='<button class="b b-xs" onclick="TODO.addChild(\''+item.id+'\',\''+group+'\')">+ Sub</button>';
-    h+='<button class="b b-xs" onclick="TODO.editItem(\''+item.id+'\',\''+group+'\')">✏️</button>';
-    h+='<button class="b b-xs b-danger" onclick="TODO.deleteItem(\''+item.id+'\',\''+group+'\')">✕</button>';
-    h+='</div>';
 
     if(hasChildren){
       h+='<div class="todo-children">';
@@ -427,7 +490,7 @@ var TODO=(function(){
       /* Don't swipe if touching a button, checkbox, drag handle, or input */
       var tag=e.target.tagName;
       if(tag==='BUTTON'||tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA')return;
-      if(e.target.closest('.todo-drag-handle')||e.target.closest('.todo-actions-bar'))return;
+      if(e.target.closest('.todo-drag-handle')||e.target.closest('.todo-actions'))return;
       var touch=e.touches[0];
       startX=touch.clientX;
       startY=touch.clientY;
@@ -521,9 +584,12 @@ var TODO=(function(){
     var total=_countAll(groupItems);
     var done=_countDone(groupItems);
     var pct=total>0?Math.round((done/total)*100):0;
+    /* Gradient color based on progress level */
+    var grad=pct>=70?'linear-gradient(90deg,var(--grn),#34d399)':pct>=40?'linear-gradient(90deg,var(--acc),var(--yel))':'linear-gradient(90deg,var(--yel),var(--acc))';
+    var glow=pct>=70?'0 0 8px rgba(52,211,153,.4)':pct>=40?'0 0 8px rgba(255,107,53,.3)':'0 0 8px rgba(250,204,21,.3)';
     bar.innerHTML='<div style="display:flex;align-items:center;gap:8px;font-size:.72rem;color:var(--t2);font-weight:600">'
-      +'<div class="todo-pbar-bg" style="flex:1;height:8px;border-radius:4px;background:var(--brd);overflow:hidden">'
-      +'<div class="todo-pbar-fg" style="width:'+pct+'%;height:100%;border-radius:4px;background:var(--grn);transition:width .3s ease"></div>'
+      +'<div style="flex:1;height:8px;border-radius:4px;background:var(--brd);overflow:hidden">'
+      +'<div style="width:'+pct+'%;height:100%;border-radius:4px;background:'+grad+';transition:width .3s ease;box-shadow:'+glow+'"></div>'
       +'</div>'
       +'<span>'+done+'/'+total+' done ('+pct+'%)</span>'
       +'</div>';

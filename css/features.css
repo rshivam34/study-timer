@@ -68,15 +68,15 @@
 .ci-actions{padding:10px 18px 16px;display:flex;gap:8px}
 .ci-actions .b{flex:1;text-align:center;padding:8px 12px;font-size:.72rem;font-weight:700;border-radius:8px}
 /* ========== TO-DO ========== */
-.todo-item{background:linear-gradient(135deg,var(--s1),var(--s2));border:1px solid var(--brd);border-radius:8px;margin-bottom:4px;overflow:hidden;transition:box-shadow .15s}.todo-item:hover{box-shadow:0 2px 10px var(--shadow)}
-.todo-header{display:flex;align-items:center;gap:6px;padding:8px 10px;cursor:pointer}
+.todo-item{background:linear-gradient(135deg,var(--s1) 0%,var(--s2) 100%);border:1px solid var(--brd);border-radius:10px;margin-bottom:5px;overflow:hidden;transition:box-shadow .2s,border-color .2s,transform .15s}.todo-item:hover{box-shadow:0 4px 16px var(--shadow);border-color:var(--brd2);transform:translateY(-1px)}
+.todo-header{display:flex;align-items:center;gap:6px;padding:8px 10px;cursor:pointer;transition:background .12s ease;border-radius:9px}
 .todo-header:hover{background:var(--s2)}
 .todo-cb{width:18px;height:18px;border-radius:4px;border:2px solid var(--brd2);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.55rem;transition:all .15s}
 .todo-cb.done{background:var(--grn);border-color:var(--grn);color:#fff}
 .todo-cb.p-critical{border-color:var(--red)}.todo-cb.p-high{border-color:var(--acc)}.todo-cb.p-medium{border-color:var(--yel)}.todo-cb.p-low{border-color:var(--grn)}
 .todo-title{flex:1;font-size:.78rem;font-weight:600;color:var(--heading);word-break:break-word}
 .todo-title.completed{text-decoration:line-through;opacity:.5}
-.todo-badge{font-size:.5rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 6px;border-radius:3px}
+.todo-badge{font-size:.48rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 6px;border-radius:10px}
 .todo-badge.critical{background:var(--red2);color:var(--red)}
 .todo-badge.high{background:var(--acc2);color:var(--acc)}
 .todo-badge.medium{background:var(--yel2);color:var(--yel)}
@@ -87,7 +87,13 @@
 .todo-expand-btn.open{transform:rotate(0deg)}
 .todo-expand-spacer{width:22px;height:22px;flex-shrink:0}
 .todo-children{padding-left:14px;border-left:2px solid var(--brd);margin-left:18px}
-.todo-actions-bar{display:flex;gap:3px;padding:2px 10px 6px;flex-wrap:wrap}
+.todo-actions{display:flex;gap:3px;margin-left:auto;flex-shrink:0;opacity:0;transition:opacity .15s}
+.todo-header:hover .todo-actions{opacity:1}
+@media(hover:none){.todo-actions{opacity:1}}
+.todo-act-btn{width:24px;height:24px;border-radius:50%;border:1px solid var(--brd2);background:var(--s2);color:var(--td);font-size:.6rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;padding:0}
+.todo-act-btn:hover{background:var(--s3);color:var(--heading);border-color:var(--brd3);transform:scale(1.1)}
+.todo-act-del:hover{background:var(--red2);color:var(--red);border-color:var(--red)}
+.todo-est-badge{font-family:'JetBrains Mono',monospace;font-size:.5rem;color:var(--cyn);font-weight:700;background:var(--cyn2);padding:1px 6px;border-radius:10px;white-space:nowrap}
 .todo-note-body{padding:4px 10px 8px;font-size:.72rem;color:var(--t2);line-height:1.5;background:var(--s2);margin:0 8px 6px;border-radius:6px;white-space:pre-wrap}
 .todo-filter-bar{display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap;align-items:center}
 /* ========== PLANNING ========== */
@@ -155,7 +161,7 @@
 .preset-btn{transition:all .15s}
 .preset-btn.preset-active{border-color:var(--acc)!important;color:var(--acc)!important;background:var(--acc2)!important;box-shadow:0 0 10px var(--accg)}
 /* ========== TIME BUDGET CARD ========== */
-.time-budget-card{background:linear-gradient(135deg,var(--s1),var(--s2));border:1px solid var(--brd);border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 2px 12px var(--shadow)}
+.time-budget-card{background:linear-gradient(135deg,var(--s1) 0%,var(--s2) 60%,rgba(167,139,250,.03) 100%);border:1px solid var(--brd);border-radius:14px;padding:16px;margin-bottom:10px;box-shadow:0 2px 16px var(--shadow)}
 .tb-stats{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px}
 .tb-stats.tb-stats-6{grid-template-columns:repeat(3,1fr)}
 .tb-stat{text-align:center;padding:6px 4px;background:var(--s2);border-radius:8px;border:1px solid var(--brd)}

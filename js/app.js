@@ -360,13 +360,16 @@ return{connect:connect,skip:skip,tab:tab,syncUI:syncUI,manSync:manSync,reconn:re
     /* Progress bar — stacked: green for utilized, purple for committed */
     var utilPct=available>0?Math.min(100,Math.round((utilized/available)*100)):0;
     var commitPct=available>0?Math.min(100-utilPct,Math.round((committed/available)*100)):0;
+    var commitColor=overPlanned?'var(--red)':'var(--pur)';
+    var commitOpacity=overPlanned?'.8':'.6';
+    var commitLabel=overPlanned?'Over-committed':'Committed';
     h+='<div style="height:10px;background:var(--s3);border-radius:5px;overflow:hidden;margin-bottom:10px;display:flex">';
     h+='<div style="width:'+utilPct+'%;height:100%;background:var(--grn);transition:width .5s ease"></div>';
-    h+='<div style="width:'+commitPct+'%;height:100%;background:var(--pur);opacity:.6;transition:width .5s ease"></div>';
+    h+='<div style="width:'+commitPct+'%;height:100%;background:'+commitColor+';opacity:'+commitOpacity+';transition:width .5s ease"></div>';
     h+='</div>';
     h+='<div style="display:flex;gap:10px;font-size:.52rem;color:var(--td);margin-bottom:8px;justify-content:center">';
     h+='<span><span style="display:inline-block;width:8px;height:8px;background:var(--grn);border-radius:2px;vertical-align:middle;margin-right:3px"></span>Done</span>';
-    h+='<span><span style="display:inline-block;width:8px;height:8px;background:var(--pur);opacity:.6;border-radius:2px;vertical-align:middle;margin-right:3px"></span>Committed</span>';
+    h+='<span><span style="display:inline-block;width:8px;height:8px;background:'+commitColor+';opacity:'+commitOpacity+';border-radius:2px;vertical-align:middle;margin-right:3px"></span>'+commitLabel+'</span>';
     h+='<span><span style="display:inline-block;width:8px;height:8px;background:var(--s3);border-radius:2px;vertical-align:middle;margin-right:3px"></span>Free</span>';
     h+='</div>';
     /* Stats grid — 6 columns */

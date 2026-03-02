@@ -8,7 +8,7 @@ var PLAN=(function(){
   function setPlans(p){var d=D.getLocal();d.plans=p;D.saveLocal(d)}
   function getForDate(dk){return(getPlans()[dk]||[]).slice()}
   /* Notify other modules after plan data changes — keeps calendar etc. in sync */
-  function _afterChange(){try{CAL.render()}catch(e){}try{if(typeof SUM!=='undefined')SUM.render()}catch(e){}}
+  function _afterChange(){try{CAL.render()}catch(e){}try{if(typeof SUM!=='undefined')SUM.render()}catch(e){}try{App.renderTimeBudget()}catch(e){}try{App.renderDayOverview()}catch(e){}}
 
   function init(){
     document.getElementById('planDate').value=D.todayKey();
