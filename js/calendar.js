@@ -294,25 +294,28 @@ var CAL=(function(){
 
     /* Hourly grid — render rows + overlay blocks */
     var startHour=Math.floor(wakeH);var endHour=Math.ceil(bedH);
-    var totalRows=endHour-startHour;
-    var ROW_H=48; // pixels per hour row
+    var ROW_H=48; // pixels per hour row (must match .hv-row height including border via box-sizing)
 
     h+='<div class="hv-grid">';
+    /* Inner wrapper: normal-flow container so everything scrolls together.
+       position:relative makes it the positioning context for absolute blocks. */
+    h+='<div style="position:relative">';
+
     /* Hour rows (background grid) */
     for(var hr=startHour;hr<endHour;hr++){
       var isPast=isToday&&hr<Math.floor(nowH);
       var timeLabel=String(hr).padStart(2,'0')+':00';
       h+='<div class="hv-row'+(isPast?' past-hour':'')+'" data-hour="'+hr+'" onclick="CAL.onHourClick(\''+dk+'\','+hr+')">';
       h+='<div class="hv-time">'+timeLabel+'</div>';
-      h+='<div class="hv-slot"></div>';
+      h+='<div class="hv-slot"><span class="hv-add-hint">+ tap to plan</span></div>';
       h+='</div>';
     }
 
-    /* Block overlay container — absolutely positioned over the grid */
-    h+='<div class="hv-block-layer" style="position:absolute;top:0;left:48px;right:0;bottom:0;pointer-events:none">';
+    /* Block overlay — absolutely positioned within the inner wrapper (scrolls with content) */
+    h+='<div style="position:absolute;top:0;left:48px;right:0;bottom:0;pointer-events:none;z-index:3">';
 
     blocks.forEach(function(b,idx){
-      /* Clamp block to visible range */
+      /* Clamp block to visible hour range */
       var visStart=Math.max(b.startH,startHour);
       var visEnd=Math.min(b.endH,endHour);
       if(visEnd<=visStart)return;
@@ -320,9 +323,9 @@ var CAL=(function(){
       var topPx=(visStart-startHour)*ROW_H;
       var heightPx=Math.max((visEnd-visStart)*ROW_H,24);
 
-      /* Column-based width & position */
+      /* Column-based width & position for overlapping blocks */
       var maxCols=b._maxCols||1;
-      var col=b._col||0;
+      var col=(typeof b._col==='number')?b._col:0;
       var colGap=2; // px gap between columns
       var widthPct=(100/maxCols);
       var leftPct=(col*widthPct);
@@ -335,10 +338,9 @@ var CAL=(function(){
       var clickAttr='onclick="event.stopPropagation();CAL.showItemDetail('+idx+')"';
       h+='<div class="hv-block '+b.type+'" style="'+style+'" '+clickAttr+' data-bidx="'+idx+'">';
 
-      /* Content adapts to height */
+      /* Content adapts to available height */
       h+='<div class="hv-block-title">'+esc(b.title)+'</div>';
       if(heightPx>=36){
-        /* Enough room for subtitle */
         if(b.kind==='session'){
           h+='<div class="hv-block-sub">'+(b.sub?esc(b.sub)+' \u00B7 ':'')+UI.fd(b.dur)+'</div>';
         } else {
@@ -346,7 +348,6 @@ var CAL=(function(){
         }
       }
       if(heightPx>=54){
-        /* Enough room for detail line */
         if(b.kind==='session'&&b.diff){
           h+='<div class="hv-block-detail">'+esc(b.diff)+'</div>';
         } else if(b.kind==='plan'&&b.priority){
@@ -356,15 +357,16 @@ var CAL=(function(){
       h+='</div>';
     });
 
-    h+='</div>'; // hv-block-layer
+    h+='</div>'; // block overlay
 
-    /* Now indicator line */
+    /* Now indicator line (inside inner wrapper so it scrolls correctly) */
     if(isToday&&nowH>=wakeH&&nowH<=bedH){
       var nowOffset=(nowH-startHour)*ROW_H;
       h+='<div class="hv-now-line" style="top:'+nowOffset+'px"></div>';
       h+='<div class="hv-now-dot" style="top:'+nowOffset+'px"></div>';
     }
 
+    h+='</div>'; // inner wrapper
     h+='</div>'; // hv-grid
 
     /* Quick add form */

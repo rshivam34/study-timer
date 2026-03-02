@@ -199,11 +199,11 @@
 .hv-stat-val{font-family:'JetBrains Mono',monospace;font-size:.72rem;font-weight:700;display:block}
 .hv-stat-lbl{font-size:.45rem;color:var(--td);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
 .hv-grid{position:relative;overflow-y:auto;max-height:65vh}
-.hv-row{display:flex;border-bottom:1px solid var(--brd);min-height:48px;position:relative;cursor:pointer;transition:background .1s}
+.hv-row{display:flex;border-bottom:1px solid var(--brd);height:48px;box-sizing:border-box;position:relative;cursor:pointer;transition:background .1s}
 .hv-row:hover{background:var(--s2)}
 .hv-row.past-hour{opacity:.6}
 .hv-time{width:48px;font-family:'JetBrains Mono',monospace;font-size:.6rem;font-weight:600;color:var(--td);padding:4px 6px;flex-shrink:0;border-right:1px solid var(--brd);display:flex;align-items:flex-start}
-.hv-slot{flex:1;position:relative;min-height:48px;padding:2px 4px}
+.hv-slot{flex:1;padding:2px 4px}
 .hv-block{position:absolute;border-radius:6px;padding:5px 8px;font-size:.72rem;font-weight:600;overflow:hidden;z-index:2;cursor:pointer;display:flex;flex-direction:column;gap:1px;border:1px solid transparent;min-height:24px;transition:box-shadow .15s;box-sizing:border-box}
 .hv-block:hover{box-shadow:0 2px 10px var(--shadow);z-index:4}
 .hv-block.study{background:var(--acc2);border-color:rgba(255,107,53,.25);color:var(--acc)}
