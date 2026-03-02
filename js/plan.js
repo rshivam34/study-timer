@@ -15,7 +15,7 @@ var PLAN=(function(){
     render();
     // Fill subject dropdown
     var cfg=D.getCfg();
-    document.getElementById('planSubj').innerHTML='<option value="">Select...</option>'+cfg.studySubjects.map(function(s){return'<option>'+s+'</option>'}).join('');
+    document.getElementById('planSubj').innerHTML='<option value="">Select...</option>'+cfg.studySubjects.map(function(s){return'<option>'+esc(s)+'</option>'}).join('');
   }
 
   function onSubjChange(){
@@ -132,7 +132,7 @@ var PLAN=(function(){
     // Populate subject dropdown
     var cfg=D.getCfg();
     var subjSel=document.getElementById('peSubj');
-    subjSel.innerHTML=cfg.studySubjects.map(function(s){return'<option'+(s===p.subject?' selected':'')+'>'+s+'</option>'}).join('');
+    subjSel.innerHTML=cfg.studySubjects.map(function(s){return'<option'+(s===p.subject?' selected':'')+'>'+esc(s)+'</option>'}).join('');
 
     // Lecture number
     var syl=D.getSyl();
@@ -211,12 +211,12 @@ var PLAN=(function(){
       h+='<div style="flex:1;min-width:0">';
       h+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">';
       h+='<span>'+priIco+'</span><span>'+typeIco+'</span>';
-      h+='<span style="font-size:.82rem;font-weight:700;color:var(--heading);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+p.subject+'</span>';
+      h+='<span style="font-size:.82rem;font-weight:700;color:var(--heading);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.subject)+'</span>';
       h+='<span class="plan-status '+p.status+'">'+p.status+'</span>';
       h+='</div>';
-      h+='<div style="font-size:.72rem;color:var(--t2);font-weight:500">'+p.topic+(p.lecNum?' · Lec #'+p.lecNum:'')+'</div>';
+      h+='<div style="font-size:.72rem;color:var(--t2);font-weight:500">'+esc(p.topic)+(p.lecNum?' · Lec #'+p.lecNum:'')+'</div>';
 
-      if(p.notes)h+='<div style="font-size:.62rem;color:var(--td);font-style:italic;margin-top:1px">'+p.notes+'</div>';
+      if(p.notes)h+='<div style="font-size:.62rem;color:var(--td);font-style:italic;margin-top:1px">'+esc(p.notes)+'</div>';
 
       var estStr='Est: '+p.estHours+'h';
       var actualSecs=p.actualSecs||0;
@@ -334,7 +334,7 @@ var PLAN=(function(){
     var h='';
     tpls.forEach(function(t){
       h+='<div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--brd)">';
-      h+='<span style="flex:1;font-size:.7rem;font-weight:600;color:var(--heading)">'+t.name+' <span style="color:var(--tf);font-weight:400">('+t.items.length+' items)</span></span>';
+      h+='<span style="flex:1;font-size:.7rem;font-weight:600;color:var(--heading)">'+esc(t.name)+' <span style="color:var(--tf);font-weight:400">('+t.items.length+' items)</span></span>';
       h+='<button class="b b-xs b-acc" onclick="PLAN.loadTemplate(\''+t.id+'\')">Use</button>';
       h+='<button class="b b-xs b-danger" onclick="PLAN.deleteTemplate(\''+t.id+'\')">✕</button>';
       h+='</div>';

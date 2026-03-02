@@ -220,7 +220,7 @@ var TODO=(function(){
       h+='<span style="font-size:.8rem">📝</span>';
     }
 
-    h+='<span class="todo-title'+(isDone?' completed':'')+'">'+item.title+'</span>';
+    h+='<span class="todo-title'+(isDone?' completed':'')+'">'+esc(item.title)+'</span>';
     if(!isNote)h+='<span class="todo-badge '+priCls+'">'+priCls+'</span>';
     if(item.due)h+='<span class="todo-due'+(item.status!=='done'&&item.due<D.todayKey()?' overdue':'')+'">'+UI.fdate(item.due)+'</span>';
     if(item.repeat)h+='<span style="font-size:.45rem;color:var(--cyn);font-weight:700">🔄 '+item.repeat+'</span>';
@@ -235,7 +235,7 @@ var TODO=(function(){
     h+='</div>';
 
     if(isNote&&item.content){
-      h+='<div class="todo-note-body">'+item.content.replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</div>';
+      h+='<div class="todo-note-body">'+esc(item.content)+'</div>';
     }
 
     h+='<div class="todo-actions-bar">';
@@ -283,7 +283,7 @@ var TODO=(function(){
 
     var el=document.getElementById('todoFullList');
     if(!items.length){
-      el.innerHTML='<div class="empty"><div class="empty-ico">✅</div><p>'+(query?'No matches for "'+query+'"':'No to-dos yet')+'</p></div>';
+      el.innerHTML='<div class="empty"><div class="empty-ico">✅</div><p>'+(query?'No matches for "'+esc(query)+'"':'No to-dos yet')+'</p></div>';
       return;
     }
     var h='';
@@ -305,7 +305,7 @@ var TODO=(function(){
       items.forEach(function(item){
         h+='<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--brd);font-size:.73rem">';
         h+='<div class="todo-cb p-'+item.priority+'" onclick="TODO.toggleDone(\''+item.id+'\',\''+group+'\')" style="width:16px;height:16px;font-size:.5rem"></div>';
-        h+='<span style="flex:1;font-weight:600;color:var(--heading)">'+item.title+'</span>';
+        h+='<span style="flex:1;font-weight:600;color:var(--heading)">'+esc(item.title)+'</span>';
         h+='<span class="todo-badge '+item.priority+'" style="font-size:.45rem">'+item.priority+'</span>';
         h+='</div>';
       });

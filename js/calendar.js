@@ -155,7 +155,7 @@ var CAL=(function(){
         var priIco={critical:'🔴',high:'🟠',medium:'🟡',low:'🟢'}[p.priority]||'🟡';
         h+='<div style="font-size:.72rem;padding:4px 0;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:6px">';
         h+='<span>'+priIco+'</span>';
-        h+='<span style="font-weight:600;flex:1">'+p.subject+': '+p.topic+'</span>';
+        h+='<span style="font-weight:600;flex:1">'+esc(p.subject)+': '+esc(p.topic)+'</span>';
         h+='<span class="plan-status '+p.status+'">'+p.status+'</span>';
         h+='</div>';
       });
@@ -179,8 +179,8 @@ var CAL=(function(){
         var en=new Date(s.end).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
         h+='<div class="tl-item'+(s._type==='work'?' work-tl':'')+'">';
         h+='<span style="font-family:JetBrains Mono,monospace;font-size:.62rem;color:var(--td);font-weight:600">'+st+' → '+en+'</span> ';
-        h+='<span style="font-size:.65rem;font-weight:700;padding:1px 6px;border-radius:3px;background:var(--s3);color:var(--t2)">'+s.cat+'</span> ';
-        h+='<span style="font-weight:600;color:var(--heading)">'+(s.note||'—')+'</span> ';
+        h+='<span style="font-size:.65rem;font-weight:700;padding:1px 6px;border-radius:3px;background:var(--s3);color:var(--t2)">'+esc(s.cat)+'</span> ';
+        h+='<span style="font-weight:600;color:var(--heading)">'+(s.note?esc(s.note):'—')+'</span> ';
         h+='<span style="font-family:JetBrains Mono,monospace;font-size:.68rem;font-weight:700;color:var(--grn)">'+UI.fd(s.dur)+'</span>';
         h+='</div>';
       });
@@ -247,7 +247,7 @@ var CAL=(function(){
         allSess.slice(0,4).forEach(function(s){
           var col=s.type==='study'?'var(--acc)':'var(--cyn)';
           var st=new Date(s.start);
-          h+='<div class="week-block" style="background:'+col+'" title="'+st.getHours()+':'+String(st.getMinutes()).padStart(2,'0')+' '+UI.fd(s.dur)+(s.cat?' '+s.cat:'')+'"></div>';
+          h+='<div class="week-block" style="background:'+col+'" title="'+st.getHours()+':'+String(st.getMinutes()).padStart(2,'0')+' '+UI.fd(s.dur)+(s.cat?' '+esc(s.cat):'')+'"></div>';
         });
         if(allSess.length>4)h+='<div style="font-size:.4rem;color:var(--tf)">+'+( allSess.length-4)+'</div>';
         h+='</div>';

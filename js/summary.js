@@ -56,8 +56,8 @@ var SUM=(function(){
     h+=sumRow('Work Hours',UI.fd(totalWork));
     h+=sumRow('Total Hours',UI.fd(totalStudy+totalWork));
     h+=sumRow('Sessions',totalSess);
-    h+=sumRow('Subjects',Object.keys(subjects).join(', ')||'—');
-    h+=sumRow('Topics',topics.length?topics.slice(0,3).join(', ')+(topics.length>3?' +more':''):'—');
+    h+=sumRow('Subjects',Object.keys(subjects).map(esc).join(', ')||'—');
+    h+=sumRow('Topics',topics.length?topics.slice(0,3).map(esc).join(', ')+(topics.length>3?' +more':''):'—');
     h+=sumRow('Plan Completion',planPct+'% ('+planDone+'/'+plans.length+')');
     h+=sumRow('Longest Session',longest?UI.fd(longest):'—');
     h+=sumRow('Avg Session',totalSess?UI.fd(Math.round((totalStudy+totalWork)/totalSess)):'—');
@@ -202,7 +202,7 @@ var SUM=(function(){
       h+='<div style="margin-top:8px">';
       sKeys.forEach(function(k,i){
         var pct=totalStudy?Math.round(subjectTime[k]/totalStudy*100):0;
-        h+='<div class="legend-item"><div class="legend-dot" style="background:'+_COLORS[i%_COLORS.length]+'"></div>'+k+' — '+UI.fd(subjectTime[k])+' ('+pct+'%)</div>';
+        h+='<div class="legend-item"><div class="legend-dot" style="background:'+_COLORS[i%_COLORS.length]+'"></div>'+esc(k)+' — '+UI.fd(subjectTime[k])+' ('+pct+'%)</div>';
       });
       h+='</div>';
     }
@@ -320,7 +320,7 @@ var SUM=(function(){
       h+='<div style="flex:1">';
       sKeys.forEach(function(k,i){
         var pct=totalStudy?Math.round(subjectTime[k]/totalStudy*100):0;
-        h+='<div class="legend-item"><div class="legend-dot" style="background:'+_COLORS[i%_COLORS.length]+'"></div>'+k+' — '+UI.fd(subjectTime[k])+' ('+pct+'%)</div>';
+        h+='<div class="legend-item"><div class="legend-dot" style="background:'+_COLORS[i%_COLORS.length]+'"></div>'+esc(k)+' — '+UI.fd(subjectTime[k])+' ('+pct+'%)</div>';
       });
       h+='</div></div>';
     }
@@ -490,7 +490,7 @@ var SUM=(function(){
       h+='<div style="font-size:.55rem;color:var(--tf);margin-bottom:6px">Days studied in last 30 days</div>';
       scKeys.forEach(function(s,i){
         var d=subjDays[s];var pct=Math.round(d.days/30*100);
-        h+='<div style="margin-bottom:5px"><div style="display:flex;justify-content:space-between;font-size:.68rem;margin-bottom:2px"><span style="font-weight:600;color:var(--heading)">'+s+'</span><span style="font-family:JetBrains Mono,monospace;font-weight:700;color:'+_COLORS[i%_COLORS.length]+'">'+d.days+'/30 days ('+pct+'%)</span></div>';
+        h+='<div style="margin-bottom:5px"><div style="display:flex;justify-content:space-between;font-size:.68rem;margin-bottom:2px"><span style="font-weight:600;color:var(--heading)">'+esc(s)+'</span><span style="font-family:JetBrains Mono,monospace;font-weight:700;color:'+_COLORS[i%_COLORS.length]+'">'+d.days+'/30 days ('+pct+'%)</span></div>';
         h+='<div style="height:10px;background:var(--s3);border-radius:3px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+_COLORS[i%_COLORS.length]+';border-radius:3px"></div></div>';
         h+='<div style="font-size:.5rem;color:var(--tf);margin-top:1px">Total: '+UI.fd(d.total)+' · Avg: '+UI.fd(Math.round(d.total/d.days))+'/session day</div></div>';
       });
@@ -506,7 +506,7 @@ var SUM=(function(){
       var avgFirst=0,avgLast=0;
       first7.forEach(function(d){avgFirst+=d.avgSess});avgFirst=Math.round(avgFirst/first7.length);
       last7.forEach(function(d){avgLast+=d.avgSess});avgLast=Math.round(avgLast/last7.length);
-      var trend=avgLast>avgFirst?'↑ Improving':'avgLast<avgFirst'?'↓ Declining':'→ Stable';
+      var trend;
       if(avgLast>avgFirst)trend='↑ Improving';else if(avgLast<avgFirst)trend='↓ Declining';else trend='→ Stable';
       var trendCol=avgLast>=avgFirst?'var(--grn)':'var(--red)';
       h+=sumRow('Early Avg',UI.fd(avgFirst)+'/session');

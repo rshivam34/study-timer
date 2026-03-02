@@ -268,7 +268,7 @@ var PAST=(function(){
     document.getElementById('pastMins').value='30';
     document.getElementById('pastNote').value='';
     var cfg=D.getCfg(),list=type==='study'?cfg.studySubjects:cfg.workCategories;
-    document.getElementById('pastCat').innerHTML=list.map(function(s){return'<option>'+s+'</option>'}).join('');
+    document.getElementById('pastCat').innerHTML=list.map(function(s){return'<option>'+esc(s)+'</option>'}).join('');
     document.querySelectorAll('#pastDiffSel .diff-btn').forEach(function(b){b.classList.remove('on')});
     document.querySelectorAll('#pastDiffSel .diff-btn')[2].classList.add('on');
     document.getElementById('pastModal').classList.remove('hidden');
