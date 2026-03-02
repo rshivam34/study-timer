@@ -130,14 +130,16 @@
 /* ========== TIME BUDGET CARD ========== */
 .time-budget-card{background:linear-gradient(135deg,var(--s1),var(--s2));border:1px solid var(--brd);border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 2px 12px var(--shadow)}
 .tb-stats{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px}
+.tb-stats.tb-stats-6{grid-template-columns:repeat(3,1fr)}
 .tb-stat{text-align:center;padding:6px 4px;background:var(--s2);border-radius:8px;border:1px solid var(--brd)}
-.tb-val{font-family:'JetBrains Mono',monospace;font-size:.82rem;font-weight:700;display:block}
-.tb-lbl{font-size:.5rem;color:var(--td);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.tb-val{font-family:'JetBrains Mono',monospace;font-size:.78rem;font-weight:700;display:block}
+.tb-lbl{font-size:.48rem;color:var(--td);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
 /* ========== DAY OVERVIEW WIDGET ========== */
 .day-overview{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:10px}
 .do-item{text-align:center;padding:8px 4px;background:linear-gradient(135deg,var(--s1),var(--s2));border:1px solid var(--brd);border-radius:10px}
 .do-val{font-family:'JetBrains Mono',monospace;font-size:.9rem;font-weight:700;display:block}
 .do-lbl{font-size:.5rem;color:var(--td);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.do-sub{font-family:'JetBrains Mono',monospace;font-size:.48rem;color:var(--cyn);font-weight:600;display:block;margin-top:1px}
 /* ========== OVERDUE TODO BADGE ========== */
 .overdue-badge{font-family:'JetBrains Mono',monospace;font-size:.6rem;font-weight:700;color:var(--red);background:var(--red2);padding:2px 8px;border-radius:4px}
 .todo-due.overdue{color:var(--red)!important;font-weight:700}

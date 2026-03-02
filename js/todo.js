@@ -45,6 +45,7 @@ var TODO=(function(){
     document.getElementById('todoInpContent').value='';
     document.getElementById('todoInpParent').value=parentId;
     document.getElementById('todoInpEditId').value='';
+    var estEl=document.getElementById('todoInpEstMins');if(estEl)estEl.value='';
     document.getElementById('todoModalTitle').textContent='Add Sub-Item';
     document.getElementById('todoExtraFields').classList.remove('hidden');
     document.getElementById('todoNoteArea').classList.add('hidden');
@@ -93,6 +94,14 @@ var TODO=(function(){
     if(!todos[group])todos[group]=[];
     var repeat=(document.getElementById('todoInpRepeat')||{}).value||'';
     var estMins=parseInt((document.getElementById('todoInpEstMins')||{}).value)||0;
+
+    /* Validate: estMins required when due date is set (for todos, not notes) */
+    if(type==='todo'&&due&&!estMins){
+      UI.toast('Set estimated time when due date is selected');
+      var estEl=document.getElementById('todoInpEstMins');
+      if(estEl)estEl.focus();
+      return;
+    }
 
     if(editId){
       var item=findItem(todos[group],editId);
@@ -596,6 +605,7 @@ var TODO=(function(){
         if(hasChildren)h+=' <span style="font-size:.5rem;color:var(--td);font-weight:500">('+childDone+'/'+childCount+')</span>';
         h+='</span>';
         h+='<span class="todo-badge '+item.priority+'" style="font-size:.45rem">'+item.priority+'</span>';
+        if(item.estMins)h+='<span style="font-family:JetBrains Mono,monospace;font-size:.45rem;color:var(--cyn);font-weight:700;background:var(--cyn2);padding:1px 4px;border-radius:3px">~'+item.estMins+'m</span>';
         if(deadlineHtml)h+=deadlineHtml;
         h+='</div>';
       });
@@ -634,10 +644,34 @@ var TODO=(function(){
   /* Get todos for external modules */
   function getTodosExternal(){return getTodos()}
 
+  /* Helper: sum estMins for all pending todos (due today, overdue, or no due date)
+     Used by Time Budget to calculate committed todo time */
+  function _sumEstMins(items,today){
+    var total=0;
+    items.forEach(function(i){
+      if(i.status!=='done'&&i.estMins){
+        /* Count if: due today, overdue, or no due date */
+        if(!i.due||i.due<=today)total+=i.estMins;
+      }
+      if(i.children)total+=_sumEstMins(i.children,today);
+    });
+    return total;
+  }
+
+  function getTodayEstHours(){
+    var today=D.todayKey();
+    var todos=getTodos();
+    var totalMins=0;
+    ['study','work'].forEach(function(g){
+      totalMins+=_sumEstMins(todos[g]||[],today);
+    });
+    return totalMins/60;
+  }
+
   return{quickAdd:quickAdd,openAddModal:openAddModal,addChild:addChild,editItem:editItem,
     onTypeChange:onTypeChange,closeModal:closeModal,saveFromModal:saveFromModal,
     toggleDone:toggleDone,deleteItem:deleteItem,render:render,renderInline:renderInline,
-    getOverdueCount:getOverdueCount,getTodos:getTodosExternal,
+    getOverdueCount:getOverdueCount,getTodos:getTodosExternal,getTodayEstHours:getTodayEstHours,
     toggleSelect:toggleSelect,toggleSelectAll:toggleSelectAll,
     markSelectedDone:markSelectedDone,removeSelected:removeSelected,
     collapseAll:collapseAll,expandAll:expandAll,enterSelectMode:enterSelectMode};
