@@ -40,6 +40,44 @@ var CAL=(function(){
   /* Priority icon helper */
   function _priIco(p){return{critical:'\u{1F534}',high:'\u{1F7E0}',medium:'\u{1F7E1}',low:'\u{1F7E2}'}[p]||'\u{1F7E1}'}
 
+  /* =====================================================
+     BLOCK LAYOUT — column assignment for overlapping blocks
+     ===================================================== */
+  function _layoutBlocks(blocks){
+    if(!blocks.length)return;
+    /* Sort by start time, then by longer duration first */
+    blocks.sort(function(a,b){return a.startH-b.startH||(b.endH-b.startH)-(a.endH-a.startH)});
+
+    /* Greedy column assignment — place each block in the first column where it doesn't overlap */
+    var colEnds=[]; // colEnds[i] = end hour of last block placed in column i
+    blocks.forEach(function(b){
+      var placed=false;
+      for(var c=0;c<colEnds.length;c++){
+        if(b.startH>=colEnds[c]-0.01){ // small epsilon for floating point
+          b._col=c;colEnds[c]=b.endH;placed=true;break;
+        }
+      }
+      if(!placed){b._col=colEnds.length;colEnds.push(b.endH)}
+    });
+
+    /* Find connected overlap groups and assign maxCols per group */
+    var groupEnd=-Infinity,group=[];
+    var groups=[];
+    blocks.forEach(function(b){
+      if(b.startH>=groupEnd-0.01&&group.length){groups.push(group);group=[];groupEnd=-Infinity}
+      group.push(b);
+      if(b.endH>groupEnd)groupEnd=b.endH;
+    });
+    if(group.length)groups.push(group);
+
+    groups.forEach(function(g){
+      var maxCol=0;
+      g.forEach(function(b){if(b._col>maxCol)maxCol=b._col});
+      var totalCols=maxCol+1;
+      g.forEach(function(b){b._maxCols=totalCols});
+    });
+  }
+
   function render(){
     if(viewMode==='week')return renderWeek();
     renderMonth();
@@ -73,7 +111,6 @@ var CAL=(function(){
       var isSel=dk===selectedDate;
       var cls='cal-cell'+(isToday?' today':'')+(isSel?' selected':'');
 
-      // Get data for this day
       var studySess=D.getSess('study',dk);var workSess=D.getSess('work',dk);
       var plans=(PLAN.getPlans()[dk]||[]);
       var totalStudy=0,totalWork=0;
@@ -82,14 +119,13 @@ var CAL=(function(){
       var totalH=(totalStudy+totalWork)/3600;
       var sessCount=studySess.length+workSess.length;
 
-      // Heatmap cell coloring
       var heatBg=_heatColor(totalH);
       var heatStyle=heatBg?'background:'+heatBg+';':'';
 
       h+='<div class="'+cls+'" style="'+heatStyle+'" onclick="CAL.selectDay(\''+dk+'\')" data-dk="'+dk+'">';
       h+='<span class="cal-day-num">'+d+'</span>';
 
-      // Dots — plan status colors + session indicators
+      // Dots
       var dots='';
       if(plans.length){
         var allDone=plans.filter(function(p){return p.status==='completed'}).length===plans.length;
@@ -99,16 +135,14 @@ var CAL=(function(){
       if(totalWork>0)dots+='<span class="cal-dot" style="background:var(--cyn)"></span>';
       if(dots)h+='<div class="cal-dots">'+dots+'</div>';
 
-      // Hours + session count
       if(totalH>0){
         h+='<div class="cal-hrs">'+totalH.toFixed(1)+'h</div>';
         if(sessCount>1)h+='<div class="cal-sess-count">'+sessCount+'s</div>';
       }
 
-      // Plan summary hint — show below hours if plans exist
+      // Plan summary hint
       if(plans.length){
         var doneCount=plans.filter(function(p){return p.status==='completed'}).length;
-        // Get first 2 unique subject names
         var subjs=[];
         plans.forEach(function(p){if(subjs.indexOf(p.subject)===-1&&subjs.length<2)subjs.push(p.subject)});
         var hint=plans.length+'p';
@@ -131,7 +165,6 @@ var CAL=(function(){
     _scrollToToday();
   }
 
-  /* Scroll to today's cell if it exists */
   function _scrollToToday(){
     setTimeout(function(){
       var todayCell=document.querySelector('#calGrid .cal-cell.today');
@@ -166,8 +199,6 @@ var CAL=(function(){
 
     var plannedH=0;
     plans.forEach(function(p){if(p.status!=='completed'&&p.status!=='skipped')plannedH+=p.estHours});
-    var completedPlanH=0;
-    plans.forEach(function(p){if(p.status==='completed')completedPlanH+=p.estHours});
 
     var awakeH=bedH-wakeH;
     var sleepH=24-awakeH;
@@ -175,7 +206,6 @@ var CAL=(function(){
     var freeH=Math.max(0,awakeH-usedH);
     var goalH=D.getGoalForDate(dk);
 
-    /* Build hourly view */
     var h='<div class="hourly-view">';
     /* Header */
     h+='<div class="hv-header">';
@@ -198,7 +228,7 @@ var CAL=(function(){
     var goalPct=goalH>0?Math.min(100,Math.round(totalSessH/goalH*100)):0;
     h+='<div style="padding:6px 14px;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:8px">';
     h+='<span style="font-size:.6rem;font-weight:700;color:var(--td)">GOAL</span>';
-    h+='<div style="flex:1;height:6px;background:var(--s3);border-radius:3px;overflow:hidden"><div style="width:'+goalPct+'%;height:100%;background:'+( goalPct>=100?'var(--grn)':'var(--acc)')+';border-radius:3px;transition:width .3s"></div></div>';
+    h+='<div style="flex:1;height:6px;background:var(--s3);border-radius:3px;overflow:hidden"><div style="width:'+goalPct+'%;height:100%;background:'+(goalPct>=100?'var(--grn)':'var(--acc)')+';border-radius:3px;transition:width .3s"></div></div>';
     h+='<span style="font-family:JetBrains Mono,monospace;font-size:.62rem;font-weight:700;color:'+(goalPct>=100?'var(--grn)':'var(--acc)')+'">'+totalSessH.toFixed(1)+'/'+goalH+'h ('+goalPct+'%)</span>';
     h+='</div>';
 
@@ -209,7 +239,6 @@ var CAL=(function(){
       h+='<div style="font-size:.6rem;font-weight:700;color:var(--pur);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Unscheduled Plans ('+unscheduled.length+')</div>';
       unscheduled.forEach(function(p){
         var priIco=_priIco(p.priority);
-        // Escape data for onclick — use plan ID for lookup
         h+='<div class="usp-card" onclick="CAL.openPlanDetail(\''+dk+'\',\''+p.id+'\')">';
         h+='<span style="font-size:.8rem">'+priIco+'</span>';
         h+='<div class="usp-info">';
@@ -228,33 +257,29 @@ var CAL=(function(){
       h+='</div>';
     }
 
-    /* Hourly grid */
-    h+='<div class="hv-grid">';
-    var startHour=Math.floor(wakeH);var endHour=Math.ceil(bedH);
-
-    /* Build session and plan blocks data for positioning */
+    /* Build blocks data for sessions + scheduled plans */
     var blocks=[];
     var allSess=[];
     studySess.forEach(function(s){allSess.push({type:'study',start:s.start,end:s.end,dur:s.dur,cat:s.cat,note:s.note||'',diff:s.difficulty||''})});
     workSess.forEach(function(s){allSess.push({type:'work',start:s.start,end:s.end,dur:s.dur,cat:s.cat,note:s.note||'',diff:s.difficulty||''})});
     allSess.forEach(function(s){
       var sd=new Date(s.start),ed=new Date(s.end);
+      var sH=sd.getHours()+sd.getMinutes()/60;
+      var eH=ed.getHours()+ed.getMinutes()/60;
+      /* Handle sessions that cross midnight or have 0 end (same time) */
+      if(eH<=sH)eH=sH+s.dur/3600;
       blocks.push({
-        kind:'session',type:s.type,
-        startH:sd.getHours()+sd.getMinutes()/60,
-        endH:ed.getHours()+ed.getMinutes()/60,
+        kind:'session',type:s.type,startH:sH,endH:eH,
         title:s.cat||s.type,sub:s.note,dur:s.dur,
         startISO:s.start,endISO:s.end,diff:s.diff
       });
     });
-
-    /* Scheduled plans as blocks */
     plans.filter(function(p){return p.startTime&&p.endTime}).forEach(function(p){
       var sp=p.startTime.split(':'),ep=p.endTime.split(':');
       var sH=parseInt(sp[0])+parseInt(sp[1])/60,eH=parseInt(ep[0])+parseInt(ep[1])/60;
+      if(eH<=sH)eH=sH+p.estHours;
       blocks.push({
-        kind:'plan',type:'plan',
-        startH:sH,endH:eH,
+        kind:'plan',type:'plan',startH:sH,endH:eH,
         title:p.subject+': '+p.topic,
         sub:p.estHours+'h \u00B7 '+p.status,
         status:p.status,planId:p.id,planDk:dk,
@@ -264,50 +289,85 @@ var CAL=(function(){
       });
     });
 
+    /* Run column layout algorithm */
+    _layoutBlocks(blocks);
+
+    /* Hourly grid — render rows + overlay blocks */
+    var startHour=Math.floor(wakeH);var endHour=Math.ceil(bedH);
+    var totalRows=endHour-startHour;
+    var ROW_H=48; // pixels per hour row
+
+    h+='<div class="hv-grid">';
+    /* Hour rows (background grid) */
     for(var hr=startHour;hr<endHour;hr++){
       var isPast=isToday&&hr<Math.floor(nowH);
       var timeLabel=String(hr).padStart(2,'0')+':00';
       h+='<div class="hv-row'+(isPast?' past-hour':'')+'" data-hour="'+hr+'" onclick="CAL.onHourClick(\''+dk+'\','+hr+')">';
       h+='<div class="hv-time">'+timeLabel+'</div>';
-      h+='<div class="hv-slot" id="hvSlot-'+hr+'">';
-
-      /* Render blocks that fall in this hour */
-      blocks.forEach(function(b,idx){
-        if(b.startH>=hr&&b.startH<hr+1){
-          var topPct=((b.startH-hr)*100);
-          var heightH=Math.max(b.endH-b.startH,0.25);
-          var heightPx=Math.max(heightH*48,28);
-          // Build onclick data attribute
-          var clickAttr='onclick="event.stopPropagation();CAL.showItemDetail(\''+b.kind+'\','+idx+')"';
-          h+='<div class="hv-block '+b.type+'" style="top:'+topPct+'%;height:'+heightPx+'px" '+clickAttr+' data-bidx="'+idx+'">';
-          h+='<div class="hv-block-title">'+esc(b.title)+'</div>';
-          if(b.kind==='session'){
-            // Show topic + duration
-            h+='<div class="hv-block-sub">'+esc(b.sub||'')+' \u00B7 '+UI.fd(b.dur)+'</div>';
-            if(b.diff)h+='<div class="hv-block-detail">Difficulty: '+esc(b.diff)+'</div>';
-          } else {
-            // Plan block — show status + est hours
-            h+='<div class="hv-block-sub">'+esc(b.sub)+'</div>';
-            if(b.priority)h+='<div class="hv-block-detail">'+_priIco(b.priority)+' '+esc(b.priority)+'</div>';
-          }
-          h+='</div>';
-        }
-      });
-
-      h+='<span class="hv-add-hint">+ tap to plan</span>';
-      h+='</div></div>';
+      h+='<div class="hv-slot"></div>';
+      h+='</div>';
     }
+
+    /* Block overlay container — absolutely positioned over the grid */
+    h+='<div class="hv-block-layer" style="position:absolute;top:0;left:48px;right:0;bottom:0;pointer-events:none">';
+
+    blocks.forEach(function(b,idx){
+      /* Clamp block to visible range */
+      var visStart=Math.max(b.startH,startHour);
+      var visEnd=Math.min(b.endH,endHour);
+      if(visEnd<=visStart)return;
+
+      var topPx=(visStart-startHour)*ROW_H;
+      var heightPx=Math.max((visEnd-visStart)*ROW_H,24);
+
+      /* Column-based width & position */
+      var maxCols=b._maxCols||1;
+      var col=b._col||0;
+      var colGap=2; // px gap between columns
+      var widthPct=(100/maxCols);
+      var leftPct=(col*widthPct);
+
+      var style='top:'+topPx+'px;height:'+heightPx+'px;'
+        +'left:calc('+leftPct+'% + '+colGap+'px);'
+        +'width:calc('+widthPct+'% - '+(colGap*2)+'px);'
+        +'pointer-events:auto';
+
+      var clickAttr='onclick="event.stopPropagation();CAL.showItemDetail('+idx+')"';
+      h+='<div class="hv-block '+b.type+'" style="'+style+'" '+clickAttr+' data-bidx="'+idx+'">';
+
+      /* Content adapts to height */
+      h+='<div class="hv-block-title">'+esc(b.title)+'</div>';
+      if(heightPx>=36){
+        /* Enough room for subtitle */
+        if(b.kind==='session'){
+          h+='<div class="hv-block-sub">'+(b.sub?esc(b.sub)+' \u00B7 ':'')+UI.fd(b.dur)+'</div>';
+        } else {
+          h+='<div class="hv-block-sub">'+esc(b.sub)+'</div>';
+        }
+      }
+      if(heightPx>=54){
+        /* Enough room for detail line */
+        if(b.kind==='session'&&b.diff){
+          h+='<div class="hv-block-detail">'+esc(b.diff)+'</div>';
+        } else if(b.kind==='plan'&&b.priority){
+          h+='<div class="hv-block-detail">'+_priIco(b.priority)+' '+esc(b.priority)+'</div>';
+        }
+      }
+      h+='</div>';
+    });
+
+    h+='</div>'; // hv-block-layer
 
     /* Now indicator line */
     if(isToday&&nowH>=wakeH&&nowH<=bedH){
-      var nowOffset=(nowH-startHour)*48;
+      var nowOffset=(nowH-startHour)*ROW_H;
       h+='<div class="hv-now-line" style="top:'+nowOffset+'px"></div>';
       h+='<div class="hv-now-dot" style="top:'+nowOffset+'px"></div>';
     }
 
     h+='</div>'; // hv-grid
 
-    /* Quick add form (hidden by default) */
+    /* Quick add form */
     h+='<div id="hvQuickAdd" class="hidden" style="padding:8px 14px"></div>';
 
     h+='</div>'; // hourly-view
@@ -321,53 +381,69 @@ var CAL=(function(){
     if(isToday){
       setTimeout(function(){
         var grid=el.querySelector('.hv-grid');
-        if(grid){var scrollTo=Math.max(0,(nowH-startHour-2)*48);grid.scrollTop=scrollTo}
+        if(grid){var scrollTo=Math.max(0,(nowH-startHour-2)*ROW_H);grid.scrollTop=scrollTo}
       },50);
     }
   }
 
   /* ==================== ITEM DETAIL MODAL ==================== */
 
-  /* Show detail popup for a clicked block */
-  function showItemDetail(kind,blockIdx){
+  function showItemDetail(blockIdx){
     var el=document.getElementById('calDayDetail');
     if(!el||!el._blocks)return;
     var b=el._blocks[blockIdx];
     if(!b)return;
 
     var modal=document.getElementById('calItemModal');
-    var titleEl=document.getElementById('ciModalTitle');
+    var hdrEl=document.getElementById('ciModalHeader');
     var bodyEl=document.getElementById('ciModalBody');
     var actEl=document.getElementById('ciModalActions');
     if(!modal)return;
 
-    var h='';
+    var kind=b.kind;
+    var typeLabel=kind==='session'?(b.type==='study'?'Study Session':'Work Session'):'Planned Task';
+    var typeClass=kind==='session'?b.type:'plan';
+    var typeIco=kind==='session'?(b.type==='study'?'\u{1F4D6}':'\u{1F4BC}'):'\u{1F4CB}';
+
+    /* Header with colored icon */
+    var hh='<div class="ci-type-ico '+typeClass+'">'+typeIco+'</div>';
+    hh+='<div class="ci-hdr-info"><div class="ci-hdr-title">'+esc(b.title)+'</div><div class="ci-hdr-sub">'+typeLabel+'</div></div>';
+    hh+='<button class="ci-close" onclick="CAL.closeCIModal()">&times;</button>';
+    hdrEl.innerHTML=hh;
+
+    /* Body rows */
+    var bh='';
     if(kind==='session'){
-      titleEl.textContent=(b.type==='study'?'Study':'Work')+' Session';
-      h+='<div class="ci-row"><span class="ci-label">Category</span><span class="ci-value">'+esc(b.title)+'</span></div>';
-      if(b.sub)h+='<div class="ci-row"><span class="ci-label">Topic / Note</span><span class="ci-value">'+esc(b.sub)+'</span></div>';
-      h+='<div class="ci-row"><span class="ci-label">Duration</span><span class="ci-value">'+UI.fd(b.dur)+'</span></div>';
-      // Format start-end time
+      if(b.sub)bh+=_ciRow('Topic / Note',esc(b.sub));
+      bh+=_ciRow('Duration',UI.fd(b.dur));
       var sd=new Date(b.startISO),ed=new Date(b.endISO);
       var startT=String(sd.getHours()).padStart(2,'0')+':'+String(sd.getMinutes()).padStart(2,'0');
       var endT=String(ed.getHours()).padStart(2,'0')+':'+String(ed.getMinutes()).padStart(2,'0');
-      h+='<div class="ci-row"><span class="ci-label">Time</span><span class="ci-value">'+startT+' \u2014 '+endT+'</span></div>';
-      if(b.diff)h+='<div class="ci-row"><span class="ci-label">Difficulty</span><span class="ci-value">'+esc(b.diff)+'</span></div>';
-      actEl.innerHTML='<button class="b b-xs" onclick="CAL.closeCIModal()">Close</button>';
+      bh+=_ciRow('Time',startT+' \u2014 '+endT);
+      if(b.diff)bh+=_ciRow('Difficulty',esc(b.diff));
     } else {
-      titleEl.textContent='Planned: '+esc(b.subject||'');
-      h+='<div class="ci-row"><span class="ci-label">Subject</span><span class="ci-value">'+esc(b.subject||b.title)+'</span></div>';
-      if(b.topic)h+='<div class="ci-row"><span class="ci-label">Topic</span><span class="ci-value">'+esc(b.topic)+'</span></div>';
-      if(b.source)h+='<div class="ci-row"><span class="ci-label">Source</span><span class="ci-value">'+esc(b.source)+'</span></div>';
-      h+='<div class="ci-row"><span class="ci-label">Est. Hours</span><span class="ci-value">'+b.estHours+'h</span></div>';
-      h+='<div class="ci-row"><span class="ci-label">Priority</span><span class="ci-value">'+_priIco(b.priority)+' '+esc(b.priority||'medium')+'</span></div>';
-      h+='<div class="ci-row"><span class="ci-label">Status</span><span class="ci-value"><span class="plan-status '+(b.status||'planned')+'">'+(b.status||'planned')+'</span></span></div>';
-      if(b.startTime&&b.endTime)h+='<div class="ci-row"><span class="ci-label">Time</span><span class="ci-value">'+b.startTime+' \u2014 '+b.endTime+'</span></div>';
-      if(b.notes)h+='<div class="ci-row"><span class="ci-label">Notes</span><span class="ci-value">'+esc(b.notes)+'</span></div>';
-      actEl.innerHTML='<button class="b b-xs" onclick="CAL.closeCIModal()">Close</button> <button class="b b-xs b-acc" onclick="CAL.closeCIModal();PLAN.openEdit(\''+b.planDk+'\',\''+b.planId+'\')">Edit in Planner</button>';
+      if(b.topic)bh+=_ciRow('Topic',esc(b.topic));
+      if(b.source)bh+=_ciRow('Source',esc(b.source));
+      bh+=_ciRow('Est. Hours',b.estHours+'h');
+      bh+=_ciRow('Priority',_priIco(b.priority)+' '+esc(b.priority||'medium'));
+      bh+=_ciRow('Status','<span class="plan-status '+(b.status||'planned')+'">'+(b.status||'planned')+'</span>');
+      if(b.startTime&&b.endTime)bh+=_ciRow('Time',b.startTime+' \u2014 '+b.endTime);
+      if(b.notes)bh+=_ciRow('Notes',esc(b.notes));
     }
-    bodyEl.innerHTML=h;
+    bodyEl.innerHTML=bh;
+
+    /* Action buttons */
+    var ah='<button class="b" onclick="CAL.closeCIModal()">Close</button>';
+    if(kind==='plan'){
+      ah+='<button class="b b-acc" onclick="CAL.closeCIModal();PLAN.openEdit(\''+b.planDk+'\',\''+b.planId+'\')">Edit Plan</button>';
+    }
+    actEl.innerHTML=ah;
     modal.classList.remove('hidden');
+  }
+
+  /* Helper to build a modal detail row */
+  function _ciRow(label,valueHtml){
+    return'<div class="ci-row"><span class="ci-label">'+label+'</span><span class="ci-value">'+valueHtml+'</span></div>';
   }
 
   /* Open detail modal for a specific plan by dk + planId */
@@ -377,28 +453,37 @@ var CAL=(function(){
     if(!p)return;
 
     var modal=document.getElementById('calItemModal');
-    var titleEl=document.getElementById('ciModalTitle');
+    var hdrEl=document.getElementById('ciModalHeader');
     var bodyEl=document.getElementById('ciModalBody');
     var actEl=document.getElementById('ciModalActions');
     if(!modal)return;
 
-    titleEl.textContent='Plan: '+esc(p.subject);
-    var h='';
-    h+='<div class="ci-row"><span class="ci-label">Subject</span><span class="ci-value">'+esc(p.subject)+'</span></div>';
-    h+='<div class="ci-row"><span class="ci-label">Topic</span><span class="ci-value">'+esc(p.topic)+'</span></div>';
-    if(p.source)h+='<div class="ci-row"><span class="ci-label">Source</span><span class="ci-value">'+esc(p.source)+'</span></div>';
-    h+='<div class="ci-row"><span class="ci-label">Est. Hours</span><span class="ci-value">'+p.estHours+'h</span></div>';
-    h+='<div class="ci-row"><span class="ci-label">Priority</span><span class="ci-value">'+_priIco(p.priority)+' '+esc(p.priority||'medium')+'</span></div>';
-    h+='<div class="ci-row"><span class="ci-label">Status</span><span class="ci-value"><span class="plan-status '+(p.status||'planned')+'">'+(p.status||'planned')+'</span></span></div>';
-    if(p.startTime&&p.endTime)h+='<div class="ci-row"><span class="ci-label">Time</span><span class="ci-value">'+p.startTime+' \u2014 '+p.endTime+'</span></div>';
-    if(p.lecNum)h+='<div class="ci-row"><span class="ci-label">Lecture #</span><span class="ci-value">'+p.lecNum+'</span></div>';
-    if(p.notes)h+='<div class="ci-row"><span class="ci-label">Notes</span><span class="ci-value">'+esc(p.notes)+'</span></div>';
-    bodyEl.innerHTML=h;
-    actEl.innerHTML='<button class="b b-xs" onclick="CAL.closeCIModal()">Close</button> <button class="b b-xs b-acc" onclick="CAL.closeCIModal();PLAN.openEdit(\''+dk+'\',\''+planId+'\')">Edit in Planner</button>';
+    /* Header */
+    var hh='<div class="ci-type-ico plan">\u{1F4CB}</div>';
+    hh+='<div class="ci-hdr-info"><div class="ci-hdr-title">'+esc(p.subject)+': '+esc(p.topic)+'</div><div class="ci-hdr-sub">Planned Task</div></div>';
+    hh+='<button class="ci-close" onclick="CAL.closeCIModal()">&times;</button>';
+    hdrEl.innerHTML=hh;
+
+    /* Body */
+    var bh='';
+    bh+=_ciRow('Subject',esc(p.subject));
+    bh+=_ciRow('Topic',esc(p.topic));
+    if(p.source)bh+=_ciRow('Source',esc(p.source));
+    bh+=_ciRow('Est. Hours',p.estHours+'h');
+    bh+=_ciRow('Priority',_priIco(p.priority)+' '+esc(p.priority||'medium'));
+    bh+=_ciRow('Status','<span class="plan-status '+(p.status||'planned')+'">'+(p.status||'planned')+'</span>');
+    if(p.startTime&&p.endTime)bh+=_ciRow('Time',p.startTime+' \u2014 '+p.endTime);
+    if(p.lecNum)bh+=_ciRow('Lecture #',''+p.lecNum);
+    if(p.notes)bh+=_ciRow('Notes',esc(p.notes));
+    bodyEl.innerHTML=bh;
+
+    /* Actions */
+    var ah='<button class="b" onclick="CAL.closeCIModal()">Close</button>';
+    ah+='<button class="b b-acc" onclick="CAL.closeCIModal();PLAN.openEdit(\''+dk+'\',\''+planId+'\')">Edit Plan</button>';
+    actEl.innerHTML=ah;
     modal.classList.remove('hidden');
   }
 
-  /* Close the detail modal */
   function closeCIModal(){
     var modal=document.getElementById('calItemModal');
     if(modal)modal.classList.add('hidden');
@@ -448,7 +533,6 @@ var CAL=(function(){
     topicEl.focus();
   }
 
-  /* Quick add plan from hourly view */
   function quickAddPlan(dk){
     var subj=document.getElementById('hvSubj').value;
     var topic=document.getElementById('hvTopic').value.trim();
@@ -514,7 +598,6 @@ var CAL=(function(){
       studySess.forEach(function(s){totalStudy+=s.dur});
       workSess.forEach(function(s){totalWork+=s.dur});
       var totalH=(totalStudy+totalWork)/3600;
-      var sessCount=studySess.length+workSess.length;
       var heatBg=_heatColor(totalH);
       var heatStyle=heatBg?'background:'+heatBg+';':'';
       var cls='cal-cell week-cell'+(isToday?' today':'')+(isSel?' selected':'');
@@ -539,7 +622,7 @@ var CAL=(function(){
         h+='</div>';
       }
 
-      /* Plan count — more prominent */
+      /* Plan count */
       if(plans.length){
         var allDoneW=plans.filter(function(p){return p.status==='completed'}).length===plans.length;
         var doneW=plans.filter(function(p){return p.status==='completed'}).length;
@@ -565,7 +648,6 @@ var CAL=(function(){
       var dk=viewYear+'-'+String(viewMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
       var studySess=D.getSess('study',dk);
       var workSess=D.getSess('work',dk);
-
       studySess.forEach(function(s){events.push({type:'Study',cat:s.cat,note:s.note||'',start:s.start,end:s.end})});
       workSess.forEach(function(s){events.push({type:'Work',cat:s.cat,note:s.note||'',start:s.start,end:s.end})});
     }

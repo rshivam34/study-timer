@@ -321,13 +321,10 @@
   <div id="calDayDetail"></div>
   <!-- Calendar Item Detail Modal -->
   <div class="modal hidden" id="calItemModal" onclick="if(event.target===this)CAL.closeCIModal()">
-    <div class="modal-content" style="max-width:380px">
-      <div class="modal-hdr" id="ciModalHeader">
-        <span id="ciModalTitle">Item Details</span>
-        <button class="modal-close" onclick="CAL.closeCIModal()">&times;</button>
-      </div>
-      <div id="ciModalBody" style="padding:12px 16px"></div>
-      <div id="ciModalActions" style="padding:8px 16px 14px;display:flex;gap:6px;justify-content:flex-end"></div>
+    <div class="modal-box ci-modal-box">
+      <div id="ciModalHeader" class="ci-header"></div>
+      <div id="ciModalBody" class="ci-body"></div>
+      <div id="ciModalActions" class="ci-actions"></div>
     </div>
   </div>
 </div>
