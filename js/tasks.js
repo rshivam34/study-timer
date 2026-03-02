@@ -22,7 +22,7 @@ return{add:add,render:render,edit:edit,saveEdit:saveEdit,deleteFromEdit:deleteFr
 
 var REM=(function(){
 function render(){var el=document.getElementById('remContent'),h='',now=new Date(),today=D.todayKey(),cfg=D.getCfg();
-var goalH=cfg.dailyGoals[today]||cfg.dailyGoals['default']||6;var ss=D.todayS('study'),tot=0;ss.forEach(function(s){tot+=s.dur});
+var goalH=D.getGoalForDate(today);var ss=D.todayS('study'),tot=0;ss.forEach(function(s){tot+=s.dur});
 // Happiness banner
 h+='<div class="happy-banner"><div class="hb-title">😊 Remember to be happy!</div><div class="hb-desc">You\'re doing amazing. Breathe, smile, keep going. 🌟</div></div>';
 // Competition Coach
@@ -42,7 +42,7 @@ var msg=getCoachMsg(hr,pct,rem,hrsLeft,maxPoss,tot,goalH,goalS,effMin);
 var sessCount=ss.length,longest=0;ss.forEach(function(s){if(s.dur>longest)longest=s.dur});
 // Streak
 var streak=0,d2=new Date(now);d2.setDate(d2.getDate()-1);
-for(var i=0;i<365;i++){var k=D.todayKey(d2);var ds=D.getSess('study',k);var dt=0;ds.forEach(function(s){dt+=s.dur});var gk=cfg.dailyGoals[k]||cfg.dailyGoals['default']||6;if(dt>=gk*3600)streak++;else break;d2.setDate(d2.getDate()-1)}
+for(var i=0;i<365;i++){var k=D.todayKey(d2);var ds=D.getSess('study',k);var dt=0;ds.forEach(function(s){dt+=s.dur});var gk=D.getGoalForDate(k);if(dt>=gk*3600)streak++;else break;d2.setDate(d2.getDate()-1)}
 var h='<div class="coach"><div class="coach-title">🔥 Competition Check</div>';
 h+='<div class="coach-bar"><div class="coach-bar-fill" style="width:'+pct+'%;background:'+barCol+'"></div></div>';
 h+='<div class="coach-stats"><span>'+UI.fd(tot)+' / '+goalH+'h</span><span>'+pct+'%</span></div>';

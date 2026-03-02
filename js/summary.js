@@ -214,7 +214,7 @@ var SUM=(function(){
     /* [2] Weekly Grade */
     var goalPcts=[];
     dayData.forEach(function(dd){
-      var goal=(cfg.dailyGoals[dd.dk]||cfg.dailyGoals['default']||6)*3600;
+      var goal=D.getGoalForDate(dd.dk)*3600;
       goalPcts.push(Math.min(100,Math.round((dd.study+dd.work)/goal*100)));
     });
     var avgGoalPct=Math.round(goalPcts.reduce(function(a,b){return a+b},0)/7);
@@ -344,7 +344,7 @@ var SUM=(function(){
       if(ss.length||ws.length)daysTracked++;
       totalStudy+=ds;totalWork+=dw;totalSess+=ss.length+ws.length;
       dayTotals.push({day:i,study:ds,work:dw,total:dayTotal,dk:mk});
-      var goal=(cfg.dailyGoals[mk]||cfg.dailyGoals['default']||6)*3600;
+      var goal=D.getGoalForDate(mk)*3600;
       if(dayTotal>0)goalPcts.push(Math.min(100,Math.round(dayTotal/goal*100)));
       if(dayTotal>bestDay.total){bestDay={dk:mk,total:dayTotal,day:i}}
       if(dayTotal>0&&dayTotal<worstDay.total){worstDay={dk:mk,total:dayTotal,day:i}}
@@ -467,7 +467,7 @@ var SUM=(function(){
     for(var i=0;i<365;i++){
       var k=D.todayKey(d2);var ds=D.getSess('study',k);var dt=0;
       ds.forEach(function(s){dt+=s.dur});
-      var gk=cfg.dailyGoals[k]||cfg.dailyGoals['default']||6;
+      var gk=D.getGoalForDate(k);
       if(dt>=gk*3600)streak++;else break;
       d2.setDate(d2.getDate()-1);
     }
@@ -487,7 +487,7 @@ var SUM=(function(){
     var goalDays=0,achievedDays=0;
     if(data.study){Object.keys(data.study).forEach(function(k){
       goalDays++;var dt2=0;data.study[k].forEach(function(s){dt2+=s.dur});
-      var goal=(cfg.dailyGoals[k]||cfg.dailyGoals['default']||6)*3600;
+      var goal=(D.getGoalForDate(k))*3600;
       if(dt2>=goal)achievedDays++;
     })}
 
@@ -526,7 +526,7 @@ var SUM=(function(){
         var sdk=D.todayKey(sdd);
         var sdSess=D.getSess('study',sdk);var sdTotal=0;
         sdSess.forEach(function(s){sdTotal+=s.dur});
-        var sdGoal=(cfg.dailyGoals[sdk]||cfg.dailyGoals['default']||6)*3600;
+        var sdGoal=D.getGoalForDate(sdk)*3600;
         var sdStatus='none';
         if(sdTotal>=sdGoal)sdStatus='met';
         else if(sdTotal>=sdGoal*0.5)sdStatus='partial';
@@ -723,7 +723,7 @@ var SUM=(function(){
       var gk=year+'-'+String(month+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
       var gSess=D.getSess('study',gk);var gTotal=0;
       gSess.forEach(function(s){gTotal+=s.dur});
-      var gGoal=(cfg.dailyGoals[gk]||cfg.dailyGoals['default']||6)*3600;
+      var gGoal=D.getGoalForDate(gk)*3600;
       var gCol='var(--s3)'; /* no data = gray */
       if(gTotal>0){gCol=gTotal>=gGoal?'var(--grn)':'var(--red)'}
       var todayMark=gk===D.todayKey()?' outline:2px solid var(--acc);outline-offset:-2px;':'';

@@ -13,6 +13,7 @@ var PLAN=(function(){
     document.getElementById('planViewDate').value=D.todayKey();
     onSubjChange();
     render();
+    renderGoalPresets();
     // Fill subject dropdown
     var cfg=D.getCfg();
     document.getElementById('planSubj').innerHTML='<option value="">Select...</option>'+cfg.studySubjects.map(function(s){return'<option>'+esc(s)+'</option>'}).join('');
@@ -159,14 +160,132 @@ var PLAN=(function(){
     render();D.push();UI.toast(sourcePlans.length+' plans copied ✓');
   }
 
-  function applyTemplate(type){
-    var date=document.getElementById('planDate').value;
-    if(!date){UI.toast('Select date first');return}
-    var cfg=D.getCfg(),subjs=cfg.studySubjects;
-    if(!subjs.length){UI.toast('Add subjects in settings');return}
-    var blocks={'office':3,'wfh':5.5,'evensat':7,'fullday':13};
-    var hours=blocks[type]||6;
-    UI.toast(type+' template: '+hours+'h — add your subjects!');
+  /* ========== GOAL PRESETS (Rule-based daily goals) ========== */
+  var _defaultPresets=[
+    {id:'gp_office',name:'Office Day',hours:3,days:[1,2,3,4,5],weekPattern:'all',active:true},
+    {id:'gp_wfh',name:'WFH',hours:5.5,days:[],weekPattern:'all',active:false},
+    {id:'gp_evensat',name:'Even Saturday',hours:7,days:[6],weekPattern:'even',active:true},
+    {id:'gp_fullday',name:'Full Day',hours:13,days:[0],weekPattern:'all',active:true}
+  ];
+  var _dayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  function _getPresets(){
+    var cfg=D.getCfg();
+    if(!cfg.goalPresets||!cfg.goalPresets.length){
+      cfg.goalPresets=JSON.parse(JSON.stringify(_defaultPresets));
+      D.setCfg(cfg);
+    }
+    return cfg.goalPresets;
+  }
+  function _setPresets(presets){var cfg=D.getCfg();cfg.goalPresets=presets;D.setCfg(cfg);D.push()}
+
+  function renderGoalPresets(){
+    var el=document.getElementById('goalPresetList');
+    if(!el)return;
+    var presets=_getPresets();
+    var today=D.todayKey();
+    var todayGoal=D.getGoalForDate(today);
+    /* Find which preset is active today */
+    var todayDow=new Date().getDay();
+    var activePresetId=null;
+    var cfg=D.getCfg();
+    var hasManual=cfg.dailyGoals&&cfg.dailyGoals[today]!==undefined;
+    if(!hasManual){
+      for(var i=0;i<presets.length;i++){
+        var p=presets[i];if(!p.active)continue;
+        if(p.days.indexOf(todayDow)===-1)continue;
+        if(p.weekPattern&&p.weekPattern!=='all'){
+          var nth=Math.ceil(new Date().getDate()/7);
+          if(p.weekPattern==='even'&&nth%2!==0)continue;
+          if(p.weekPattern==='odd'&&nth%2!==1)continue;
+        }
+        activePresetId=p.id;
+      }
+    }
+
+    var h='<div style="font-size:.62rem;color:var(--grn);font-weight:700;margin-bottom:6px">Today\'s goal: '+todayGoal+'h'+(hasManual?' (manual override)':activePresetId?' (from preset)':' (default)')+'</div>';
+    presets.forEach(function(p){
+      var isToday=p.id===activePresetId;
+      var dayStr=p.days.length?p.days.map(function(d){return _dayNames[d]}).join(', '):'<span style="color:var(--tf)">No days set</span>';
+      var patternStr=p.weekPattern==='even'?' · 2nd/4th only':p.weekPattern==='odd'?' · 1st/3rd/5th only':'';
+
+      h+='<div class="gp-card'+(isToday?' gp-active':'')+'">';
+      h+='<div style="display:flex;align-items:center;gap:8px">';
+      h+='<button class="gp-toggle'+(p.active?' on':'')+'" onclick="PLAN.toggleGoalPreset(\''+p.id+'\')">'+(p.active?'ON':'OFF')+'</button>';
+      h+='<div style="flex:1;min-width:0">';
+      h+='<div style="font-size:.78rem;font-weight:700;color:var(--heading)">'+esc(p.name)+' — <span style="color:var(--acc)">'+p.hours+'h</span></div>';
+      h+='<div style="font-size:.6rem;color:var(--td)">'+dayStr+patternStr+'</div>';
+      h+='</div>';
+      h+='<button class="b b-xs" onclick="PLAN.openEditPreset(\''+p.id+'\')">✏️</button>';
+      h+='<button class="b b-xs b-danger" onclick="PLAN.deleteGoalPreset(\''+p.id+'\')">✕</button>';
+      h+='</div></div>';
+    });
+    el.innerHTML=h;
+  }
+
+  function toggleGoalPreset(id){
+    var presets=_getPresets();
+    var p=presets.find(function(x){return x.id===id});
+    if(p)p.active=!p.active;
+    _setPresets(presets);renderGoalPresets();UI.renderGoal();UI.toast(p.active?'Enabled':'Disabled')
+  }
+
+  function openAddPreset(){
+    document.getElementById('gpModalTitle').textContent='Add Goal Rule';
+    document.getElementById('gpName').value='';
+    document.getElementById('gpHours').value='';
+    document.getElementById('gpWeekPattern').value='all';
+    document.getElementById('gpEditId').value='';
+    document.querySelectorAll('#gpDayChips .day-chip').forEach(function(c){c.classList.remove('on')});
+    document.getElementById('goalPresetModal').classList.remove('hidden');
+  }
+
+  function openEditPreset(id){
+    var presets=_getPresets();
+    var p=presets.find(function(x){return x.id===id});
+    if(!p)return;
+    document.getElementById('gpModalTitle').textContent='Edit Goal Rule';
+    document.getElementById('gpName').value=p.name;
+    document.getElementById('gpHours').value=p.hours;
+    document.getElementById('gpWeekPattern').value=p.weekPattern||'all';
+    document.getElementById('gpEditId').value=p.id;
+    document.querySelectorAll('#gpDayChips .day-chip').forEach(function(c){
+      var day=parseInt(c.getAttribute('data-day'));
+      c.classList.toggle('on',p.days.indexOf(day)!==-1);
+    });
+    document.getElementById('goalPresetModal').classList.remove('hidden');
+  }
+
+  function saveGoalPreset(){
+    var name=document.getElementById('gpName').value.trim();
+    var hours=parseFloat(document.getElementById('gpHours').value);
+    if(!name||isNaN(hours)){UI.toast('Fill name and hours');return}
+    var days=[];
+    document.querySelectorAll('#gpDayChips .day-chip.on').forEach(function(c){
+      days.push(parseInt(c.getAttribute('data-day')));
+    });
+    var weekPattern=document.getElementById('gpWeekPattern').value;
+    var editId=document.getElementById('gpEditId').value;
+    var presets=_getPresets();
+
+    if(editId){
+      var p=presets.find(function(x){return x.id===editId});
+      if(p){p.name=name;p.hours=hours;p.days=days;p.weekPattern=weekPattern}
+    } else {
+      presets.push({
+        id:'gp_'+Date.now(),name:name,hours:hours,days:days,
+        weekPattern:weekPattern,active:true
+      });
+    }
+    _setPresets(presets);
+    document.getElementById('goalPresetModal').classList.add('hidden');
+    renderGoalPresets();UI.renderGoal();UI.toast('Saved ✓');
+  }
+
+  function deleteGoalPreset(id){
+    if(!confirm('Delete this goal rule?'))return;
+    var presets=_getPresets().filter(function(x){return x.id!==id});
+    _setPresets(presets);renderGoalPresets();UI.renderGoal();UI.toast('Deleted');
   }
 
   /* FIX #1: Edit modal — open with pre-filled fields */
@@ -416,7 +535,9 @@ var PLAN=(function(){
 
   return{
     init:init,add:add,render:render,updateStatus:updateStatus,remove:remove,
-    completePlan:completePlan,carryForward:carryForward,copyDayPlans:copyDayPlans,applyTemplate:applyTemplate,
+    completePlan:completePlan,carryForward:carryForward,copyDayPlans:copyDayPlans,
+    renderGoalPresets:renderGoalPresets,toggleGoalPreset:toggleGoalPreset,
+    openAddPreset:openAddPreset,openEditPreset:openEditPreset,saveGoalPreset:saveGoalPreset,deleteGoalPreset:deleteGoalPreset,
     onSubjChange:onSubjChange,getForDate:getForDate,getTodayPlansForSubject:getTodayPlansForSubject,
     getPlans:getPlans,setPlans:setPlans,
     openEdit:openEdit,saveEdit:saveEdit,closeEdit:closeEdit,

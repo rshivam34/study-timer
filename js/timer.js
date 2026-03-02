@@ -94,7 +94,7 @@ var TM=(function(){
     /* [#54] Insights toast — show session count + goal progress */
     var _todaySess=D.getSess(pending.type,D.todayKey());var _todayTotal=0;
     _todaySess.forEach(function(s2){_todayTotal+=s2.dur});_todayTotal+=pending.dur;
-    var _cfg=D.getCfg();var _goal=(_cfg.dailyGoals[D.todayKey()]||_cfg.dailyGoals['default']||6)*3600;
+    var _goal=D.getGoalForDate(D.todayKey())*3600;
     var _goalPct=Math.min(100,Math.round(_todayTotal/_goal*100));
     UI.toast('Saved! Session #'+_todaySess.length+' today. '+_goalPct+'% to your goal!');
     document.getElementById('saveModal').classList.add('hidden');

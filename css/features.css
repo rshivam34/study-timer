@@ -140,6 +140,11 @@
 .do-val{font-family:'JetBrains Mono',monospace;font-size:.9rem;font-weight:700;display:block}
 .do-lbl{font-size:.5rem;color:var(--td);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
 .do-sub{font-family:'JetBrains Mono',monospace;font-size:.48rem;color:var(--cyn);font-weight:600;display:block;margin-top:1px}
+/* ========== GOAL PRESET CARDS ========== */
+.gp-card{background:var(--s1);border:1px solid var(--brd);border-radius:8px;padding:8px 10px;margin-bottom:4px;transition:border-color .15s}
+.gp-card.gp-active{border-color:var(--acc);box-shadow:0 0 8px var(--accg)}
+.gp-toggle{width:36px;height:20px;border-radius:10px;border:none;cursor:pointer;font-size:.5rem;font-weight:700;color:#fff;transition:all .15s;flex-shrink:0;background:var(--s3);color:var(--tf)}
+.gp-toggle.on{background:var(--grn);color:#fff}
 /* ========== OVERDUE TODO BADGE ========== */
 .overdue-badge{font-family:'JetBrains Mono',monospace;font-size:.6rem;font-weight:700;color:var(--red);background:var(--red2);padding:2px 8px;border-radius:4px}
 .todo-due.overdue{color:var(--red)!important;font-weight:700}

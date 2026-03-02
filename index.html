@@ -262,26 +262,23 @@
     </div>
     <div style="text-align:right;margin-top:8px"><button class="b b-sm b-acc" onclick="PLAN.add()">Add to Plan</button></div>
   </div>
-  <div class="sl">Templates</div>
+  <div class="sl">Daily Goal Rules</div>
   <div style="background:var(--s1);border:1px solid var(--brd);border-radius:10px;padding:12px;margin-bottom:10px">
     <div style="font-size:.68rem;color:var(--t2);margin-bottom:8px;font-weight:500">
-      <strong style="color:var(--heading)">Quick Presets</strong> — Sets estimated available hours for the day. Add your own subjects and topics above, then click a preset to see how much time you have.
+      <strong style="color:var(--heading)">Goal Presets</strong> — Auto-set your daily study goal based on the day. Manual overrides (Reminders tab) always take priority.
     </div>
-    <div class="df" style="margin-bottom:8px">
-      <button class="b b-xs" onclick="PLAN.applyTemplate('office')">🏢 Office (3h)</button>
-      <button class="b b-xs" onclick="PLAN.applyTemplate('wfh')">🏠 WFH (5.5h)</button>
-      <button class="b b-xs" onclick="PLAN.applyTemplate('evensat')">📅 Even Sat (7h)</button>
-      <button class="b b-xs" onclick="PLAN.applyTemplate('fullday')">📚 Full Day (13h)</button>
+    <div id="goalPresetList"></div>
+    <div style="text-align:right;margin-top:6px"><button class="b b-xs b-acc" onclick="PLAN.openAddPreset()">+ Add Rule</button></div>
+  </div>
+  <div class="sl">Templates</div>
+  <div style="background:var(--s1);border:1px solid var(--brd);border-radius:10px;padding:12px;margin-bottom:10px">
+    <div style="font-size:.68rem;color:var(--t2);margin-bottom:6px;font-weight:500">
+      <strong style="color:var(--heading)">Saved Templates</strong> — Save today's plan as a reusable template, or load a previously saved one.
     </div>
-    <div style="border-top:1px solid var(--brd);padding-top:8px;margin-top:4px">
-      <div style="font-size:.68rem;color:var(--t2);margin-bottom:6px;font-weight:500">
-        <strong style="color:var(--heading)">Saved Templates</strong> — Save today's plan as a reusable template, or load a previously saved one.
-      </div>
-      <div class="df" style="margin-bottom:6px">
-        <button class="b b-xs b-acc" onclick="PLAN.saveAsTemplate()">💾 Save Current Day as Template</button>
-      </div>
-      <div id="planTemplateList"></div>
+    <div class="df" style="margin-bottom:6px">
+      <button class="b b-xs b-acc" onclick="PLAN.saveAsTemplate()">💾 Save Current Day as Template</button>
     </div>
+    <div id="planTemplateList"></div>
   </div>
   <div class="df" style="margin-bottom:6px">
     <span class="df-lbl">Viewing</span><input type="date" class="inp" id="planViewDate" style="flex:1" onchange="PLAN.render()">
@@ -585,6 +582,33 @@
 
 <!-- DEADLINE EDIT MODAL -->
 <div class="modal hidden" id="dlEditModal"><div class="modal-box"><h3>Edit Deadline</h3><div class="sl" style="margin:8px 0 5px;text-align:left">Title</div><input type="text" class="inp" id="dlEditTitle" style="margin-bottom:8px"><div class="df"><span class="df-lbl">Type</span><select class="cat-sel" id="dlEditType" style="flex:1"><option value="study">📖 Study</option><option value="work">💼 Work</option><option value="personal">🏠 Personal</option></select></div><div class="sl" style="margin:8px 0 5px;text-align:left">Date &amp; Time</div><input type="datetime-local" class="inp" id="dlEditDate" style="margin-bottom:8px"><div class="modal-btns"><button class="b b-acc" onclick="DL.saveEdit()">Save</button><button class="b b-danger" onclick="DL.deleteFromEdit()">Delete</button><button class="b" onclick="document.getElementById('dlEditModal').classList.add('hidden')">Cancel</button></div></div></div>
+
+<!-- GOAL PRESET MODAL -->
+<div class="modal hidden" id="goalPresetModal"><div class="modal-box">
+  <h3 id="gpModalTitle">Add Goal Rule</h3>
+  <div class="df" style="margin-top:10px"><span class="df-lbl">Name</span><input type="text" class="inp" id="gpName" placeholder="e.g. Office Day" style="flex:1"></div>
+  <div class="df" style="margin-top:6px"><span class="df-lbl">Hours</span><input type="number" class="inp" id="gpHours" min="0.5" max="24" step="0.5" placeholder="3" style="width:70px"></div>
+  <div style="margin-top:8px"><span class="df-lbl" style="display:block;margin-bottom:4px">Active Days</span>
+    <div class="day-chips" id="gpDayChips">
+      <div class="day-chip" data-day="1" onclick="this.classList.toggle('on')">Mon</div>
+      <div class="day-chip" data-day="2" onclick="this.classList.toggle('on')">Tue</div>
+      <div class="day-chip" data-day="3" onclick="this.classList.toggle('on')">Wed</div>
+      <div class="day-chip" data-day="4" onclick="this.classList.toggle('on')">Thu</div>
+      <div class="day-chip" data-day="5" onclick="this.classList.toggle('on')">Fri</div>
+      <div class="day-chip" data-day="6" onclick="this.classList.toggle('on')">Sat</div>
+      <div class="day-chip" data-day="0" onclick="this.classList.toggle('on')">Sun</div>
+    </div>
+  </div>
+  <div class="df" style="margin-top:8px"><span class="df-lbl">Week Pattern</span>
+    <select class="cat-sel" id="gpWeekPattern" style="flex:1">
+      <option value="all">Every week</option>
+      <option value="even">Even only (2nd, 4th of month)</option>
+      <option value="odd">Odd only (1st, 3rd, 5th of month)</option>
+    </select>
+  </div>
+  <input type="hidden" id="gpEditId" value="">
+  <div class="modal-btns" style="margin-top:12px"><button class="b b-acc" onclick="PLAN.saveGoalPreset()">Save</button><button class="b" onclick="document.getElementById('goalPresetModal').classList.add('hidden')">Cancel</button></div>
+</div></div>
 
 <div class="toast" id="toast"></div>
 
