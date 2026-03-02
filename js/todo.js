@@ -347,6 +347,14 @@ var TODO=(function(){
 
     var h='<div class="todo-item" draggable="true" data-todo-id="'+item.id+'">';
     h+='<div class="todo-header">';
+
+    /* Collapse/Expand chevron — front of row, big and visible */
+    if(hasChildren){
+      h+='<button class="todo-expand-btn open" onclick="event.stopPropagation();this.classList.toggle(\'open\');this.closest(\'.todo-item\').querySelector(\'.todo-children\').classList.toggle(\'hidden\')" title="Collapse/Expand">‹</button>';
+    } else {
+      h+='<span class="todo-expand-spacer"></span>';
+    }
+
     h+='<div class="todo-drag-handle" title="Drag to reorder">⠿</div>';
     h+='<input type="checkbox" class="todo-select-cb" '+(_selected[item.id]?'checked':'')+' onclick="event.stopPropagation();TODO.toggleSelect(\''+item.id+'\')" title="Select for bulk action" style="width:14px;height:14px;cursor:pointer;accent-color:var(--acc)">';
 
@@ -367,7 +375,6 @@ var TODO=(function(){
       h+='<span style="font-size:.5rem;color:var(--grn);font-weight:600">✓ '+cAt.toLocaleDateString([],{month:'short',day:'numeric'})+'</span>';
     }
 
-    if(hasChildren)h+='<button class="todo-expand-btn" onclick="event.stopPropagation();this.classList.toggle(\'open\');this.closest(\'.todo-item\').querySelector(\'.todo-children\').classList.toggle(\'hidden\')">▾</button>';
     h+='</div>';
 
     if(isNote&&item.content){
@@ -601,11 +608,21 @@ var TODO=(function(){
     document.querySelectorAll('#todoFullList .todo-expand-btn').forEach(function(b){b.classList.add('open')});
   }
 
-  /* Enter selection mode (show checkboxes for bulk actions) */
+  /* Toggle selection mode (show/hide checkboxes for bulk actions) */
   function enterSelectMode(){
     var list=document.getElementById('todoFullList');
-    if(list)list.classList.add('todo-bulk-active');
     var bar=document.getElementById('todoBulkActions');
+    /* If already in select mode, exit it */
+    if(list&&list.classList.contains('todo-bulk-active')){
+      _selected={};
+      if(list)list.classList.remove('todo-bulk-active');
+      if(bar)bar.classList.add('hidden');
+      var countEl=document.getElementById('todoBulkCount');
+      if(countEl)countEl.textContent='';
+      render();
+      return;
+    }
+    if(list)list.classList.add('todo-bulk-active');
     if(bar)bar.classList.remove('hidden');
   }
 
