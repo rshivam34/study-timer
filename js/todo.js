@@ -422,42 +422,40 @@ var TODO=(function(){
     /* Sub-tasks show on parent's date — use parent due if this is a child (depth>0) */
     var effectiveDue=depth>0?(parentDue||item.due):item.due;
 
-    var h='<div class="todo-item" draggable="true" data-todo-id="'+item.id+'">';
+    var h='<div class="todo-item todo-pri-'+priCls+'" draggable="true" data-todo-id="'+item.id+'">';
     h+='<div class="todo-header">';
 
-    /* Collapse/Expand chevron — front of row, big and visible */
+    /* Row 1: expand + select checkbox + priority circle + title */
+    h+='<div class="todo-row1">';
     if(hasChildren){
       h+='<button class="todo-expand-btn open" onclick="event.stopPropagation();this.classList.toggle(\'open\');this.closest(\'.todo-item\').querySelector(\'.todo-children\').classList.toggle(\'hidden\')" title="Collapse/Expand">‹</button>';
     } else {
       h+='<span class="todo-expand-spacer"></span>';
     }
-
-    h+='<div class="todo-drag-handle" title="Drag to reorder">⠿</div>';
-    h+='<input type="checkbox" class="todo-select-cb" '+(_selected[item.id]?'checked':'')+' onclick="event.stopPropagation();TODO.toggleSelect(\''+item.id+'\')" title="Select for bulk action" style="width:14px;height:14px;cursor:pointer;accent-color:var(--acc)">';
-
+    h+='<input type="checkbox" class="todo-select-cb" '+(_selected[item.id]?'checked':'')+' onclick="event.stopPropagation();TODO.toggleSelect(\''+item.id+'\')" title="Select for bulk action">';
     if(!isNote){
       h+='<div class="todo-cb'+(isDone?' done':' p-'+priCls)+'" onclick="event.stopPropagation();TODO.toggleDone(\''+item.id+'\',\''+group+'\')">'+(isDone?'✓':'')+'</div>';
     } else {
-      h+='<span style="font-size:.8rem">📝</span>';
+      h+='<span class="todo-note-icon">📝</span>';
     }
-
     h+='<span class="todo-title'+(isDone?' completed':'')+'">'+esc(item.title)+'</span>';
+    h+='</div>';
+
+    /* Row 2: metadata + actions */
+    h+='<div class="todo-row2">';
     if(!isNote)h+='<span class="todo-badge '+priCls+'">'+priCls+'</span>';
     if(effectiveDue)h+='<span class="todo-due'+(item.status!=='done'&&effectiveDue<D.todayKey()?' overdue':'')+'">'+UI.fdate(effectiveDue)+'</span>';
     if(item.estMins)h+='<span class="todo-est-badge">~'+item.estMins+'m</span>';
-    if(item.repeat)h+='<span style="font-size:.45rem;color:var(--cyn);font-weight:700">🔄 '+item.repeat+'</span>';
-
-    /* FIX #4: Show completion timestamp */
+    if(item.repeat)h+='<span class="todo-repeat">🔄 '+item.repeat+'</span>';
     if(isDone&&item.completedAt){
       var cAt=new Date(item.completedAt);
-      h+='<span style="font-size:.5rem;color:var(--grn);font-weight:600">✓ '+UI.fdate(D.todayKey(cAt))+'</span>';
+      h+='<span class="todo-completed-at">✓ '+UI.fdate(D.todayKey(cAt))+'</span>';
     }
-
-    /* Compact inline action icons */
     h+='<div class="todo-actions">';
     h+='<button class="todo-act-btn" onclick="event.stopPropagation();TODO.addChild(\''+item.id+'\',\''+group+'\')" title="Add sub-task">+</button>';
     h+='<button class="todo-act-btn" onclick="event.stopPropagation();TODO.editItem(\''+item.id+'\',\''+group+'\')" title="Edit">✎</button>';
     h+='<button class="todo-act-btn todo-act-del" onclick="event.stopPropagation();TODO.deleteItem(\''+item.id+'\',\''+group+'\')" title="Delete">✕</button>';
+    h+='</div>';
     h+='</div>';
 
     h+='</div>';
@@ -490,7 +488,7 @@ var TODO=(function(){
       /* Don't swipe if touching a button, checkbox, drag handle, or input */
       var tag=e.target.tagName;
       if(tag==='BUTTON'||tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA')return;
-      if(e.target.closest('.todo-drag-handle')||e.target.closest('.todo-actions'))return;
+      if(e.target.closest('.todo-actions'))return;
       var touch=e.touches[0];
       startX=touch.clientX;
       startY=touch.clientY;
