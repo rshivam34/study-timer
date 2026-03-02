@@ -161,6 +161,32 @@
 .day-chips{display:flex;gap:3px;flex-wrap:wrap}.day-chip{min-width:30px;padding:2px 5px;height:30px;border-radius:6px;border:1px solid var(--brd);background:var(--s2);color:var(--td);font-size:.6rem;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;user-select:none}.day-chip.on{background:var(--acc2);border-color:var(--acc);color:var(--acc)}.dc-pat{font-size:.45rem;color:var(--grn);font-weight:700;min-height:.5em}
 /* Reset modal */
 .reset-checks{text-align:left;margin:10px 0}.reset-checks label{display:flex;align-items:center;gap:6px;font-size:.76rem;color:var(--t2);padding:5px 0;font-weight:500}
+/* ========== COUNTDOWN MODE ========== */
+.timer-mode-wrap{margin-bottom:10px}
+.timer-mode-toggle{display:flex;justify-content:center;gap:0;background:var(--s2);border-radius:8px;border:1px solid var(--brd);overflow:hidden;width:fit-content;margin:0 auto 6px}
+.tmt-btn{padding:5px 16px;font-family:'Outfit',sans-serif;font-size:.7rem;font-weight:600;border:none;background:transparent;color:var(--td);cursor:pointer;transition:all .15s}
+.tmt-btn.on{background:var(--acc);color:#fff}
+.tc.wm .tmt-btn.on{background:var(--cyn);color:#fff}
+.cd-presets{display:flex;gap:5px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:4px}
+.cd-chip{font-family:'JetBrains Mono',monospace;font-size:.65rem;font-weight:600;padding:4px 10px;border:1px solid var(--brd);border-radius:14px;background:var(--s2);color:var(--td);cursor:pointer;transition:all .15s}
+.cd-chip:hover{border-color:var(--acc);color:var(--acc)}
+.cd-chip.on{background:var(--acc2);border-color:var(--acc);color:var(--acc)}
+.tc.wm .cd-chip:hover{border-color:var(--cyn);color:var(--cyn)}
+.tc.wm .cd-chip.on{background:var(--cyn2);border-color:var(--cyn);color:var(--cyn)}
+.cd-custom{font-family:'JetBrains Mono',monospace;font-size:.65rem;width:52px;padding:4px 6px;border:1px solid var(--brd);border-radius:8px;background:var(--s2);color:var(--t);outline:none;text-align:center}
+.cd-custom:focus{border-color:var(--acc)}
+/* ========== TIMER VISUAL POLISH ========== */
+.tc.run .tdisp{text-shadow:0 0 20px var(--accg),0 0 40px rgba(255,107,53,.06)}
+.tc.wm.run .tdisp{text-shadow:0 0 20px var(--cyn2),0 0 40px rgba(34,211,238,.06)}
+.tc.run{animation:timerGlow 2s ease-in-out infinite alternate}
+.tc.wm.run{animation:timerGlowCyn 2s ease-in-out infinite alternate}
+@keyframes timerGlow{0%{box-shadow:0 0 30px var(--accg),0 0 60px rgba(255,107,53,.03)}100%{box-shadow:0 0 50px var(--accg),0 0 90px rgba(255,107,53,.05)}}
+@keyframes timerGlowCyn{0%{box-shadow:0 0 30px var(--cyn2),0 0 60px rgba(34,211,238,.03)}100%{box-shadow:0 0 50px var(--cyn2),0 0 90px rgba(34,211,238,.05)}}
+/* Control buttons polish */
+.ctrls .b{transition:all .15s ease}
+.ctrls .b:hover{transform:translateY(-2px) scale(1.02)}
+/* Category dropdown polish */
+.cat-sel{border-radius:10px;transition:border-color .15s}
 @media(max-width:480px){.tdisp{font-size:2.8rem}.tc{padding:22px 12px 20px}.focus-timer{font-size:3.2rem}}
 
 

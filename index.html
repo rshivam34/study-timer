@@ -173,14 +173,27 @@
 <!-- STUDY TAB -->
 <div class="tp on" id="p-study">
   <div class="goal-ring-wrap" id="goalWrap"></div>
-  <div id="dayOverview"></div>
-  <div id="timeBudgetStudy"></div>
+  <div id="battleCry"></div>
   <section class="tc" id="tc-study"><div class="pdot"></div>
     <div style="text-align:center;margin-bottom:10px"><select class="cat-sel" id="studyCat"></select></div>
+    <div class="timer-mode-wrap" id="tmw-study">
+      <div class="timer-mode-toggle">
+        <button class="tmt-btn on" id="tmt-timer-study" onclick="TM.setMode('study','timer')">Timer</button>
+        <button class="tmt-btn" id="tmt-cd-study" onclick="TM.setMode('study','countdown')">Countdown</button>
+      </div>
+      <div class="cd-presets hidden" id="cdp-study">
+        <button class="cd-chip" onclick="TM.setCountdown('study',25)">25m</button>
+        <button class="cd-chip" onclick="TM.setCountdown('study',45)">45m</button>
+        <button class="cd-chip" onclick="TM.setCountdown('study',60)">1h</button>
+        <button class="cd-chip" onclick="TM.setCountdown('study',120)">2h</button>
+        <input type="number" class="cd-custom" id="cdc-study" placeholder="min" min="1" max="480" onchange="TM.setCountdown('study',parseInt(this.value))">
+      </div>
+    </div>
     <div class="tdisp" id="td-study">00:00:00</div>
     <div class="tsub" id="ts-study">Ready to focus</div>
     <div class="ctrls" id="ct-study"><button class="b b-start" onclick="TM.start('study')">Start</button></div>
   </section>
+  <div id="timeBudgetStudy"></div>
   <div style="text-align:right;margin-top:6px"><button class="b b-xs" onclick="PAST.open('study')">+ Add past session</button></div>
   <div class="sl">Planned Tasks</div>
   <div class="df" style="margin-bottom:4px">
@@ -209,6 +222,19 @@
 <div class="tp" id="p-work">
   <section class="tc wm" id="tc-work"><div class="pdot"></div>
     <div style="text-align:center;margin-bottom:10px"><select class="cat-sel" id="workCat"></select></div>
+    <div class="timer-mode-wrap" id="tmw-work">
+      <div class="timer-mode-toggle">
+        <button class="tmt-btn on" id="tmt-timer-work" onclick="TM.setMode('work','timer')">Timer</button>
+        <button class="tmt-btn" id="tmt-cd-work" onclick="TM.setMode('work','countdown')">Countdown</button>
+      </div>
+      <div class="cd-presets hidden" id="cdp-work">
+        <button class="cd-chip" onclick="TM.setCountdown('work',25)">25m</button>
+        <button class="cd-chip" onclick="TM.setCountdown('work',45)">45m</button>
+        <button class="cd-chip" onclick="TM.setCountdown('work',60)">1h</button>
+        <button class="cd-chip" onclick="TM.setCountdown('work',120)">2h</button>
+        <input type="number" class="cd-custom" id="cdc-work" placeholder="min" min="1" max="480" onchange="TM.setCountdown('work',parseInt(this.value))">
+      </div>
+    </div>
     <div class="tdisp" id="td-work">00:00:00</div>
     <div class="tsub" id="ts-work">Ready to work</div>
     <div class="ctrls" id="ct-work"><button class="b b-cyn" onclick="TM.start('work')">Start</button></div>
@@ -420,13 +446,18 @@
   </div>
   <div class="df" style="margin-bottom:6px;gap:6px">
     <select class="cat-sel" id="knFilterCat" onchange="KNOW.render()" style="flex:1"><option value="">All Categories</option></select>
-    <select class="cat-sel" id="knFilterDays" onchange="KNOW.render()" style="flex:1">
-      <option value="">All Time</option>
-      <option value="0">Today</option>
-      <option value="3">Last 3 Days</option>
-      <option value="7">Last 7 Days</option>
-      <option value="30">Last 30 Days</option>
-    </select>
+  </div>
+  <div class="df" style="margin-bottom:6px;gap:6px;align-items:center">
+    <span style="font-size:.6rem;color:var(--td);font-weight:600;white-space:nowrap">From</span>
+    <input type="date" class="inp" id="knFilterFrom" onchange="KNOW.render()" style="flex:1">
+    <span style="font-size:.6rem;color:var(--td);font-weight:600;white-space:nowrap">To</span>
+    <input type="date" class="inp" id="knFilterTo" onchange="KNOW.render()" style="flex:1">
+  </div>
+  <div style="display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap">
+    <button class="b b-xs kn-quick-btn on" onclick="KNOW.quickFilter('all')">All</button>
+    <button class="b b-xs kn-quick-btn" onclick="KNOW.quickFilter('today')">Today</button>
+    <button class="b b-xs kn-quick-btn" onclick="KNOW.quickFilter('7')">7d</button>
+    <button class="b b-xs kn-quick-btn" onclick="KNOW.quickFilter('30')">30d</button>
   </div>
   <div class="df" style="margin-bottom:8px;gap:6px;align-items:center">
     <input type="text" class="inp" id="knSearch" placeholder="Search..." oninput="KNOW.render()" style="flex:1">
@@ -537,9 +568,21 @@
     <option value="">— New topic (not from plan) —</option>
   </select>
   
-  <div class="sl" style="margin:4px 0 5px;text-align:left">Topic studied <span style="color:var(--red)">*</span></div>
+  <div id="smPastTopicWrap">
+    <div class="sl" style="margin:4px 0 5px;text-align:left">Previous topics</div>
+    <select class="cat-sel" id="smPastTopic" style="width:100%;margin-bottom:8px" onchange="TM.onPastTopicSelect()">
+      <option value="">— Type new topic below —</option>
+    </select>
+  </div>
+
+  <div class="sl" style="margin:4px 0 5px;text-align:left" id="smTopicLabel">Topic studied <span style="color:var(--red)" id="smTopicAsterisk">*</span></div>
   <div class="ac-wrap" style="position:relative"><textarea class="note-inp" id="smNote" placeholder="What did you study? (required)" autocomplete="off"></textarea></div>
-  
+
+  <div id="smSourceWrap">
+    <div class="sl" style="margin:4px 0 5px;text-align:left">Source <span style="color:var(--red)">*</span></div>
+    <input type="text" class="inp" id="smSource" placeholder="YouTube, book name, article..." style="margin-bottom:8px">
+  </div>
+
   <div id="smLectureSection" class="hidden">
     <div class="sl" style="margin:4px 0 5px;text-align:left">Lecture completed?</div>
     <div class="df">
@@ -550,12 +593,14 @@
       <select class="cat-sel" id="smLecNum" style="width:70px" class="hidden"></select>
     </div>
   </div>
-  
-  <div class="sl" style="margin:8px 0 5px;text-align:left">Difficulty</div>
-  <div class="diff-sel" id="smDiffSel">
-    <button class="diff-btn" onclick="TM.setDiff('easy')">😊 Easy</button>
-    <button class="diff-btn" onclick="TM.setDiff('medium')">😐 Medium</button>
-    <button class="diff-btn on" onclick="TM.setDiff('hard')">😰 Hard</button>
+
+  <div id="smDiffWrap">
+    <div class="sl" style="margin:8px 0 5px;text-align:left">Difficulty</div>
+    <div class="diff-sel" id="smDiffSel">
+      <button class="diff-btn" onclick="TM.setDiff('easy')">😊 Easy</button>
+      <button class="diff-btn" onclick="TM.setDiff('medium')">😐 Medium</button>
+      <button class="diff-btn on" onclick="TM.setDiff('hard')">😰 Hard</button>
+    </div>
   </div>
   <div class="sl" style="margin:8px 0 5px;text-align:left">Link to To-Do?</div>
   <select class="cat-sel" id="smLinkTodo" style="width:100%;margin-bottom:8px">

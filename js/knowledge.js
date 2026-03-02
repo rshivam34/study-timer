@@ -4,6 +4,7 @@
 var KNOW=(function(){
   var editingId=null;
   var groupBy='date'; /* 'date' or 'category' */
+  var collapsedCats={}; /* tracks which categories are collapsed in accordion view */
 
   /* ── Data helpers ── */
   function getEntries(){return D.getLocal().knowledge||[]}
@@ -172,20 +173,15 @@ var KNOW=(function(){
     var filterCat=(document.getElementById('knFilterCat')||{}).value||'';
     var searchVal=((document.getElementById('knSearch')||{}).value||'').toLowerCase().trim();
 
-    /* Day range filter */
-    var filterDays=(document.getElementById('knFilterDays')||{}).value;
-    var cutoffKey='';
-    if(filterDays!==''&&filterDays!==undefined){
-      var daysBack=parseInt(filterDays);
-      var cutoff=new Date();
-      cutoff.setDate(cutoff.getDate()-daysBack);
-      cutoffKey=cutoff.getFullYear()+'-'+String(cutoff.getMonth()+1).padStart(2,'0')+'-'+String(cutoff.getDate()).padStart(2,'0');
-    }
+    /* From/To date range filter */
+    var fromVal=(document.getElementById('knFilterFrom')||{}).value||'';
+    var toVal=(document.getElementById('knFilterTo')||{}).value||'';
 
     /* Filter */
     var filtered=entries.filter(function(e){
       if(filterCat&&e.category!==filterCat)return false;
-      if(cutoffKey&&e.date<cutoffKey)return false;
+      if(fromVal&&e.date<fromVal)return false;
+      if(toVal&&e.date>toVal)return false;
       if(searchVal&&e.topic.toLowerCase().indexOf(searchVal)===-1&&(e.source||'').toLowerCase().indexOf(searchVal)===-1&&(e.notes||'').toLowerCase().indexOf(searchVal)===-1)return false;
       return true;
     });
@@ -197,7 +193,7 @@ var KNOW=(function(){
     if(!listEl)return;
 
     if(!filtered.length){
-      listEl.innerHTML='<div class="empty"><div class="empty-ico">💡</div><p>No knowledge entries'+(cutoffKey?' in this range':'')+'</p></div>';
+      listEl.innerHTML='<div class="empty"><div class="empty-ico">💡</div><p>No knowledge entries'+((fromVal||toVal)?' in this range':'')+'</p></div>';
       _renderStats(filtered);
       return;
     }
@@ -220,11 +216,34 @@ var KNOW=(function(){
         var tH=Math.floor(totalMins/60),tM=totalMins%60;
         var timeStr=tH?tH+'h '+(tM?tM+'m':''):(tM?tM+'m':'0m');
         var catColor=_catColor(cat);
-        h+='<div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:8px 0 4px;display:flex;align-items:center;gap:8px">';
+        var catId=cat.replace(/[^a-zA-Z0-9]/g,'_');
+        var isOpen=!collapsedCats[catId];
+        /* Accordion header — always visible */
+        h+='<div class="kn-cat-header" onclick="KNOW.toggleCatGroup(\''+catId+'\')" style="border-left:3px solid '+catColor+'">';
+        h+='<span class="kn-cat-arrow'+(isOpen?' open':'')+'">▶</span>';
         h+='<span class="knowledge-cat-badge" style="background:'+catColor+'">'+esc(cat)+'</span>';
-        h+='<span style="color:var(--td)">'+items.length+' entries · '+timeStr+'</span>';
+        h+='<span style="color:var(--td);font-size:.6rem;font-weight:600">'+items.length+' entries · '+timeStr+'</span>';
         h+='</div>';
-        items.forEach(function(e){h+=_renderCard(e,true)});
+        /* Accordion body — compact topic rows */
+        h+='<div class="kn-cat-body'+(isOpen?'':' hidden')+'" id="knCatBody_'+catId+'">';
+        items.forEach(function(e){
+          var dH=Math.floor((e.duration||0)/60),dM=(e.duration||0)%60;
+          var durStr=(dH?dH+'h ':'')+(dM?dM+'m':'');
+          h+='<div class="kn-topic-row">';
+          h+='<span class="kn-topic-name">'+esc(e.topic)+'</span>';
+          if(durStr)h+='<span class="kn-topic-dur">'+durStr+'</span>';
+          h+='<span class="kn-topic-date">'+UI.fdate(e.date)+'</span>';
+          h+='<div class="kn-topic-actions">';
+          h+='<button class="b b-xs" onclick="event.stopPropagation();KNOW.openEdit(\''+e.id+'\')">✏️</button>';
+          h+='<button class="b b-xs b-danger" onclick="event.stopPropagation();KNOW.remove(\''+e.id+'\')">✕</button>';
+          h+='</div></div>';
+          /* Source & notes sub-line */
+          var extra=[];
+          if(e.source)extra.push('📎 '+esc(e.source));
+          if(e.notes)extra.push(esc(e.notes).substring(0,120)+(e.notes.length>120?'...':''));
+          if(extra.length)h+='<div class="kn-topic-extra">'+extra.join(' · ')+'</div>';
+        });
+        h+='</div>';
       });
     } else {
       /* ── Group by Date (default) ── */
@@ -289,6 +308,37 @@ var KNOW=(function(){
     return total;
   }
 
+  /* ── Toggle category accordion group ── */
+  function toggleCatGroup(catId){
+    collapsedCats[catId]=!collapsedCats[catId];
+    var body=document.getElementById('knCatBody_'+catId);
+    if(body)body.classList.toggle('hidden');
+    /* Flip arrow */
+    var header=body?body.previousElementSibling:null;
+    if(header){var arrow=header.querySelector('.kn-cat-arrow');if(arrow)arrow.classList.toggle('open')}
+  }
+
+  /* ── Quick filter — sets From/To dates from preset range ── */
+  function quickFilter(range){
+    var fromEl=document.getElementById('knFilterFrom');
+    var toEl=document.getElementById('knFilterTo');
+    if(!fromEl||!toEl)return;
+    var today=D.todayKey();
+    if(range==='all'){fromEl.value='';toEl.value=''}
+    else if(range==='today'){fromEl.value=today;toEl.value=today}
+    else{
+      var days=parseInt(range)||7;
+      var d=new Date();d.setDate(d.getDate()-days+1);
+      fromEl.value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+      toEl.value=today;
+    }
+    /* Highlight active quick button */
+    document.querySelectorAll('.kn-quick-btn').forEach(function(b){b.classList.remove('on')});
+    var btns=document.querySelectorAll('.kn-quick-btn');
+    btns.forEach(function(b){if(b.textContent.trim().toLowerCase().replace(/\s/g,'')===range)b.classList.add('on')});
+    render();
+  }
+
   /* ── Category color helper ── */
   var _catColors={
     'Health & Fitness':'var(--grn)','Current Affairs':'var(--acc)',
@@ -307,6 +357,7 @@ var KNOW=(function(){
     init:init,render:render,add:add,remove:remove,
     openEdit:openEdit,saveEdit:saveEdit,closeEdit:closeEdit,
     getEntries:getEntries,setEntries:setEntries,
-    setGroupBy:setGroupBy,getTodayMins:getTodayMins
+    setGroupBy:setGroupBy,getTodayMins:getTodayMins,
+    toggleCatGroup:toggleCatGroup,quickFilter:quickFilter
   };
 })();

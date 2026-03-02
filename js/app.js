@@ -38,7 +38,7 @@ function reconn(){show('setup')}
 function addCat(type){var inp=document.getElementById(type==='study'?'addStudy':type==='work'?'addWork':'addKnowledge');var val=inp.value.trim();if(!val)return;var cfg=D.getCfg();var list=type==='study'?cfg.studySubjects:type==='work'?cfg.workCategories:(cfg.knowledgeCategories||(cfg.knowledgeCategories=[]));if(list.indexOf(val)===-1)list.push(val);D.setCfg(cfg);inp.value='';UI.renderAll();D.push();UI.toast('Added')}
 function rmCat(type,name){if(!confirm('Remove "'+name+'"?'))return;var cfg=D.getCfg();if(type==='study')cfg.studySubjects=cfg.studySubjects.filter(function(s){return s!==name});else if(type==='work')cfg.workCategories=cfg.workCategories.filter(function(s){return s!==name});else if(type==='knowledge')cfg.knowledgeCategories=(cfg.knowledgeCategories||[]).filter(function(s){return s!==name});D.setCfg(cfg);UI.renderAll();D.push()}
 function toggleTheme(){var cfg=D.getCfg();cfg.theme=cfg.theme==='dark'?'light':'dark';D.setCfg(cfg);document.documentElement.setAttribute('data-theme',cfg.theme);D.push()}
-function saveCfgExtra(){var cfg=D.getCfg();cfg.wakeTime=parseFloat(document.getElementById('cfgWakeTime').value)||6;cfg.bedtime=parseFloat(document.getElementById('cfgBedtime').value)||22.5;cfg.effectiveMins=parseInt(document.getElementById('cfgEffective').value)||50;var prEl=document.getElementById('cfgPlanRemindHour');if(prEl)cfg.planRemindHour=parseInt(prEl.value)||0;D.setCfg(cfg);D.push();try{App.renderTimeBudget()}catch(e){}try{App.renderDayOverview()}catch(e){}UI.toast('Settings saved')}
+function saveCfgExtra(){var cfg=D.getCfg();cfg.wakeTime=parseFloat(document.getElementById('cfgWakeTime').value)||6;cfg.bedtime=parseFloat(document.getElementById('cfgBedtime').value)||22.5;cfg.effectiveMins=parseInt(document.getElementById('cfgEffective').value)||50;var prEl=document.getElementById('cfgPlanRemindHour');if(prEl)cfg.planRemindHour=parseInt(prEl.value)||0;D.setCfg(cfg);D.push();try{App.renderTimeBudget()}catch(e){}UI.toast('Settings saved')}
 function enterFocus(){if(!TM.isOn()){UI.toast('Start timer first');return}document.getElementById('focusMode').classList.remove('hidden');var at=TM.activeType();document.getElementById('focusSub').textContent=at==='study'?'Studying':'Working';document.getElementById('focusCat').textContent=document.getElementById(at==='study'?'studyCat':'workCat').value;updateFocusBtns();moveFocusTimer();focusMoveIv=setInterval(moveFocusTimer,8000)}
 function exitFocus(){document.getElementById('focusMode').classList.add('hidden');if(focusMoveIv){clearInterval(focusMoveIv);focusMoveIv=null}}
 function moveFocusTimer(){var el=document.getElementById('focusInner');el.style.left=Math.max(20,Math.random()*(window.innerWidth-300))+'px';el.style.top=Math.max(20,Math.random()*(window.innerHeight-200))+'px'}
@@ -86,7 +86,61 @@ return{connect:connect,skip:skip,tab:tab,syncUI:syncUI,manSync:manSync,reconn:re
     mutations.forEach(function(m){
       if(m.target.id === 'saveModal' && !m.target.classList.contains('hidden')){
         var cat = document.getElementById('smCat').textContent;
-        /* Show plans matching this category (both study & work plans) */
+        var type = document.querySelector('#p-study.on') ? 'study' : 'work';
+
+        /* ── Study vs Work field visibility ── */
+        var pastTopicWrap = document.getElementById('smPastTopicWrap');
+        var sourceWrap = document.getElementById('smSourceWrap');
+        var diffWrap = document.getElementById('smDiffWrap');
+        var topicLabel = document.getElementById('smTopicLabel');
+        var topicAsterisk = document.getElementById('smTopicAsterisk');
+        var smNote = document.getElementById('smNote');
+
+        if(type === 'work'){
+          if(pastTopicWrap) pastTopicWrap.classList.add('hidden');
+          if(sourceWrap) sourceWrap.classList.add('hidden');
+          if(diffWrap) diffWrap.classList.add('hidden');
+          if(topicAsterisk) topicAsterisk.classList.add('hidden');
+          if(topicLabel) topicLabel.childNodes[0].textContent = 'Notes ';
+          if(smNote) smNote.placeholder = 'Notes (optional)';
+        } else {
+          if(pastTopicWrap) pastTopicWrap.classList.remove('hidden');
+          if(sourceWrap) sourceWrap.classList.remove('hidden');
+          if(diffWrap) diffWrap.classList.remove('hidden');
+          if(topicAsterisk) topicAsterisk.classList.remove('hidden');
+          if(topicLabel) topicLabel.childNodes[0].textContent = 'Topic studied ';
+          if(smNote) smNote.placeholder = 'What did you study? (required)';
+        }
+
+        /* ── Populate past topics dropdown (study only) ── */
+        if(type === 'study' && pastTopicWrap){
+          var ptSel = document.getElementById('smPastTopic');
+          var seen = {};
+          var pastTopics = [];
+          /* From revisions */
+          var revs = D.getRevs();
+          revs.forEach(function(r){
+            if(r.subj !== cat || seen[r.topic]) return;
+            seen[r.topic] = 1;
+            pastTopics.push(r.topic);
+          });
+          /* From past sessions */
+          var localData = D.getLocal();
+          var studyData = localData.study || {};
+          Object.keys(studyData).forEach(function(dk){
+            (studyData[dk] || []).forEach(function(s){
+              if(s.cat !== cat || !s.note || seen[s.note]) return;
+              seen[s.note] = 1;
+              pastTopics.push(s.note);
+            });
+          });
+          ptSel.innerHTML = '<option value="">— Type new topic below —</option>';
+          pastTopics.slice(0, 30).forEach(function(t){
+            ptSel.innerHTML += '<option value="'+esc(t)+'">'+esc(t)+'</option>';
+          });
+        }
+
+        /* ── Show plans matching this category ── */
         var plans = PLAN.getTodayPlansForSubject(cat);
         var sel = document.getElementById('smFromPlan');
         sel.innerHTML = '<option value="">— New topic (not from plan) —</option>';
@@ -109,7 +163,6 @@ return{connect:connect,skip:skip,tab:tab,syncUI:syncUI,manSync:manSync,reconn:re
           smLecSection.classList.add('hidden');
         }
         /* Populate todo dropdown for session-to-todo linking */
-        var type = document.querySelector('#p-study.on') ? 'study' : 'work';
         var todoSel = document.getElementById('smLinkTodo');
         if(todoSel){
           var todos = D.getLocal().todos || {};
@@ -177,6 +230,15 @@ return{connect:connect,skip:skip,tab:tab,syncUI:syncUI,manSync:manSync,reconn:re
     /* Set dropdown to the plan's subject */
     var sel=document.getElementById(type==='study'?'studyCat':'workCat');
     if(sel)sel.value=subject;
+    /* Find plan topic for context */
+    var planTopic='';
+    try{
+      var plans=PLAN.getForDate(date);
+      var p=plans.find(function(x){return x.id===planId});
+      if(p)planTopic=p.topic||'';
+    }catch(e){}
+    /* Store plan context on timer for discard-reset + auto-fill */
+    TM.setPlanContext({date:date,planId:planId,topic:planTopic,subject:subject});
     /* Mark plan in-progress */
     PLAN.updateStatus(date, planId, 'in-progress');
     /* Start timer — TM.start() reads category from dropdown */
@@ -402,17 +464,34 @@ return{connect:connect,skip:skip,tab:tab,syncUI:syncUI,manSync:manSync,reconn:re
     h+='<span><span style="display:inline-block;width:8px;height:8px;background:'+commitColor+';opacity:'+commitOpacity+';border-radius:2px;vertical-align:middle;margin-right:3px"></span>'+commitLabel+'</span>';
     h+='<span><span style="display:inline-block;width:8px;height:8px;background:var(--s3);border-radius:2px;vertical-align:middle;margin-right:3px"></span>Free</span>';
     h+='</div>';
-    /* Stats grid — 3 col × 2 rows */
+    /* Stats grid — 4 col × 2 rows */
     var studyH=(studySecs/3600);
     var workH=(workSecs/3600);
     var knowH=(knowledgeSecs/3600);
     var dailyGoal=D.getGoalForDate(D.todayKey());
     var goalPctStudy=dailyGoal>0?Math.min(999,Math.round(studyH/dailyGoal*100)):0;
-    h+='<div class="tb-stats tb-stats-6">';
+
+    /* Plans done/total count */
+    var plansDone=plans.filter(function(p){return p.status==='completed'}).length;
+    var plansTotal=plans.length;
+    /* Todos pending count */
+    var todoPending=0;
+    try{
+      var _todos=D.getLocal().todos||{};
+      ['study','work'].forEach(function(g){
+        (_todos[g]||[]).forEach(function(t){
+          if(t.status!=='done'&&(!t.due||t.due<=today))todoPending++;
+        });
+      });
+    }catch(e){}
+
+    h+='<div class="tb-stats tb-stats-8">';
     h+='<div class="tb-stat"><span class="tb-val" style="color:var(--acc)">'+studyH.toFixed(1)+'h</span><span class="tb-lbl">Study</span></div>';
     h+='<div class="tb-stat"><span class="tb-val" style="color:var(--cyn)">'+workH.toFixed(1)+'h</span><span class="tb-lbl">Work</span></div>';
     h+='<div class="tb-stat"><span class="tb-val" style="color:var(--yel)">'+knowH.toFixed(1)+'h</span><span class="tb-lbl">Know</span></div>';
     h+='<div class="tb-stat"><span class="tb-val" style="color:'+(goalPctStudy>=100?'var(--grn)':'var(--acc)')+'">'+goalPctStudy+'%</span><span class="tb-lbl">Goal</span></div>';
+    h+='<div class="tb-stat"><span class="tb-val" style="color:var(--grn)">'+plansDone+'/'+plansTotal+'</span><span class="tb-lbl">Plans</span></div>';
+    h+='<div class="tb-stat"><span class="tb-val" style="color:var(--pur)">'+todoPending+'</span><span class="tb-lbl">To-Dos</span></div>';
     h+='<div class="tb-stat"><span class="tb-val" style="color:'+(overPlanned?'var(--red)':'var(--blu)')+'">'+Math.abs(free).toFixed(1)+'h</span><span class="tb-lbl">'+(overPlanned?'Over!':'Free')+'</span></div>';
     h+='<div class="tb-stat"><span class="tb-val" style="color:var(--red)">'+wasted.toFixed(1)+'h</span><span class="tb-lbl">Wasted</span></div>';
     h+='</div>';
@@ -431,56 +510,109 @@ return{connect:connect,skip:skip,tab:tab,syncUI:syncUI,manSync:manSync,reconn:re
     });
   };
 
-  /* ========== DAY OVERVIEW WIDGET (#4) ========== */
-  App.renderDayOverview = function(){
-    var el=document.getElementById('dayOverview');
+  /* Day Overview merged into Time Budget — no-op */
+  App.renderDayOverview = function(){};
+
+  /* ========== BATTLE CRY MOTIVATION WIDGET ========== */
+  App.renderBattleCry = function(){
+    var el=document.getElementById('battleCry');
     if(!el)return;
+    var cfg=D.getCfg();
     var today=D.todayKey();
+    var goalH=D.getGoalForDate(today);
+    if(!goalH||goalH<=0){el.innerHTML='';return}
 
-    /* Study time */
-    var studySess=D.todayS('study'),studySecs=0;
-    studySess.forEach(function(s){studySecs+=s.dur});
-    var studyH=(studySecs/3600).toFixed(1);
+    /* Study time done today */
+    var ss=D.todayS('study'),totalSecs=0;
+    ss.forEach(function(s){totalSecs+=s.dur});
+    var doneH=totalSecs/3600;
+    var goalS=goalH*3600;
+    var pct=Math.min(100,Math.round((totalSecs/goalS)*100));
+    var remH=Math.max(0,goalH-doneH);
 
-    /* Work time */
-    var workSess=D.todayS('work'),workSecs=0;
-    workSess.forEach(function(s){workSecs+=s.dur});
-    var workH=(workSecs/3600).toFixed(1);
+    /* Time/feasibility calculations */
+    var now=new Date();
+    var hr=now.getHours();
+    var wakeTime=cfg.wakeTime||6;
+    var bedtime=cfg.bedtime||22.5;
+    var effectiveMins=cfg.effectiveMins||50;
+    var effectiveRatio=effectiveMins/60;
+    var endOfDay=new Date(now);
+    var bedH=Math.floor(bedtime),bedM=Math.round((bedtime-bedH)*60);
+    endOfDay.setHours(bedH,bedM,0,0);
+    if(bedtime>=24){endOfDay.setDate(endOfDay.getDate()+1);endOfDay.setHours(bedH-24,bedM,0,0)}
+    var secsLeft=Math.max(0,Math.floor((endOfDay-now)/1000));
+    var hrsLeft=secsLeft/3600;
+    var maxPossH=hrsLeft*effectiveRatio;
+    var canFinish=maxPossH>=remH;
 
-    /* Knowledge time */
-    var knowledgeMins=0;
-    try{knowledgeMins=KNOW.getTodayMins()}catch(e){}
-    var knowH=(knowledgeMins/60).toFixed(1);
+    /* Determine urgency level */
+    var level,icon,bgColor,borderColor,textColor;
+    if(pct>=100){level='dominating';icon='👑';bgColor='rgba(34,197,94,.08)';borderColor='rgba(34,197,94,.3)';textColor='var(--grn)'}
+    else if(pct>=70){level='strong';icon='🔥';bgColor='rgba(34,197,94,.06)';borderColor='rgba(34,197,94,.25)';textColor='var(--grn)'}
+    else if(pct>=40||(canFinish&&pct>=20)){level='average';icon='⚡';bgColor='rgba(255,107,53,.06)';borderColor='rgba(255,107,53,.25)';textColor='var(--acc)'}
+    else if(canFinish){level='behind';icon='⚠️';bgColor='rgba(250,204,21,.06)';borderColor='rgba(250,204,21,.25)';textColor='var(--yel)'}
+    else{level='critical';icon='💀';bgColor='rgba(248,113,113,.08)';borderColor='rgba(248,113,113,.3)';textColor='var(--red)'}
 
-    /* Plans done/total + remaining plan hours */
-    var plans=PLAN.getForDate(today);
-    var plansDone=plans.filter(function(p){return p.status==='completed'}).length;
-    var plansTotal=plans.length;
-    var planRemH=0;
-    plans.forEach(function(p){if(p.status!=='completed'&&p.status!=='skipped')planRemH+=p.estHours||0});
+    /* Time-of-day segment */
+    var tod;
+    if(hr<6)tod='night';
+    else if(hr<10)tod='early';
+    else if(hr<12)tod='late_morning';
+    else if(hr<17)tod='afternoon';
+    else if(hr<21)tod='evening';
+    else tod='night';
 
-    /* Todos pending + est hours */
-    var todos=D.getLocal().todos||{};
-    var todoPending=0;
-    var todoEstH=0;
-    try{todoEstH=TODO.getTodayEstHours()}catch(e){}
-    /* Count only top-level items (sub-tasks are part of parent work) */
-    ['study','work'].forEach(function(g){
-      (todos[g]||[]).forEach(function(t){
-        if(t.status!=='done'&&(!t.due||t.due<=today))todoPending++;
-      });
-    });
+    /* Rotation index — changes every 15 min */
+    var rotIdx=Math.floor(now.getMinutes()/15);
 
-    var h='<div class="day-overview" style="grid-template-columns:repeat(5,1fr)">';
-    h+='<div class="do-item"><span class="do-val" style="color:var(--acc)">'+studyH+'h</span><span class="do-lbl">Study</span></div>';
-    h+='<div class="do-item"><span class="do-val" style="color:var(--cyn)">'+workH+'h</span><span class="do-lbl">Work</span></div>';
-    h+='<div class="do-item"><span class="do-val" style="color:var(--yel)">'+knowH+'h</span><span class="do-lbl">Know</span></div>';
-    h+='<div class="do-item"><span class="do-val" style="color:var(--grn)">'+plansDone+'/'+plansTotal+'</span><span class="do-lbl">Plans</span>';
-    if(planRemH>0)h+='<span class="do-sub">'+planRemH.toFixed(1)+'h left</span>';
-    h+='</div>';
-    h+='<div class="do-item"><span class="do-val" style="color:var(--pur)">'+todoPending+'</span><span class="do-lbl">To-Dos</span>';
-    if(todoEstH>0)h+='<span class="do-sub">~'+todoEstH.toFixed(1)+'h</span>';
-    h+='</div>';
+    /* Message pools — distinct from getCoachMsg() in tasks.js */
+    var msgs={
+      dominating:[
+        'Goal CRUSHED. You\'re in a league of your own today.',
+        'Target destroyed. Keep this energy — tomorrow needs it too.',
+        doneH.toFixed(1)+'h logged. The best don\'t stop at the finish line.',
+        'You owned today. Bank this momentum for tomorrow.'
+      ],
+      strong:{
+        early:['Dawn grinder energy. '+pct+'% before most people wake up.','Morning discipline hits different. '+remH.toFixed(1)+'h to close it out.','Strong start — '+pct+'%. Don\'t coast, finish what you started.','Early lead! '+remH.toFixed(1)+'h left. The gap is shrinking fast.'],
+        late_morning:['Solid morning push — '+pct+'%. Lunch break, then destroy the rest.','You\'re ahead of schedule. '+remH.toFixed(1)+'h to seal the deal.',''+pct+'% and climbing. Afternoon will be your victory lap.','Great pace! '+remH.toFixed(1)+'h remains. You know what to do.'],
+        afternoon:[''+pct+'% in the bag. Afternoon push will close this out.','You can taste the finish line — '+remH.toFixed(1)+'h left. DON\'T STOP.','Strong position at '+pct+'%. Finish strong, no regrets.','Post-lunch dip is for quitters. You\'re at '+pct+'%. PUSH.'],
+        evening:[''+pct+'% — evening sprint time. '+remH.toFixed(1)+'h and you WIN today.','Almost there. '+remH.toFixed(1)+'h is nothing for someone at '+pct+'%.','Evening warrior mode ON. Close out that last '+remH.toFixed(1)+'h.',''+pct+'% by evening? That\'s momentum. Finish it NOW.'],
+        night:[''+pct+'% done tonight. Every extra minute counts.','Night session grind — '+pct+'% and counting.','Late-night warrior: '+remH.toFixed(1)+'h from glory.',''+pct+'% under moonlight. Legends are made at night.']
+      },
+      average:{
+        early:[''+pct+'%. Decent start but the day is LONG. Step on the gas.','Morning is gold. '+remH.toFixed(1)+'h to go — you have plenty of time. USE IT.',''+pct+'% so far. Average pace. The question: will you stay average?','Good foundation at '+pct+'%. Now build the tower. '+remH.toFixed(1)+'h awaits.'],
+        late_morning:[''+pct+'%. Half the morning gone. Accelerate NOW or fall behind.',''+remH.toFixed(1)+'h remaining. You still have the hours — but they\'re ticking.','Midpoint check: '+pct+'%. Solid but not safe. Keep pushing.','Clock\'s moving. '+pct+'% at this hour means you need to grind harder.'],
+        afternoon:['Afternoon reality: '+pct+'%. Still '+remH.toFixed(1)+'h to go. Time to lock in.',''+pct+'%. The gap is closeable but ONLY if you focus NOW.',''+remH.toFixed(1)+'h left. The afternoon decides if today was worth it.',''+pct+'% — not bad, not great. Make the next 2 hours count.'],
+        evening:['Evening check: '+pct+'%. You\'ve got '+Math.floor(hrsLeft)+'h left. GO ALL IN.',''+pct+'% with '+remH.toFixed(1)+'h to go. This is crunch time.','The day isn\'t over. '+pct+'% → 100% is still possible. Grind now.',''+remH.toFixed(1)+'h by bedtime. Tight but doable. No distractions.'],
+        night:[''+pct+'% in the books. Every extra rep counts.','Night mode. '+remH.toFixed(1)+'h left — make it count.',''+pct+'%. Still time to push the needle before bed.','Late night grind: '+pct+'% done. Can you squeeze more?']
+      },
+      behind:{
+        early:[''+pct+'% only. The morning is slipping. Every hour you waste, someone takes your seat.','Slow start at '+pct+'%. Recovery is possible — but ONLY if you start NOW.',''+remH.toFixed(1)+'h to go. You\'re behind but the day is young. ACT.',''+pct+'%? Your competition is at 40% right now. Catch up or fall behind.'],
+        late_morning:[''+pct+'% by late morning. That\'s behind schedule. Time to sprint.','Warning: '+remH.toFixed(1)+'h remaining with '+Math.floor(hrsLeft)+'h of day left. Move FAST.',''+pct+'%. Every wasted minute makes the evening harder. START.','Behind pace at '+pct+'%. The good news: '+maxPossH.toFixed(1)+'h is still reachable.'],
+        afternoon:[''+pct+'% at this hour is a RED flag. '+remH.toFixed(1)+'h left — start NOW or regret it tonight.','Afternoon and only '+pct+'%? Lock your phone. Close everything. STUDY.',''+remH.toFixed(1)+'h still needed. Tight but achievable. No more excuses.',''+pct+'% — you\'re behind. Accept it, then ATTACK the rest of the day.'],
+        evening:[''+pct+'% by evening. Uncomfortable? Good. Use that fire. '+remH.toFixed(1)+'h to go.',''+Math.floor(hrsLeft)+'h left in your day. Every minute is precious at '+pct+'%.','Evening rescue mission: '+remH.toFixed(1)+'h. Hard but not impossible. GO.',''+pct+'%. The evening decides everything. Make it count.'],
+        night:[''+pct+'% tonight. Not ideal, but don\'t go to bed defeated — study something.','Late but not lost. Even 30 more minutes moves the needle.',''+pct+'%. Tomorrow starts fresh, but squeeze what you can from tonight.','Don\'t end the day at '+pct+'%. Even a small push matters.']
+      },
+      critical:[
+        '💀 '+pct+'% with only '+Math.floor(hrsLeft)+'h left. The math is brutal. Study what you can — every minute matters.',
+        ''+pct+'%. Can\'t hit goal today. But giving up is NOT an option. Study SOMETHING.',
+        'Red zone: '+pct+'%. Today\'s lost, but tomorrow is a new war. Salvage what you can.',
+        ''+pct+'% — your future self is watching. Even 1 hour now is better than zero.'
+      ]
+    };
+
+    /* Pick message */
+    var pool;
+    if(level==='dominating')pool=msgs.dominating;
+    else if(level==='critical')pool=msgs.critical;
+    else pool=(msgs[level]||{})[tod]||msgs[level].afternoon||msgs.average.afternoon;
+    var msg=pool[rotIdx%pool.length];
+
+    var h='<div class="battle-cry" style="background:'+bgColor+';border-color:'+borderColor+'">';
+    h+='<span class="bc-icon">'+icon+'</span>';
+    h+='<span class="bc-text" style="color:'+textColor+'">'+msg+'</span>';
     h+='</div>';
     el.innerHTML=h;
   };
@@ -492,6 +624,13 @@ return{connect:connect,skip:skip,tab:tab,syncUI:syncUI,manSync:manSync,reconn:re
     try{TODO.renderInline()}catch(e){}
     try{App.renderStudyPlans()}catch(e){}
     try{App.renderTimeBudget()}catch(e){}
-    try{App.renderDayOverview()}catch(e){}
+    try{App.renderBattleCry()}catch(e){}
+  };
+
+  /* Patch renderGoal to also update battle cry on timer ticks */
+  var _origRenderGoal = UI.renderGoal;
+  UI.renderGoal = function(){
+    _origRenderGoal();
+    try{App.renderBattleCry()}catch(e){}
   };
 })();

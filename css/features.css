@@ -194,7 +194,9 @@
 [data-theme="light"] .time-budget-card{background:linear-gradient(135deg,rgba(255,255,255,.85) 0%,rgba(238,238,244,.9) 60%,rgba(124,58,237,.03) 100%)}
 .tb-stats{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px}
 .tb-stats.tb-stats-6{grid-template-columns:repeat(3,1fr)}
-.tb-stat{text-align:center;padding:6px 4px;background:var(--s2);border-radius:8px;border:1px solid var(--brd)}
+.tb-stats.tb-stats-8{grid-template-columns:repeat(4,1fr)}
+.tb-stat{text-align:center;padding:6px 4px;background:var(--s2);border-radius:8px;border:1px solid var(--brd);transition:transform .15s,box-shadow .15s}
+.tb-stat:hover{transform:translateY(-2px);box-shadow:0 4px 12px var(--shadow)}
 .tb-val{font-family:'JetBrains Mono',monospace;font-size:.78rem;font-weight:700;display:block}
 .tb-lbl{font-size:.48rem;color:var(--td);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
 /* ========== DAY OVERVIEW WIDGET ========== */
@@ -268,3 +270,30 @@
 #p-knowledge .empty-ico{font-size:2rem;margin-bottom:6px}
 /* ========== PLAN START BUTTON ========== */
 .plan-start-btn{white-space:nowrap;flex-shrink:0}
+/* ========== KNOWLEDGE ACCORDION ========== */
+.kn-cat-header{display:flex;align-items:center;gap:8px;padding:8px 10px;margin-bottom:2px;background:var(--s2);border:1px solid var(--brd);border-radius:8px;cursor:pointer;transition:background .12s,border-color .15s}
+.kn-cat-header:hover{background:var(--s3);border-color:var(--brd2)}
+.kn-cat-arrow{font-size:.6rem;color:var(--td);transition:transform .2s;display:inline-block;transform:rotate(0deg)}
+.kn-cat-arrow.open{transform:rotate(90deg)}
+.kn-cat-body{padding-left:4px;margin-bottom:8px}
+.kn-topic-row{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--brd);font-size:.74rem;transition:background .1s}
+.kn-topic-row:hover{background:var(--s2)}
+.kn-topic-row:last-child{border-bottom:none}
+.kn-topic-name{flex:1;font-weight:600;color:var(--heading);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kn-topic-dur{font-family:'JetBrains Mono',monospace;font-size:.6rem;font-weight:700;color:var(--cyn);white-space:nowrap}
+.kn-topic-date{font-family:'JetBrains Mono',monospace;font-size:.55rem;font-weight:600;color:var(--td);white-space:nowrap}
+.kn-topic-actions{display:flex;gap:3px;opacity:0;transition:opacity .15s}
+.kn-topic-row:hover .kn-topic-actions{opacity:1}
+@media(hover:none){.kn-topic-actions{opacity:1}}
+.kn-topic-extra{font-size:.58rem;color:var(--tf);font-style:italic;padding:0 10px 4px;line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ========== KNOWLEDGE QUICK FILTER BUTTONS ========== */
+.kn-quick-btn{background:var(--s2);color:var(--td);padding:4px 10px!important;font-size:.6rem!important;border-radius:12px!important;font-weight:600;transition:all .15s}
+.kn-quick-btn.on{background:var(--acc2);color:var(--acc);font-weight:700;border-color:var(--acc)!important}
+.kn-quick-btn:hover{background:var(--s3)}
+/* ========== SESSION SOURCE DISPLAY ========== */
+.si-source{font-size:.62rem;color:var(--cyn);margin-top:1px;font-weight:500}
+/* ========== BATTLE CRY WIDGET ========== */
+.battle-cry{display:flex;align-items:center;gap:8px;padding:8px 12px;margin-bottom:8px;border:1px solid;border-radius:10px;animation:bcPulse 3s ease-in-out infinite}
+.bc-icon{font-size:1.1rem;flex-shrink:0}
+.bc-text{font-size:.72rem;font-weight:700;line-height:1.4}
+@keyframes bcPulse{0%,100%{opacity:1}50%{opacity:.85}}
