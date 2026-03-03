@@ -36,7 +36,7 @@ odls.forEach(function(d){h+='<div class="rc-today-card" style="border-color:rgba
 // 7-day recurring + deadline preview
 h+=build7DayPreview(now,today);
 el.innerHTML=h}
-function buildCoach(now,tot,goalH,cfg,ss){var bedH=cfg.bedtime||23,effMin=cfg.effectiveMins||45;var goalS=goalH*3600,rem=goalS-tot;var pct=Math.min(100,Math.round(tot/goalS*100));var hr=now.getHours(),endOfDay=new Date(now);endOfDay.setHours(bedH,0,0,0);if(bedH>=24)endOfDay.setDate(endOfDay.getDate()+1),endOfDay.setHours(bedH-24,0,0,0);var secsLeft=Math.max(0,Math.floor((endOfDay-now)/1000));var hrsLeft=secsLeft/3600;var maxPoss=Math.floor(hrsLeft*(effMin/60)*3600);
+function buildCoach(now,tot,goalH,cfg,ss){var bedH=D.getBedForDate(D.todayKey())||cfg.bedtime||23,effMin=cfg.effectiveMins||45;var goalS=goalH*3600,rem=goalS-tot;var pct=Math.min(100,Math.round(tot/goalS*100));var hr=now.getHours(),endOfDay=new Date(now);endOfDay.setHours(bedH,0,0,0);if(bedH>=24)endOfDay.setDate(endOfDay.getDate()+1),endOfDay.setHours(bedH-24,0,0,0);var secsLeft=Math.max(0,Math.floor((endOfDay-now)/1000));var hrsLeft=secsLeft/3600;var maxPoss=Math.floor(hrsLeft*(effMin/60)*3600);
 var barCol=pct>=100?'var(--grn)':pct>=60?'var(--acc)':pct>=30?'var(--yel)':'var(--red)';
 var msg=getCoachMsg(hr,pct,rem,hrsLeft,maxPoss,tot,goalH,goalS,effMin);
 var sessCount=ss.length,longest=0;ss.forEach(function(s){if(s.dur>longest)longest=s.dur});

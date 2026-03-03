@@ -1082,18 +1082,21 @@ var CAL=(function(){
     var parts=el.value.split(':');var h=parseInt(parts[0])+parseInt(parts[1])/60;
     var cfg=D.getCfg();if(!cfg.dailyWake)cfg.dailyWake={};
     cfg.dailyWake[dk]=h;D.setCfg(cfg);renderDayDetail(dk);D.push();
+    if(dk===D.todayKey()){try{App.renderTimeBudget()}catch(e){}try{App.renderBattleCry()}catch(e){}}
   }
   function setDayBed(dk){
     var el=document.getElementById('hvBed');if(!el)return;
     var parts=el.value.split(':');var h=parseInt(parts[0])+parseInt(parts[1])/60;
     var cfg=D.getCfg();if(!cfg.dailyBed)cfg.dailyBed={};
     cfg.dailyBed[dk]=h;D.setCfg(cfg);renderDayDetail(dk);D.push();
+    if(dk===D.todayKey()){try{App.renderTimeBudget()}catch(e){}try{App.renderBattleCry()}catch(e){}}
   }
   function resetDayTimes(dk){
     var cfg=D.getCfg();
     if(cfg.dailyWake)delete cfg.dailyWake[dk];
     if(cfg.dailyBed)delete cfg.dailyBed[dk];
     D.setCfg(cfg);renderDayDetail(dk);D.push();UI.toast('Reset to default');
+    if(dk===D.todayKey()){try{App.renderTimeBudget()}catch(e){}try{App.renderBattleCry()}catch(e){}}
   }
 
   return{
