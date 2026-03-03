@@ -11,6 +11,13 @@ var TM=(function(){
   var pending=null, selDiff='hard';
   var planCtx=null; /* {date, planId, topic, subject} */
 
+  /* Screen Wake Lock — keeps screen on while timer is running */
+  var _wakeLock=null;
+  function _acquireWakeLock(){if(!('wakeLock' in navigator))return;navigator.wakeLock.request('screen').then(function(wl){_wakeLock=wl;_wakeLock.addEventListener('release',function(){_wakeLock=null})}).catch(function(){})}
+  function _releaseWakeLock(){if(_wakeLock){_wakeLock.release().catch(function(){});_wakeLock=null}}
+  /* Re-acquire wake lock when tab becomes visible again (browser auto-releases on hide) */
+  document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&(T.study.on&&!T.study.pau||T.work.on&&!T.work.pau))_acquireWakeLock()});
+
   function setMode(type,mode){
     var t=T[type];
     if(t.on){UI.toast('Can\'t switch while running');return}
@@ -75,20 +82,20 @@ var TM=(function(){
     if(t.mode==='countdown'&&!t.cdSecs){UI.toast('Set countdown duration first');return}
     t.on=true;t.pau=false;t.st=Date.now();t.el=0;t.tp=0;t.alarmed=false;
     t.iv=setInterval(function(){tick(type)},200);
-    setUI(type,'run');saveState();
+    setUI(type,'run');saveState();_acquireWakeLock();
   }
 
   function pause(type){
     var t=T[type];if(!t.on||t.pau)return;
     t.pau=true;clearInterval(t.iv);t.ps=Date.now();
-    setUI(type,'pau');saveState();
+    setUI(type,'pau');saveState();_releaseWakeLock();
   }
 
   function resume(type){
     var t=T[type];if(!t.pau)return;
     t.pau=false;t.tp+=(Date.now()-t.ps);t.ps=null;
     t.iv=setInterval(function(){tick(type)},200);
-    setUI(type,'run');saveState();
+    setUI(type,'run');saveState();_acquireWakeLock();
   }
 
   function stop(type){
@@ -96,7 +103,7 @@ var TM=(function(){
     if(t.pau)t.tp+=(Date.now()-t.ps);
     clearInterval(t.iv);t.on=false;t.pau=false;
     t.el=Math.floor((Date.now()-t.st-t.tp)/1000);
-    clearState();
+    clearState();_releaseWakeLock();
     if(t.el<1){reset(type);return}
     var cat=document.getElementById(type==='study'?'studyCat':'workCat').value;
     pending={type:type,dur:t.el,cat:cat};
@@ -228,7 +235,7 @@ var TM=(function(){
       try{PLAN.updateStatus(planCtx.date,planCtx.planId,'planned')}catch(e){}
       clearPlanContext();
     }
-    clearInterval(t.iv);t.on=false;t.pau=false;clearState();reset(type);
+    clearInterval(t.iv);t.on=false;t.pau=false;clearState();_releaseWakeLock();reset(type);
   }
 
   function reset(type){
@@ -333,7 +340,7 @@ var TM=(function(){
           var t=T[type];
           t.on=true;t.st=s[type].st;t.tp=s[type].tp;t.pau=s[type].pau;t.ps=s[type].ps;
           t.mode=s[type].mode||'timer';t.cdSecs=s[type].cdSecs||0;
-          if(!t.pau)t.iv=setInterval(function(){tick(type)},200);
+          if(!t.pau){t.iv=setInterval(function(){tick(type)},200);_acquireWakeLock()}
           setUI(type,t.pau?'pau':'run');
           /* Restore countdown UI if needed */
           if(t.mode==='countdown')_restoreCountdownUI(type);
