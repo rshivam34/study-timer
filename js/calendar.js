@@ -14,16 +14,20 @@ var CAL=(function(){
   }
 
   function toggleView(){
-    viewMode=viewMode==='month'?'week':'month';
+    if(viewMode==='month')viewMode='week';
+    else if(viewMode==='week')viewMode='year';
+    else viewMode='month';
     render();
   }
 
   function prev(){
+    if(viewMode==='year'){viewYear--;render();return}
     if(viewMode==='week'){weekStart.setDate(weekStart.getDate()-7);viewYear=weekStart.getFullYear();viewMonth=weekStart.getMonth()}
     else{viewMonth--;if(viewMonth<0){viewMonth=11;viewYear--}}
     render();
   }
   function next(){
+    if(viewMode==='year'){viewYear++;render();return}
     if(viewMode==='week'){weekStart.setDate(weekStart.getDate()+7);viewYear=weekStart.getFullYear();viewMonth=weekStart.getMonth()}
     else{viewMonth++;if(viewMonth>11){viewMonth=0;viewYear++}}
     render();
@@ -87,6 +91,7 @@ var CAL=(function(){
   }
 
   function render(){
+    if(viewMode==='year')return renderYear();
     if(viewMode==='week')return renderWeek();
     renderMonth();
   }
@@ -413,6 +418,32 @@ var CAL=(function(){
 
     /* Quick add form */
     h+='<div id="hvQuickAdd" class="hidden" style="padding:8px 14px"></div>';
+
+    /* Journal / Mood Tracking */
+    var journal=D.getJournal()[dk]||{};
+    h+='<div class="hv-journal">';
+    h+='<div class="hv-journal-title">\u{1F4D3} How was your day?</div>';
+    /* Rating: 1-5 emoji faces */
+    h+='<div class="mood-sel">';
+    var _emojiArr=['\u{1F62B}','\u{1F615}','\u{1F610}','\u{1F60A}','\u{1F929}'];
+    for(var ri=0;ri<5;ri++){
+      h+='<button class="mood-btn'+(journal.rating===(ri+1)?' on':'')+'" onclick="CAL.setJournalRating(\''+dk+'\','+(ri+1)+')">'+ _emojiArr[ri]+'</button>';
+    }
+    h+='</div>';
+    /* Mood tags */
+    var _moodTags=['productive','tired','distracted','motivated','stressed','relaxed','focused','lazy'];
+    var _selTags=journal.tags||[];
+    h+='<div class="hv-mood-tags">';
+    _moodTags.forEach(function(tag){
+      var on=_selTags.indexOf(tag)!==-1;
+      h+='<button class="cd-chip'+(on?' on':'')+'" onclick="CAL.toggleJournalTag(\''+dk+'\',\''+tag+'\')" style="font-size:.6rem">'+tag+'</button>';
+    });
+    h+='</div>';
+    /* Notes */
+    h+='<textarea class="inp" id="hvJournalNotes" placeholder="Any notes about today..." rows="2" style="width:100%;font-size:.72rem;resize:vertical">'+(journal.notes?esc(journal.notes):'')+'</textarea>';
+    /* Save */
+    h+='<div style="display:flex;justify-content:flex-end;margin-top:6px"><button class="b b-xs b-acc" onclick="CAL.saveJournal(\''+dk+'\')">Save Journal</button></div>';
+    h+='</div>';
 
     h+='</div>'; // hourly-view
     el.innerHTML=h;
@@ -833,7 +864,10 @@ var CAL=(function(){
 
   function _updateViewToggle(){
     var btn=document.getElementById('calViewToggle');
-    if(btn)btn.textContent=viewMode==='month'?'Week':'Month';
+    if(!btn)return;
+    if(viewMode==='month')btn.textContent='Week';
+    else if(viewMode==='week')btn.textContent='Year';
+    else btn.textContent='Month';
   }
 
   /* ==================== WEEK VIEW ==================== */
@@ -1099,6 +1133,131 @@ var CAL=(function(){
     if(dk===D.todayKey()){try{App.renderTimeBudget()}catch(e){}try{App.renderBattleCry()}catch(e){}}
   }
 
+  /* ==================== JOURNAL FUNCTIONS ==================== */
+  function setJournalRating(dk,rating){
+    var j=D.getJournal();if(!j[dk])j[dk]={};
+    j[dk].rating=j[dk].rating===rating?0:rating;
+    D.setJournal(j);renderDayDetail(dk);D.push();
+  }
+  function toggleJournalTag(dk,tag){
+    var j=D.getJournal();if(!j[dk])j[dk]={};
+    if(!j[dk].tags)j[dk].tags=[];
+    var idx=j[dk].tags.indexOf(tag);
+    if(idx===-1)j[dk].tags.push(tag);else j[dk].tags.splice(idx,1);
+    D.setJournal(j);renderDayDetail(dk);D.push();
+  }
+  function saveJournal(dk){
+    var j=D.getJournal();if(!j[dk])j[dk]={};
+    var el=document.getElementById('hvJournalNotes');
+    if(el)j[dk].notes=el.value.trim();
+    D.setJournal(j);D.push();UI.toast('Journal saved \u2713');
+  }
+
+  /* ==================== YEAR HEATMAP VIEW ==================== */
+  function renderYear(){
+    document.getElementById('calTitle').textContent=String(viewYear);
+    _updateViewToggle();
+
+    var today=D.todayKey();
+    var data=D.getLocal();
+
+    /* Build week columns: start from Sunday before Jan 1, end Saturday after Dec 31 */
+    var jan1=new Date(viewYear,0,1);
+    var startDate=new Date(jan1);startDate.setDate(jan1.getDate()-jan1.getDay());
+    var dec31=new Date(viewYear,11,31);
+    var endDate=new Date(dec31);endDate.setDate(dec31.getDate()+(6-dec31.getDay()));
+
+    var weeks=[],curWeek=[];
+    var d=new Date(startDate);
+    while(d<=endDate){
+      var dk=D.todayKey(d);
+      var totalS=0;
+      if(data.study&&data.study[dk])(data.study[dk]).forEach(function(s){totalS+=s.dur});
+      if(data.work&&data.work[dk])(data.work[dk]).forEach(function(s){totalS+=s.dur});
+      var totalH=totalS/3600;
+      curWeek.push({dk:dk,day:d.getDay(),date:d.getDate(),month:d.getMonth(),yr:d.getFullYear(),totalH:totalH,isToday:dk===today,inYear:d.getFullYear()===viewYear});
+      if(d.getDay()===6){weeks.push(curWeek);curWeek=[]}
+      d.setDate(d.getDate()+1);
+    }
+    if(curWeek.length)weeks.push(curWeek);
+
+    /* Streak & stats calculation */
+    var allDays=[];
+    weeks.forEach(function(w){w.forEach(function(c){if(c.inYear)allDays.push(c)})});
+    allDays.sort(function(a,b){return a.dk<b.dk?-1:1});
+    var maxStreak=0,tempStreak=0,yearTotalH=0,daysActive=0;
+    allDays.forEach(function(c){
+      yearTotalH+=c.totalH;
+      var hasStudy=data.study&&data.study[c.dk]&&data.study[c.dk].length>0;
+      if(hasStudy){tempStreak++;daysActive++}else{if(tempStreak>maxStreak)maxStreak=tempStreak;tempStreak=0}
+    });
+    if(tempStreak>maxStreak)maxStreak=tempStreak;
+    /* Current streak: count backward from today */
+    var curStreak=0,csD=new Date();
+    while(true){
+      var cdk=D.todayKey(csD);
+      var hasS=data.study&&data.study[cdk]&&data.study[cdk].length>0;
+      if(!hasS){if(cdk===today){csD.setDate(csD.getDate()-1);continue}break}
+      curStreak++;csD.setDate(csD.getDate()-1);
+    }
+
+    /* Render */
+    var monthNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var h='';
+
+    /* Stats bar */
+    h+='<div class="yh-stats">';
+    h+='<div class="yh-stat"><span class="yh-stat-val">\u{1F525} '+curStreak+'</span><span class="yh-stat-lbl">Streak</span></div>';
+    h+='<div class="yh-stat"><span class="yh-stat-val">\u{1F3C6} '+maxStreak+'</span><span class="yh-stat-lbl">Best</span></div>';
+    h+='<div class="yh-stat"><span class="yh-stat-val">'+yearTotalH.toFixed(0)+'h</span><span class="yh-stat-lbl">Total</span></div>';
+    h+='<div class="yh-stat"><span class="yh-stat-val">'+daysActive+'</span><span class="yh-stat-lbl">Active</span></div>';
+    h+='</div>';
+
+    h+='<div class="year-heatmap">';
+
+    /* Month labels row */
+    h+='<div class="yh-row">';
+    h+='<div class="yh-day-lbl"></div>';
+    var prevM=-1;
+    weeks.forEach(function(week){
+      var m=-1;
+      for(var i=0;i<week.length;i++){if(week[i].inYear){m=week[i].month;break}}
+      if(m!==-1&&m!==prevM){h+='<div class="yh-month-lbl">'+monthNames[m]+'</div>';prevM=m}
+      else{h+='<div class="yh-month-lbl"></div>'}
+    });
+    h+='</div>';
+
+    /* 7 rows: Sun(0) through Sat(6) */
+    var dayLabels=['S','M','T','W','T','F','S'];
+    for(var row=0;row<7;row++){
+      h+='<div class="yh-row">';
+      h+='<div class="yh-day-lbl">'+(row%2===1?dayLabels[row]:'')+'</div>';
+      weeks.forEach(function(week){
+        var cell=week[row];
+        if(!cell||!cell.inYear){h+='<div class="yh-cell yh-empty"></div>';return}
+        var bg=_heatColor(cell.totalH);
+        var style=bg?'background:'+bg:'';
+        h+='<div class="yh-cell'+(cell.isToday?' today':'')+'" style="'+style+'" onclick="CAL.selectDay(\''+cell.dk+'\')" title="'+UI.fdn(cell.dk)+': '+cell.totalH.toFixed(1)+'h"></div>';
+      });
+      h+='</div>';
+    }
+
+    /* Legend */
+    h+='<div class="yh-legend">';
+    h+='<span>Less</span>';
+    for(var li=0;li<=4;li++){
+      var lh=li*2;var lbg=li===0?'':_heatColor(lh||0.5);
+      h+='<div class="yh-cell yh-legend-cell" style="'+(lbg?'background:'+lbg:'')+'"></div>';
+    }
+    h+='<span>More</span>';
+    h+='</div>';
+
+    h+='</div>';
+
+    document.getElementById('calGrid').innerHTML=h;
+    if(selectedDate)renderDayDetail(selectedDate);
+  }
+
   return{
     init:init,prev:prev,next:next,render:render,selectDay:selectDay,
     addPlanForDay:addPlanForDay,addSessionForDay:addSessionForDay,
@@ -1112,6 +1271,7 @@ var CAL=(function(){
     _onPlanTouchStart:_onPlanTouchStart,_onPlanTouchMove:_onPlanTouchMove,_onPlanTouchEnd:_onPlanTouchEnd,
     setQuickType:setQuickType,
     _onLecCountChange:_onLecCountChange,_renderLecRows:_renderLecRows,_recalcLecTotal:_recalcLecTotal,
-    setDayWake:setDayWake,setDayBed:setDayBed,resetDayTimes:resetDayTimes
+    setDayWake:setDayWake,setDayBed:setDayBed,resetDayTimes:resetDayTimes,
+    setJournalRating:setJournalRating,toggleJournalTag:toggleJournalTag,saveJournal:saveJournal
   };
 })();

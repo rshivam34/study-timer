@@ -315,3 +315,22 @@
 .info-btn{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:var(--s3);color:var(--td);font-size:.55rem;font-weight:700;cursor:pointer;margin-left:6px;position:relative;vertical-align:middle;border:1px solid var(--brd);flex-shrink:0}
 .info-popup{display:none;position:absolute;top:22px;left:50%;transform:translateX(-50%);background:var(--s1);border:1px solid var(--brd);border-radius:8px;padding:10px 12px;font-size:.65rem;color:var(--t2);line-height:1.5;font-weight:400;min-width:200px;max-width:280px;z-index:50;box-shadow:0 8px 24px var(--shadow);white-space:normal;text-align:left}
 .info-popup.show{display:block}
+/* ========== YEAR HEATMAP ========== */
+.yh-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
+.yh-stat{text-align:center;padding:8px 4px;background:var(--s1);border:1px solid var(--brd);border-radius:8px}
+.yh-stat-val{font-family:'JetBrains Mono',monospace;font-size:.78rem;font-weight:700;display:block;color:var(--heading)}
+.yh-stat-lbl{font-size:.45rem;color:var(--td);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.year-heatmap{overflow-x:auto;padding:8px 0;-webkit-overflow-scrolling:touch}
+.yh-row{display:flex;gap:2px;min-width:max-content}
+.yh-day-lbl{width:16px;flex-shrink:0;font-family:'JetBrains Mono',monospace;font-size:.45rem;color:var(--td);display:flex;align-items:center;justify-content:center}
+.yh-month-lbl{width:14px;flex-shrink:0;font-family:'JetBrains Mono',monospace;font-size:.42rem;color:var(--td);font-weight:600;overflow:visible;white-space:nowrap}
+.yh-cell{width:14px;height:14px;border-radius:2px;background:var(--s2);flex-shrink:0;cursor:pointer;transition:outline .1s}
+.yh-cell:hover:not(.yh-empty){outline:1px solid var(--brd2)}
+.yh-cell.today{outline:2px solid var(--acc);z-index:1}
+.yh-cell.yh-empty{background:transparent;cursor:default}
+.yh-legend{display:flex;align-items:center;gap:3px;justify-content:flex-end;padding:6px 0;font-family:'JetBrains Mono',monospace;font-size:.42rem;color:var(--td)}
+.yh-legend-cell{cursor:default;width:12px;height:12px}
+/* ========== JOURNAL / MOOD ========== */
+.hv-journal{padding:12px 14px;border-top:1px solid var(--brd)}
+.hv-journal-title{font-size:.7rem;font-weight:700;color:var(--heading);margin-bottom:8px}
+.hv-mood-tags{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-bottom:8px}
