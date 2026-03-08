@@ -108,8 +108,10 @@
 .todo-completed-at{font-size:.5rem;color:var(--grn);font-weight:600}
 /* Note icon */
 .todo-note-icon{font-size:.8rem}
-/* Nested children */
-.todo-children{padding-left:14px;border-left:2px solid var(--brd);margin-left:20px}
+/* Nested children — tree connectors */
+.todo-children{padding-left:20px;border-left:2px dashed var(--brd);margin-left:14px;margin-top:2px;position:relative}
+.todo-children>.todo-item{position:relative;overflow:visible}
+.todo-children>.todo-item::before{content:'';position:absolute;left:-20px;top:18px;width:16px;height:0;border-top:2px dashed var(--brd)}
 /* Action buttons */
 .todo-actions{display:flex;gap:4px;margin-left:auto;flex-shrink:0;opacity:0;transition:opacity .15s}
 .todo-header:hover .todo-actions{opacity:1}
@@ -117,6 +119,10 @@
 .todo-act-btn{width:24px;height:24px;border-radius:50%;border:1px solid var(--brd2);background:var(--s2);color:var(--td);font-size:.6rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;padding:0}
 .todo-act-btn:hover{background:var(--s3);color:var(--heading);border-color:var(--brd3);transform:scale(1.1)}
 .todo-act-del:hover{background:var(--red2);color:var(--red);border-color:var(--red)}
+.todo-act-add{color:var(--grn)!important;border-color:var(--grn)!important;font-weight:700}
+.todo-act-add:hover{background:var(--grn2)!important;transform:scale(1.15)}
+.todo-act-move{font-size:.5rem!important;color:var(--td)!important}
+.todo-act-move:hover{color:var(--acc)!important;border-color:var(--acc)!important;background:var(--acc2)!important}
 /* Est badge */
 .todo-est-badge{font-family:'JetBrains Mono',monospace;font-size:.54rem;color:var(--cyn);font-weight:700;background:var(--cyn2);padding:2px 8px;border-radius:10px;white-space:nowrap}
 .todo-note-body{padding:4px 10px 8px;font-size:.72rem;color:var(--t2);line-height:1.5;background:var(--s2);margin:0 8px 6px;border-radius:6px;white-space:pre-wrap}

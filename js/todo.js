@@ -18,6 +18,38 @@ var TODO=(function(){
     }return null;
   }
 
+  /* Count all descendants recursively */
+  function _countDescendants(item){
+    var count=0;
+    if(item.children){
+      item.children.forEach(function(c){
+        count++;
+        count+=_countDescendants(c);
+      });
+    }
+    return count;
+  }
+
+  /* Move item up within its sibling list */
+  function moveUp(id,group){
+    var todos=getTodos();
+    var info=findParentAndIndex(todos[group]||[],id,null);
+    if(!info||info.index===0)return;
+    var item=info.arr.splice(info.index,1)[0];
+    info.arr.splice(info.index-1,0,item);
+    setTodos(todos);_afterMutation();D.push();
+  }
+
+  /* Move item down within its sibling list */
+  function moveDown(id,group){
+    var todos=getTodos();
+    var info=findParentAndIndex(todos[group]||[],id,null);
+    if(!info||info.index>=info.arr.length-1)return;
+    var item=info.arr.splice(info.index,1)[0];
+    info.arr.splice(info.index+1,0,item);
+    setTodos(todos);_afterMutation();D.push();
+  }
+
   /* Validation helper: find any child with due date after given dueDate */
   function _findChildAfterDue(children,dueDate){
     for(var i=0;i<children.length;i++){
@@ -226,8 +258,13 @@ var TODO=(function(){
   }
 
   function deleteItem(id,group){
-    if(!confirm('Delete this item and all children?'))return;
     var todos=getTodos();
+    var item=findItem(todos[group]||[],id);
+    if(!item)return;
+    var childCount=_countDescendants(item);
+    var msg='Delete "'+item.title+'"?';
+    if(childCount>0)msg+='\n\nThis will also delete '+childCount+' subtask'+(childCount>1?'s':'')+'.';
+    if(!confirm(msg))return;
     var info=findParentAndIndex(todos[group]||[],id,null);
     if(info)info.arr.splice(info.index,1);
     setTodos(todos);_afterMutation();D.push();UI.toast('Deleted');
@@ -540,8 +577,13 @@ var TODO=(function(){
       h+='<span class="todo-completed-at">✓ '+UI.fdate(D.todayKey(cAt))+'</span>';
     }
     h+='<div class="todo-actions">';
-    h+='<span class="todo-drag-handle" title="Drag to reorder">⠿</span>';
-    h+='<button class="todo-act-btn" onclick="event.stopPropagation();TODO.addChild(\''+item.id+'\',\''+group+'\')" title="Add sub-task">+</button>';
+    if(depth>0){
+      h+='<button class="todo-act-btn todo-act-move" onclick="event.stopPropagation();TODO.moveUp(\''+item.id+'\',\''+group+'\')" title="Move up">▲</button>';
+      h+='<button class="todo-act-btn todo-act-move" onclick="event.stopPropagation();TODO.moveDown(\''+item.id+'\',\''+group+'\')" title="Move down">▼</button>';
+    } else {
+      h+='<span class="todo-drag-handle" title="Drag to reorder">⠿</span>';
+    }
+    h+='<button class="todo-act-btn todo-act-add" onclick="event.stopPropagation();TODO.addChild(\''+item.id+'\',\''+group+'\')" title="Add sub-task">+</button>';
     h+='<button class="todo-act-btn" onclick="event.stopPropagation();TODO.editItem(\''+item.id+'\',\''+group+'\')" title="Edit">✎</button>';
     h+='<button class="todo-act-btn todo-act-del" onclick="event.stopPropagation();TODO.deleteItem(\''+item.id+'\',\''+group+'\')" title="Delete">✕</button>';
     h+='</div>';
@@ -874,5 +916,6 @@ var TODO=(function(){
     getOverdueCount:getOverdueCount,getTodos:getTodosExternal,getTodayEstHours:getTodayEstHours,
     toggleSelect:toggleSelect,toggleSelectAll:toggleSelectAll,
     markSelectedDone:markSelectedDone,removeSelected:removeSelected,
-    collapseAll:collapseAll,expandAll:expandAll,enterSelectMode:enterSelectMode};
+    collapseAll:collapseAll,expandAll:expandAll,enterSelectMode:enterSelectMode,
+    moveUp:moveUp,moveDown:moveDown};
 })();
