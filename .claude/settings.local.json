@@ -5,7 +5,26 @@
       "Bash(sort:*)",
       "Bash(do echo:*)",
       "Bash(node:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(wc:*)",
+      "Bash(flutter doctor:*)",
+      "Bash(flutter:*)",
+      "Bash(dart:*)",
+      "Bash(java:*)",
+      "Bash(echo:*)",
+      "Bash(cmd.exe:*)",
+      "Bash(ssh-keygen:*)",
+      "Bash(ssh:*)",
+      "Bash(mkdir:*)",
+      "Bash(keytool:*)",
+      "Read(//c/Program Files/Android/**)",
+      "Read(//c/Users/rshiv/shivam/rshivam34-gmail/study-timer/**)",
+      "Bash(\"C:\\\\Program Files\\\\Android\\\\Android Studio\\\\jbr\\\\bin\\\\keytool\":*)",
+      "Bash(do touch:*)",
+      "Bash(git:*)",
+      "Bash(xargs ls:*)",
+      "Bash(do node:*)",
+      "Bash(start:*)"
     ]
   }
 }
