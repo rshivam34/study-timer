@@ -1,6 +1,14 @@
 /* ========== TIMER MODULE (TM + PAST) ========== */
 /* Part 2/7 — FIX #9: actual hours tracking on plan-linked sessions */
 
+/* Spaced Repetition Schedule — science-based intervals (days)
+ * Based on spacing effect research (Ebbinghaus forgetting curve, SM-2 algorithm):
+ * - Rev 0 = same day (0) → consolidates short-term to long-term memory
+ * - Each interval grows ~2-2.5× previous, adjusted by difficulty
+ * - Hard: more frequent reviews for weak topics
+ * - Easy: longer gaps to optimize study time
+ * - Active recall + difficulty feedback adjusts the schedule dynamically
+ */
 var SR={easy:[0,3,7,21,45,90,180],medium:[0,1,3,7,14,30,60,120],hard:[0,1,2,4,8,16,32,64]};
 
 var TM=(function(){
@@ -151,6 +159,8 @@ var TM=(function(){
     if(planId) sess.planId=planId;
 
     D.addSession(pending.type,D.todayKey(),sess);
+    /* Auto-add topic to subject's predefined topics if new */
+    if(pending.type==='study'&&note)D.addTopicToSubject(pending.cat,note);
     if(pending.type==='study'&&note)createRevision(pending.cat,note,selDiff);
 
     /* FIX #9: Accumulate actual hours on the linked plan item */
@@ -417,8 +427,12 @@ var PAST=(function(){
     document.getElementById('pastHrs').value='';
     document.getElementById('pastMins').value='30';
     document.getElementById('pastNote').value='';
-    var cfg=D.getCfg(),list=type==='study'?cfg.studySubjects:cfg.workCategories;
-    document.getElementById('pastCat').innerHTML=list.map(function(s){return'<option>'+esc(s)+'</option>'}).join('');
+    var cfg=D.getCfg();
+    if(type==='study'){
+      document.getElementById('pastCat').innerHTML=UI.examSubjectOptions(null,false);
+    } else {
+      document.getElementById('pastCat').innerHTML=cfg.workCategories.map(function(s){return'<option>'+esc(s)+'</option>'}).join('');
+    }
     document.querySelectorAll('#pastDiffSel .diff-btn').forEach(function(b){b.classList.remove('on')});
     document.querySelectorAll('#pastDiffSel .diff-btn')[2].classList.add('on');
     document.getElementById('pastModal').classList.remove('hidden');
@@ -439,8 +453,12 @@ var PAST=(function(){
     document.getElementById('pastMins').value=totalMins%60||'';
     document.getElementById('pastNote').value=sess.note||'';
     /* Populate category dropdown and select the right one */
-    var cfg=D.getCfg(),list=type==='study'?cfg.studySubjects:cfg.workCategories;
-    document.getElementById('pastCat').innerHTML=list.map(function(s){return'<option'+(s===sess.cat?' selected':'')+'>'+esc(s)+'</option>'}).join('');
+    var cfg=D.getCfg();
+    if(type==='study'){
+      document.getElementById('pastCat').innerHTML=UI.examSubjectOptions(sess.cat,false);
+    } else {
+      document.getElementById('pastCat').innerHTML=cfg.workCategories.map(function(s){return'<option'+(s===sess.cat?' selected':'')+'>'+esc(s)+'</option>'}).join('');
+    }
     /* Set difficulty button */
     document.querySelectorAll('#pastDiffSel .diff-btn').forEach(function(b){
       b.classList.remove('on');
@@ -489,6 +507,7 @@ var PAST=(function(){
     } else {
       /* Add mode */
       D.addSession(pastType,date,sessObj);
+      if(pastType==='study'&&note)D.addTopicToSubject(cat,note);
       if(pastType==='study'&&note)TM.createRevision(cat,note,pastDiff);
       UI.toast('Saved \u2713');
     }

@@ -1,4 +1,4 @@
-const CACHE = 'study-timer-v49';
+const CACHE = 'study-timer-v51';
 const ASSETS = [
   './',
   './index.html',

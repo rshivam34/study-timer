@@ -85,9 +85,21 @@
 /* V3 — Calendar Dot Variants */
 .cal-dot-hollow{width:6px;height:6px;border-radius:50%;border:1.5px solid var(--pur);background:transparent;display:inline-block}
 .cal-dot-filled{width:6px;height:6px;border-radius:50%;background:var(--grn);display:inline-block}
-/* V3 — Onboarding Hints */
-.onboard-hint{background:var(--acc2);border:1px solid var(--acc);border-radius:10px;padding:10px 14px;margin:8px 0;font-size:.72rem;color:var(--t2);display:flex;align-items:center;gap:8px}
-.onboard-hint button{margin-left:auto;background:none;border:none;color:var(--acc);font-weight:700;cursor:pointer;font-size:.72rem;white-space:nowrap}
+/* V3 — Getting Started Guide */
+.guide-card{background:var(--s1);border:1px solid var(--acc);border-radius:12px;padding:14px 16px;margin-bottom:10px}
+.guide-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.guide-title{font-family:'JetBrains Mono',monospace;font-size:.78rem;font-weight:700;color:var(--acc);letter-spacing:.06em;text-transform:uppercase}
+.guide-progress{font-family:'JetBrains Mono',monospace;font-size:.62rem;font-weight:600;color:var(--td)}
+.guide-step{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--brd);font-size:.74rem}
+.guide-step:last-of-type{border-bottom:none}
+.guide-step.done .guide-text{text-decoration:line-through;color:var(--tf)}
+.guide-step.done .guide-check{background:var(--grn);color:#fff}
+.guide-step.current .guide-check{background:var(--acc);color:#fff;animation:pulse-guide 1.5s infinite}
+@keyframes pulse-guide{0%,100%{box-shadow:0 0 0 0 rgba(255,107,53,.4)}50%{box-shadow:0 0 0 6px rgba(255,107,53,0)}}
+.guide-check{width:22px;height:22px;border-radius:50%;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:var(--td);flex-shrink:0}
+.guide-text{flex:1;color:var(--t2);font-weight:500}
+.guide-tip{font-size:.62rem;color:var(--tf);text-align:center;margin-top:8px;font-style:italic}
+.guide-hint{background:var(--acc2);border:1px solid var(--acc);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:.72rem;color:var(--t2);font-weight:500;line-height:1.6}
 /* V3 — Offline Banner */
 .offline-banner{background:var(--yel2);border:1px solid var(--yel);border-radius:8px;padding:8px 14px;margin-bottom:8px;font-size:.72rem;font-weight:600;color:var(--yel);text-align:center}
 /* V3 — Plan Color Coding Border */
@@ -109,7 +121,7 @@
   .summary-card h4{color:#000!important}
   .sum-row{border-bottom:1px solid #eee!important}
   .sum-label{color:#666!important}.sum-value{color:#000!important}
-  #offlineBanner,#onboardContainer,.onboard-hint{display:none!important}
+  #offlineBanner,.guide-card{display:none!important}
 }
 </style>
 </head>
@@ -167,11 +179,9 @@
   <div class="quote-list" id="quoteList"></div>
   <div class="manage-add"><input type="text" class="inp" id="addQuote" placeholder="Add your own motivation..." style="flex:1"><button class="b b-sm b-acc" onclick="App.addQuote()">Add</button></div>
 </div>
-<div id="onboardContainer"></div>
-
-
 <!-- STUDY TAB -->
 <div class="tp on" id="p-study">
+  <div id="setupGuide"></div>
   <div class="goal-ring-wrap" id="goalWrap"></div>
   <div id="battleCry"></div>
   <section class="tc" id="tc-study"><div class="pdot"></div>
@@ -519,7 +529,7 @@
 <div class="tp" id="p-recur"><div class="sl" data-info="Tasks that repeat on a schedule — daily, weekly, specific days, monthly, or yearly.">Add Recurring Task</div><div style="background:var(--s1);border:1px solid var(--brd);border-radius:10px;padding:14px;margin-bottom:10px"><div class="df"><input type="text" class="inp" id="rcTitle" placeholder="Task title... *" style="flex:2"><select class="cat-sel" id="rcType" style="flex:1"></select></div><div class="df" style="margin-top:6px"><span class="df-lbl">Pattern</span><select class="cat-sel" id="rcPattern" onchange="RECUR.patternChange()" style="flex:1"><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="specific">Specific Days</option><option value="fortnightly">Fortnightly</option><option value="monthly">Monthly</option><option value="yearly">Yearly</option></select></div><div id="rcPatternOpts" style="margin-top:6px"></div><div class="df" style="margin-top:6px"><span class="df-lbl">Time</span><input type="time" class="inp" id="rcTime" value="08:00" style="width:110px"><button class="b b-sm b-acc" onclick="RECUR.add()" style="margin-left:auto">Add Task</button></div></div><div class="sl">Manage Types</div><div class="df" style="margin-bottom:10px"><input type="text" class="inp" id="rcNewType" placeholder="New type..." style="flex:1"><button class="b b-sm" onclick="RECUR.addType()">Add Type</button></div><div id="rcTypeList" style="margin-bottom:10px"></div><div class="sl">Filter</div><div class="df" style="margin-bottom:10px"><select class="cat-sel" id="rcFilter" onchange="RECUR.render()" style="flex:1"><option value="">All Types</option></select></div><div id="rcList"></div></div>
 
 <!-- SETTINGS TAB -->
-<div class="tp" id="p-sett"><div class="sl" data-info="Manage exam groups and subjects. These appear in timer dropdowns, plans, and reports.">Study Subjects (hold ☰ to drag)</div><div id="mngStudy"></div><div class="manage-add" style="margin-bottom:12px"><input type="text" class="inp" id="addStudy" placeholder="New subject..." style="flex:1"><button class="b b-sm" onclick="App.addCat('study')">Add</button></div><div class="sl">Work Categories (hold ☰ to drag)</div><div id="mngWork"></div><div class="manage-add" style="margin-bottom:12px"><input type="text" class="inp" id="addWork" placeholder="New category..." style="flex:1"><button class="b b-sm" onclick="App.addCat('work')">Add</button></div><div class="sl">Knowledge Categories</div><div id="mngKnowledge"></div><div class="manage-add" style="margin-bottom:12px"><input type="text" class="inp" id="addKnowledge" placeholder="New category..." style="flex:1"><button class="b b-sm" onclick="App.addCat('knowledge')">Add</button></div>
+<div class="tp" id="p-sett"><div class="sl" data-info="Manage exams and their subjects. Add topics in the Syllabus section.">Exams & Subjects (hold ☰ to drag)</div><div id="settingsGuide"></div><div id="mngStudy"></div><div class="sl">Work Categories (hold ☰ to drag)</div><div id="mngWork"></div><div class="manage-add" style="margin-bottom:12px"><input type="text" class="inp" id="addWork" placeholder="New category..." style="flex:1"><button class="b b-sm" onclick="App.addCat('work')">Add</button></div><div class="sl">Knowledge Categories</div><div id="mngKnowledge"></div><div class="manage-add" style="margin-bottom:12px"><input type="text" class="inp" id="addKnowledge" placeholder="New category..." style="flex:1"><button class="b b-sm" onclick="App.addCat('knowledge')">Add</button></div>
 <div class="sl" data-info="Configure wake time, bedtime, and effective minutes per hour for accurate time budget calculations.">Time Settings</div><div class="srow" style="flex-direction:column;gap:6px;align-items:stretch"><div class="df"><span class="df-lbl">Wake Time</span><select class="cat-sel" id="cfgWakeTime" onchange="App.saveCfgExtra()" style="flex:1"><option value="5">5:00 AM</option><option value="5.5">5:30 AM</option><option value="6" selected>6:00 AM</option><option value="6.5">6:30 AM</option><option value="7">7:00 AM</option><option value="7.5">7:30 AM</option><option value="8">8:00 AM</option></select></div><div class="df"><span class="df-lbl">Bedtime</span><select class="cat-sel" id="cfgBedtime" onchange="App.saveCfgExtra()" style="flex:1"><option value="21">9:00 PM</option><option value="21.5">9:30 PM</option><option value="22">10:00 PM</option><option value="22.5" selected>10:30 PM</option><option value="23">11:00 PM</option><option value="23.5">11:30 PM</option><option value="24">12:00 AM</option></select></div><div class="df"><span class="df-lbl">Effective min/hr</span><input type="number" class="inp" id="cfgEffective" value="50" min="30" max="60" style="width:60px" onchange="App.saveCfgExtra()"><span class="df-lbl">min</span></div></div>
 <div class="sl" data-info="Enable push notifications for deadlines, revision reminders, recurring tasks, and daily journal.">Notifications</div><div class="srow"><div><strong id="notifStatus">Notifications: Not set</strong><p class="srow-d">Deadline, revision & recurring reminders</p></div><button class="b b-sm" onclick="NOTIFY.requestPerm()">Enable</button></div>
 <div class="srow"><div><strong>Plan Reminder</strong><p class="srow-d">Daily reminder for unfinished plans</p></div><select class="cat-sel" id="cfgPlanRemindHour" onchange="App.saveCfgExtra()" style="min-width:90px"><option value="0">Off</option><option value="6">6 AM</option><option value="7">7 AM</option><option value="8">8 AM</option><option value="9">9 AM</option><option value="10">10 AM</option></select></div>

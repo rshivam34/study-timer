@@ -340,3 +340,6 @@
 .hv-journal{padding:12px 14px;border-top:1px solid var(--brd)}
 .hv-journal-title{font-size:.7rem;font-weight:700;color:var(--heading);margin-bottom:8px}
 .hv-mood-tags{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-bottom:8px}
+/* ========== TOPIC MANAGEMENT (Syllabus) ========== */
+.topic-x{background:none;border:none;color:var(--tf);font-size:.55rem;cursor:pointer;padding:0 2px;line-height:1;flex-shrink:0}
+.topic-x:hover{color:var(--red)}

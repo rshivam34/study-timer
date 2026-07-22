@@ -39,16 +39,9 @@ function syncUI(state){var dot=document.getElementById('sDot'),txt=document.getE
 function gInfo(){var el=document.getElementById('gInfo'),btn=document.getElementById('gBtn');if(D.isCloud()){el.textContent='Connected — '+D.getGistId().slice(0,8)+'...';btn.textContent='Disconnect';btn.onclick=function(){if(confirm('Disconnect?')){D.disc();gInfo();syncUI('off');UI.toast('Disconnected')}}}else{el.textContent='Not connected';btn.textContent='Connect';btn.onclick=reconn}}
 function manSync(){if(!D.getToken()){UI.toast('Connect first');return}syncUI('busy');(D.isCloud()?D.sync():D.autoConn()).then(function(){UI.renderAll();RP.renderHeatmap();syncUI('on');gInfo();UI.toast('Synced ✓')}).catch(function(){D.autoConn().then(function(){UI.renderAll();RP.renderHeatmap();syncUI('on');gInfo();UI.toast('Synced ✓')}).catch(function(){syncUI('err');UI.toast('Failed')})})}
 function reconn(){show('setup')}
-function addCat(type){var inp=document.getElementById(type==='study'?'addStudy':type==='work'?'addWork':'addKnowledge');var val=inp.value.trim();if(!val)return;var cfg=D.getCfg();
-if(type==='study'){
-  /* Add to first exam by default */
-  var exams=D.getExams();
-  if(exams.length){D.addSubjectToExam(exams[0].id,val)}
-  else{if(cfg.studySubjects.indexOf(val)===-1)cfg.studySubjects.push(val);D.setCfg(cfg)}
-} else {
-  var list=type==='work'?cfg.workCategories:(cfg.knowledgeCategories||(cfg.knowledgeCategories=[]));
-  if(list.indexOf(val)===-1)list.push(val);D.setCfg(cfg);
-}
+function addCat(type){if(type==='study'){UI.toast('Add subjects inside an exam');return}var inp=document.getElementById(type==='work'?'addWork':'addKnowledge');var val=inp.value.trim();if(!val)return;var cfg=D.getCfg();
+var list=type==='work'?cfg.workCategories:(cfg.knowledgeCategories||(cfg.knowledgeCategories=[]));
+if(list.indexOf(val)===-1)list.push(val);D.setCfg(cfg);
 inp.value='';UI.renderAll();D.push();UI.toast('Added')}
 function rmCat(type,name){if(!confirm('Remove "'+name+'"?'))return;var cfg=D.getCfg();if(type==='study'){
   /* Remove from all exams */
@@ -69,11 +62,53 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 return{connect:connect,skip:skip,tab:tab,syncUI:syncUI,manSync:manSync,reconn:reconn,addCat:addCat,rmCat:rmCat,toggleTheme:toggleTheme,saveCfgExtra:saveCfgExtra,enterFocus:enterFocus,exitFocus:exitFocus,focusAction:focusAction,installPWA:installPWA,toggleQuotes:toggleQuotes,addQuote:addQuote,rmQuote:rmQuote}})();
 
 /* Exam management functions — attached after IIFE */
-App.addExam=function(){var name=prompt('Exam name:');if(!name||!name.trim())return;D.addExam(name.trim());UI.renderManage();UI.fillDD();D.push();UI.toast('Exam added')};
-App.rmExam=function(id){if(!confirm('Delete this exam and all its subjects?'))return;D.removeExam(id);var cfg=D.getCfg();cfg.studySubjects=D.getAllSubjects();D.setCfg(cfg);UI.renderManage();UI.fillDD();D.push();UI.toast('Exam removed')};
+App.addExam=function(){var name=prompt('Exam name:');if(!name||!name.trim())return;D.addExam(name.trim());UI.renderManage();UI.fillDD();try{App.renderGuide()}catch(e){}D.push();UI.toast('Exam added')};
+App.rmExam=function(id){if(!confirm('Delete this exam and all its subjects?'))return;D.removeExam(id);var cfg=D.getCfg();cfg.studySubjects=D.getAllSubjects();D.setCfg(cfg);UI.renderManage();UI.fillDD();try{App.renderGuide()}catch(e){}D.push();UI.toast('Exam removed')};
 App.editExamName=function(id){var exams=D.getExams();var ex=exams.find(function(e){return e.id===id});if(!ex)return;var name=prompt('Rename exam:',ex.name);if(!name||!name.trim())return;ex.name=name.trim();D.setExams(exams);UI.renderManage();D.push();UI.toast('Renamed')};
-App.addSubjectToExam=function(examId){var inp=document.getElementById('addSubjExam_'+examId);var val=inp?inp.value.trim():'';if(!val)return;D.addSubjectToExam(examId,val);inp.value='';UI.renderManage();UI.fillDD();D.push();UI.toast('Added')};
-App.rmSubjectFromExam=function(examId,subject){if(!confirm('Remove "'+subject+'"?'))return;D.removeSubjectFromExam(examId,subject);UI.renderManage();UI.fillDD();D.push();UI.toast('Removed')};
+App.addSubjectToExam=function(examId){var inp=document.getElementById('addSubjExam_'+examId);var val=inp?inp.value.trim():'';if(!val)return;D.addSubjectToExam(examId,val);inp.value='';UI.renderManage();UI.fillDD();try{App.renderGuide()}catch(e){}D.push();UI.toast('Added')};
+App.rmSubjectFromExam=function(examId,subject){if(!confirm('Remove "'+subject+'"?'))return;D.removeSubjectFromExam(examId,subject);UI.renderManage();UI.fillDD();try{App.renderGuide()}catch(e){}D.push();UI.toast('Removed')};
+/* ========== DYNAMIC GETTING-STARTED GUIDE ========== */
+/* Purely state-driven — no localStorage flags, auto-hides when setup is complete */
+App.renderGuide=function(){
+  var exams=D.getExams();
+  var subjects=D.getAllSubjects();
+  var hasTopics=D.hasAnyTopics();
+  var isComplete=exams.length>0&&subjects.length>0&&hasTopics;
+
+  /* Study tab guide card */
+  var guideEl=document.getElementById('setupGuide');
+  if(guideEl){
+    if(isComplete){guideEl.innerHTML='';return}
+    var steps=[
+      {done:exams.length>0,text:'Add an exam in <b>Settings</b>',action:"App.navTo('sett')",label:'Settings'},
+      {done:subjects.length>0,text:'Add subjects to your exam',action:"App.navTo('sett')",label:'Settings'},
+      {done:hasTopics,text:'Add topics in <b>Syllabus</b> (or study with timer)',action:"App.navTo('syl')",label:'Syllabus'}
+    ];
+    var doneCount=steps.filter(function(s){return s.done}).length;
+    var currentStep=steps.findIndex(function(s){return!s.done});
+    var h='<div class="guide-card">';
+    h+='<div class="guide-hdr"><span class="guide-title">Get Started</span>';
+    h+='<span class="guide-progress">'+doneCount+'/'+steps.length+' done</span></div>';
+    steps.forEach(function(s,i){
+      var cls=s.done?'guide-step done':(i===currentStep?'guide-step current':'guide-step');
+      h+='<div class="'+cls+'">';
+      h+='<span class="guide-check">'+(s.done?'✓':(i+1))+'</span>';
+      h+='<span class="guide-text">'+s.text+'</span>';
+      if(!s.done)h+='<button class="b b-xs b-acc" onclick="'+s.action+'">'+s.label+'</button>';
+      h+='</div>';
+    });
+    h+='<div class="guide-tip">Topics are added in Syllabus or auto-created when you study with the timer</div>';
+    h+='</div>';
+    guideEl.innerHTML=h;
+  }
+
+  /* Settings section hint */
+  var settGuide=document.getElementById('settingsGuide');
+  if(settGuide){
+    if(exams.length>0){settGuide.innerHTML=''}
+    else{settGuide.innerHTML='<div class="guide-hint">Click <b>+ Add Exam</b> below to create your first exam, then add subjects to it.</div>'}
+  }
+};
 
 
 /* ========== ENHANCED APP NAVIGATION + WIRING ========== */
@@ -113,6 +148,7 @@ App.rmSubjectFromExam=function(examId,subject){if(!confirm('Remove "'+subject+'"
     if(id==='todo') TODO.render();
     if(id==='summary') try{SUM.init()}catch(e){}
     if(id==='knowledge') try{KNOW.init()}catch(e){}
+    if(id==='study'||id==='sett') try{App.renderGuide()}catch(e){}
   };
   App.tab = App.navTo;
 
@@ -152,6 +188,13 @@ App.rmSubjectFromExam=function(examId,subject){if(!confirm('Remove "'+subject+'"
           var ptSel = document.getElementById('smPastTopic');
           var seen = {};
           var pastTopics = [];
+          /* Predefined topics first (synced across all sections) */
+          var predefined = D.getTopicsForSubject(cat);
+          predefined.forEach(function(t){
+            if(seen[t]) return;
+            seen[t] = 1;
+            pastTopics.push(t);
+          });
           /* From revisions */
           var revs = D.getRevs();
           revs.forEach(function(r){
@@ -169,7 +212,7 @@ App.rmSubjectFromExam=function(examId,subject){if(!confirm('Remove "'+subject+'"
               pastTopics.push(s.note);
             });
           });
-          ptSel.innerHTML = '<option value="">— Type new topic below —</option>';
+          ptSel.innerHTML = '<option value="">— Select topic or type new below —</option>';
           pastTopics.slice(0, 30).forEach(function(t){
             ptSel.innerHTML += '<option value="'+esc(t)+'">'+esc(t)+'</option>';
           });
@@ -220,31 +263,6 @@ App.rmSubjectFromExam=function(examId,subject){if(!confirm('Remove "'+subject+'"
       document.querySelectorAll('.rating-popup.show').forEach(function(p){p.classList.remove('show')});
     }
   });
-
-  // [#55] Onboarding hints — show on first launch
-  function _showOnboarding(){
-    if(localStorage.getItem('st3_onboarded'))return;
-    var hints=[
-      {key:'plan',text:'🎯 <b>Planning</b> — Plan your study day, set targets, and track progress. Press <b>P</b> to open.'},
-      {key:'calendar',text:'📅 <b>Calendar</b> — View your study history day-by-day with heatmap intensity. Press <b>C</b>.'},
-      {key:'todo',text:'✅ <b>To-Do</b> — Manage nested tasks with priorities, due dates, and drag-to-reorder. Press <b>D</b>.'},
-      {key:'summary',text:'📊 <b>Summary</b> — Analytics dashboard with focus score, streaks, and mood trends. Press <b>U</b>.'}
-    ];
-    var h='';
-    hints.forEach(function(ht){
-      h+='<div class="onboard-hint" id="onboard-'+ht.key+'">'+ht.text+'<button onclick="App.dismissHint(\''+ht.key+'\')">Got it</button></div>';
-    });
-    var el=document.getElementById('onboardContainer');
-    if(el)el.innerHTML=h;
-  }
-  App.dismissHint=function(key){
-    var el=document.getElementById('onboard-'+key);
-    if(el)el.remove();
-    var container=document.getElementById('onboardContainer');
-    if(container&&!container.children.length){
-      localStorage.setItem('st3_onboarded','1');
-    }
-  };
 
   // [#58] Offline indicator
   function _initOffline(){
@@ -391,17 +409,19 @@ App.rmSubjectFromExam=function(examId,subject){if(!confirm('Remove "'+subject+'"
     TODO.renderInline();
     SUM.init();
     try{var knDate=document.getElementById('knAddDate');if(knDate)knDate.value=D.todayKey()}catch(e){}
-    _showOnboarding();
     _initOffline();
+    try{App.renderGuide()}catch(e){}
     /* Initialize study/work plan dates and render */
     var spd=document.getElementById('studyPlanDate');
     if(spd){spd.value=D.todayKey()}
     var wpd=document.getElementById('workPlanDate');
     if(wpd){wpd.value=D.todayKey()}
     App.renderStudyPlans();
-    /* Attach topic autocomplete to save modal */
+    /* Attach topic autocomplete to save modal + past session */
     var smNoteEl=document.getElementById('smNote');
     if(smNoteEl)UI.autocomplete(smNoteEl,function(){return document.getElementById('smCat').textContent});
+    var pastNoteEl=document.getElementById('pastNote');
+    if(pastNoteEl)UI.autocomplete(pastNoteEl,function(){return document.getElementById('pastCat').value});
   }, 100);
 
   /* ========== TIME BUDGET CARD (#6) ========== */
@@ -670,6 +690,7 @@ App.rmSubjectFromExam=function(examId,subject){if(!confirm('Remove "'+subject+'"
     try{App.renderStudyPlans()}catch(e){}
     try{App.renderTimeBudget()}catch(e){}
     try{App.renderBattleCry()}catch(e){}
+    try{App.renderGuide()}catch(e){}
   };
 
   /* Patch renderGoal to also update battle cry on timer ticks */

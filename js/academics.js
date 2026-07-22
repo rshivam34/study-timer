@@ -31,12 +31,57 @@ function saveSetup(){var n=parseInt(document.getElementById('sylLecCount').value
 function closeSetup(){document.getElementById('sylModal').classList.add('hidden')}
 function toggleLec(subj,idx){var syl=D.getSyl();if(!syl[subj])return;syl[subj].done=idx<syl[subj].done?idx:idx+1;D.setSyl(syl);renderAll();D.push()}
 function getTopicsForSubj(subj){var revs=D.getRevs().filter(function(r){return r.subj===subj});var today=D.todayKey();return revs.map(function(r){var nd=new Date(r.nextDate),d2=Math.ceil((nd-new Date(today))/(864e5));var st=!r.active?'retired':d2<0?Math.abs(d2)+'d overdue':d2===0?'today':'in '+d2+'d';var sc=!r.active?'var(--tf)':d2<0?'var(--red)':d2===0?'var(--acc)':'var(--grn)';return{topic:r.topic,date:r.created,diff:r.diff,status:st,color:sc,active:r.active}})}
-function renderAll(){var syl=D.getSyl(),cfg=D.getCfg();var el=document.getElementById('sylList');var subjs=D.getAllSubjects();if(!subjs.length){el.innerHTML='<div class="empty"><p>Add subjects in settings</p></div>';return}var h='';subjs.forEach(function(subj){var s=syl[subj];var topics=getTopicsForSubj(subj);var hasLectures=s&&s.total;var pct=hasLectures?Math.round((s.done||0)/s.total*100):0;
+function renderAll(){var syl=D.getSyl(),cfg=D.getCfg();var el=document.getElementById('sylList');var subjs=D.getAllSubjects();if(!subjs.length){el.innerHTML='<div class="empty"><p>No subjects yet</p><button class="b b-xs b-acc" onclick="App.navTo(\'sett\')" style="margin-top:8px">Go to Settings → Add Exam & Subjects</button></div>';return}var h='';subjs.forEach(function(subj){var s=syl[subj];var topics=getTopicsForSubj(subj);var hasLectures=s&&s.total;var pct=hasLectures?Math.round((s.done||0)/s.total*100):0;
 var exam=D.getExamForSubject(subj);var examLabel=exam?'<span style="font-size:.5rem;color:var(--td);font-weight:600;background:var(--s3);padding:1px 5px;border-radius:3px;margin-left:4px">'+esc(exam.name)+'</span>':'';
 h+='<div class="syl-card"><div class="syl-hdr"><span class="syl-subj">'+esc(subj)+examLabel+'</span>';
 if(hasLectures)h+='<span class="syl-pct">'+pct+'%</span>';
 h+='</div>';
 if(hasLectures){h+='<div class="syl-bar"><div class="syl-bar-fill" style="width:'+pct+'%"></div></div><div class="syl-info">Lectures: '+(s.done||0)+'/'+s.total+'</div><div class="syl-lec-btns">';for(var i=0;i<Math.min(s.total,100);i++)h+='<button class="syl-lec-btn'+(i<(s.done||0)?' done':'')+'" onclick="SYL.toggleLec(\''+esc(subj)+'\','+i+')">'+(i+1)+'</button>';h+='</div>'}
-if(topics.length){var tid='syl-topics-'+subj.replace(/[^a-zA-Z0-9]/g,'_');h+='<button class="syl-topics-btn" onclick="document.getElementById(\''+tid+'\').classList.toggle(\'hidden\')">📝 '+topics.length+' topic'+(topics.length>1?'s':'')+' studied — tap to view</button>';h+='<div class="syl-topic-list hidden" id="'+tid+'">';topics.forEach(function(t){h+='<div class="syl-topic-item"><span class="syl-topic-name">'+esc(t.topic)+'</span><span class="diff-'+t.diff+'" style="padding:1px 5px;border-radius:3px;font-size:.55rem;font-weight:700">'+t.diff+'</span><span class="syl-topic-date">'+UI.fdate(t.date)+'</span><span class="syl-topic-rev" style="color:'+t.color+';font-weight:700;font-size:.6rem">'+t.status+'</span></div>'});h+='</div>'}else if(!hasLectures){h+='<div class="syl-info" style="color:var(--tf)">No lectures set up · No topics studied yet</div>'}
+/* Merge predefined topics with revision data */
+var predefined=D.getTopicsForSubject(subj);
+var revByTopic={};topics.forEach(function(t){revByTopic[t.topic]=t});
+var allTopics=[];var seen={};
+/* Predefined topics first */
+predefined.forEach(function(t){
+  seen[t]=1;
+  if(revByTopic[t]){allTopics.push(revByTopic[t])}
+  else{allTopics.push({topic:t,status:'not studied',color:'var(--tf)',active:false,predefinedOnly:true})}
+});
+/* Then any studied topics not in predefined list */
+topics.forEach(function(t){if(!seen[t.topic])allTopics.push(t)});
+
+var tid='syl-topics-'+subj.replace(/[^a-zA-Z0-9]/g,'_');
+var studiedCount=topics.length;
+h+='<button class="syl-topics-btn" onclick="document.getElementById(\''+tid+'\').classList.toggle(\'hidden\')">📝 '+allTopics.length+' topic'+(allTopics.length!==1?'s':'')+' ('+studiedCount+' studied) — tap to view</button>';
+h+='<div class="syl-topic-list hidden" id="'+tid+'">';
+allTopics.forEach(function(t){
+  h+='<div class="syl-topic-item"><span class="syl-topic-name">'+esc(t.topic)+'</span>';
+  if(t.predefinedOnly){
+    h+='<span style="font-size:.55rem;color:var(--tf);font-style:italic">not studied</span>';
+  } else {
+    h+='<span class="diff-'+t.diff+'" style="padding:1px 5px;border-radius:3px;font-size:.55rem;font-weight:700">'+t.diff+'</span>';
+    h+='<span class="syl-topic-date">'+UI.fdate(t.date)+'</span>';
+    h+='<span class="syl-topic-rev" style="color:'+t.color+';font-weight:700;font-size:.6rem">'+t.status+'</span>';
+  }
+  h+='<button class="topic-x" onclick="event.stopPropagation();SYL.rmTopic(\''+esc(subj).replace(/'/g,"\\'")+'\',\''+esc(t.topic).replace(/'/g,"\\'")+'\')">✕</button>';
+  h+='</div>';
+});
+/* Add topic input */
+var addId='sylAddTopic_'+subj.replace(/[^a-zA-Z0-9]/g,'_');
+h+='<div style="display:flex;gap:4px;margin-top:6px;padding-top:6px;border-top:1px solid var(--brd)"><input type="text" class="inp" id="'+addId+'" placeholder="Add new topic..." style="flex:1;font-size:.68rem;padding:4px 8px" onkeydown="if(event.key===\'Enter\')SYL.addTopic(\''+esc(subj).replace(/'/g,"\\'")+'\')"><button class="b b-xs b-acc" onclick="SYL.addTopic(\''+esc(subj).replace(/'/g,"\\'")+'\')">+ Add</button></div>';
+h+='</div>';
+if(!allTopics.length&&!hasLectures){h+='<div class="syl-info" style="color:var(--tf)">No lectures set up · No topics yet</div>'}
 h+='</div>'});el.innerHTML=h}
-return{setupSubj:setupSubj,saveSetup:saveSetup,closeSetup:closeSetup,toggleLec:toggleLec,renderAll:renderAll}})();
+function addTopic(subj){
+  var inp=document.getElementById('sylAddTopic_'+subj.replace(/[^a-zA-Z0-9]/g,'_'));
+  var val=inp?inp.value.trim():'';
+  if(!val){UI.toast('Enter a topic name');return}
+  D.addTopicToSubject(subj,val);
+  inp.value='';renderAll();D.push();UI.toast('Topic added')
+}
+function rmTopic(subj,topic){
+  if(!confirm('Remove topic "'+topic+'"?'))return;
+  D.removeTopicFromSubject(subj,topic);
+  renderAll();D.push();UI.toast('Topic removed')
+}
+return{setupSubj:setupSubj,saveSetup:saveSetup,closeSetup:closeSetup,toggleLec:toggleLec,renderAll:renderAll,addTopic:addTopic,rmTopic:rmTopic}})();

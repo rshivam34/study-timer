@@ -82,6 +82,18 @@ Scripts load synchronously in index.html in this exact order. Dependencies flow 
 - `plans{dateKey:[]}` — daily study plans with subject, topic, estimated/actual hours
 - `journal{dateKey:{}}` — daily journal entries (rating, mood, notes)
 - `recurring[]` + `recurringDone{}` — recurring tasks with completion tracking
+- `subjectTopics{'Polity':['Topic1','Topic2']}` — predefined topics per subject, synced across all sections
+
+## Topic System
+
+- Topics are predefined under each subject via `cfg.subjectTopics`
+- `D.getTopicsForSubject(subj)` — centralized lookup, always use this
+- Auto-populated from existing revisions/sessions on first migration
+- **Topics can only be added in two places:** timer (auto-add on study) and syllabus section (manual add/remove)
+- Settings only manages exams & subjects — NOT topics
+- Synced across: timer save modal, plan form, revision, autocomplete
+- Onboarding wizard shows on first launch if no topics exist
+- Syllabus UI: shows all topics (predefined + studied) with add/remove and revision status
 
 ## Service Worker Caching
 

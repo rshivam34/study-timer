@@ -80,11 +80,14 @@ var PLAN=(function(){
     var sel=document.getElementById('planRevTopic');
     if(!sel)return;
     var seen={},topics=[];
+    /* Predefined topics first */
+    var predefined=D.getTopicsForSubject(subj);
+    predefined.forEach(function(t){if(!seen[t]){seen[t]=1;topics.push(t)}});
     /* Gather from study sessions */
     var d=D.getLocal();
     if(d.study){Object.keys(d.study).forEach(function(dk){
       (d.study[dk]||[]).forEach(function(s){
-        if(s.cat===subj&&s.topic&&!seen[s.topic]){seen[s.topic]=1;topics.push(s.topic)}
+        if(s.cat===subj&&s.note&&!seen[s.note]){seen[s.note]=1;topics.push(s.note)}
       });
     })}
     /* Gather from plans */
